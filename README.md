@@ -13,9 +13,9 @@ LangGraph 에이전트를 위한 Next.js 기반 채팅 인터페이스입니다.
 - 가이드 문서 커스터마이징
 - 앱 설정 커스터마이징
 - 테마 설정 (Dark/Light/Auto)
-- [ ] OAuth 기반 인증 기능
-- [ ] Middleware 로그 뷰어 기능
-- [ ] Docker 이미지 지원
+- (TODO) OAuth 기반 인증 기능
+- (TODO) Middleware 로그 뷰어 기능
+- (TODO) Docker 이미지 지원
 
 ## 요구사항
 
@@ -46,7 +46,7 @@ cp .env.example .env
 ```
 
 ```env
-# 필수: LangGraph API 엔드포인트 (로컬 개발용)
+# 필수: LangGraph API 엔드포인트
 NEXT_PUBLIC_API_URL=http://localhost:2024
 
 # 선택: Assistant/Graph ID
