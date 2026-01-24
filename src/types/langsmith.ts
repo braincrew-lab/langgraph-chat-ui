@@ -5,6 +5,7 @@ import {
   type LLMEndTimelineEvent,
   type MiddlewareTimelineEvent,
 } from "./timeline";
+import { type HierarchicalTask, type TaskStats } from "./task-hierarchy";
 
 export interface LangSmithRun {
   id: string;
@@ -282,4 +283,266 @@ export function mapRunToLLMEvent(run: LangSmithRun): LLMEndTimelineEvent {
     status: run.status === "success" ? "success" : "error",
     error: run.error,
   };
+}
+
+// ============ 계층적 태스크 빌드 유틸리티 ============
+
+// dotted_order 파싱하여 depth 계산
+export function parseDottedOrder(dottedOrder: string | undefined): { depth: number; parts: string[] } {
+  if (!dottedOrder) {
+    return { depth: 0, parts: [] };
+  }
+  // dotted_order는 "20231201T120000000Z1234abcd" 형식의 타임스탬프+ID 조합
+  // 여러 레벨은 "parent.child.grandchild" 형태로 구분
+  const parts = dottedOrder.split(".");
+  return { depth: parts.length - 1, parts };
+}
+
+// Run 타입을 HierarchicalTask 타입으로 매핑
+function mapRunType(runType: string): HierarchicalTask["type"] {
+  switch (runType) {
+    case "tool":
+      return "tool";
+    case "llm":
+      return "llm";
+    case "chain":
+      return "chain";
+    default:
+      // 일반적으로 chain/agent는 "chain" 타입으로 옴
+      return runType.includes("agent") ? "agent" : "chain";
+  }
+}
+
+// Run 상태를 HierarchicalTask 상태로 매핑
+function mapRunStatus(status: string): HierarchicalTask["status"] {
+  switch (status) {
+    case "success":
+      return "completed";
+    case "error":
+      return "error";
+    case "pending":
+      return "pending";
+    default:
+      return "running";
+  }
+}
+
+// LangSmithRun을 HierarchicalTask로 변환
+function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
+  const { depth } = parseDottedOrder(run.dotted_order);
+  const tokenUsage = run.runType === "llm" ? extractTokenUsage(run.outputs) : undefined;
+  const model = run.runType === "llm" ? extractModelName(run) : undefined;
+  // LLM 출력 텍스트 추출
+  const llmOutput = run.runType === "llm" ? extractLLMContent(run.outputs) : undefined;
+
+  // Tool args 추출
+  let toolArgs: Record<string, unknown> | undefined;
+  if (run.runType === "tool" && run.inputs) {
+    if ("input" in run.inputs) {
+      toolArgs = typeof run.inputs.input === "object" && run.inputs.input !== null
+        ? run.inputs.input as Record<string, unknown>
+        : { input: run.inputs.input };
+    } else {
+      toolArgs = run.inputs;
+    }
+  }
+
+  // Tool result 추출
+  const toolResult = run.runType === "tool" ? formatRunOutput(run.outputs) : undefined;
+
+  return {
+    id: run.id,
+    name: run.name,
+    status: mapRunStatus(run.status),
+    type: mapRunType(run.runType),
+    parentId: run.parentRunId,
+    children: [],
+    depth,
+    startTime: new Date(run.startTime).getTime(),
+    endTime: run.endTime ? new Date(run.endTime).getTime() : undefined,
+    latency: run.latency,
+    toolArgs,
+    toolResult: toolResult && toolResult.length > 500 ? toolResult.substring(0, 500) + "..." : toolResult,
+    model,
+    tokenUsage,
+    llmOutput,
+    runId: run.id,
+    error: run.error,
+  };
+}
+
+// LangSmith runs로부터 계층 구조 빌드
+export function buildTaskHierarchy(runs: LangSmithRun[]): HierarchicalTask[] {
+  // 모든 run을 HierarchicalTask로 변환
+  const taskMap = new Map<string, HierarchicalTask>();
+  const tasks: HierarchicalTask[] = [];
+
+  for (const run of runs) {
+    const task = runToHierarchicalTask(run);
+    taskMap.set(task.id, task);
+    tasks.push(task);
+  }
+
+  // 부모-자식 관계 구축
+  const rootTasks: HierarchicalTask[] = [];
+
+  for (const task of tasks) {
+    if (task.parentId) {
+      const parent = taskMap.get(task.parentId);
+      if (parent) {
+        parent.children.push(task);
+      } else {
+        // 부모가 없으면 루트로 취급
+        rootTasks.push(task);
+      }
+    } else {
+      rootTasks.push(task);
+    }
+  }
+
+  // 각 노드의 children을 startTime으로 정렬
+  for (const task of tasks) {
+    task.children.sort((a, b) => a.startTime - b.startTime);
+  }
+
+  // 루트 태스크를 startTime으로 정렬
+  rootTasks.sort((a, b) => a.startTime - b.startTime);
+
+  return rootTasks;
+}
+
+// 활성/완료 태스크 분리
+export function partitionTasks(tasks: HierarchicalTask[]): {
+  active: HierarchicalTask[];
+  completed: HierarchicalTask[];
+} {
+  const active: HierarchicalTask[] = [];
+  const completed: HierarchicalTask[] = [];
+
+  function traverse(task: HierarchicalTask) {
+    if (task.status === "running" || task.status === "pending") {
+      active.push(task);
+    } else {
+      completed.push(task);
+    }
+    for (const child of task.children) {
+      traverse(child);
+    }
+  }
+
+  for (const task of tasks) {
+    traverse(task);
+  }
+
+  return { active, completed };
+}
+
+// 태스크 통계 계산
+export function calculateTaskStats(tasks: HierarchicalTask[]): TaskStats {
+  const stats: TaskStats = {
+    total: 0,
+    running: 0,
+    completed: 0,
+    error: 0,
+    toolCount: 0,
+    llmCount: 0,
+    agentCount: 0,
+  };
+
+  function traverse(task: HierarchicalTask) {
+    stats.total++;
+
+    switch (task.status) {
+      case "running":
+        stats.running++;
+        break;
+      case "completed":
+        stats.completed++;
+        break;
+      case "error":
+        stats.error++;
+        break;
+    }
+
+    switch (task.type) {
+      case "tool":
+        stats.toolCount++;
+        break;
+      case "llm":
+        stats.llmCount++;
+        break;
+      case "agent":
+        stats.agentCount++;
+        break;
+    }
+
+    for (const child of task.children) {
+      traverse(child);
+    }
+  }
+
+  for (const task of tasks) {
+    traverse(task);
+  }
+
+  return stats;
+}
+
+// 깊이로 태스크 필터링 (예: 최상위 레벨만)
+export function filterTasksByDepth(tasks: HierarchicalTask[], maxDepth: number): HierarchicalTask[] {
+  function filterRecursive(task: HierarchicalTask, currentDepth: number): HierarchicalTask | null {
+    if (currentDepth > maxDepth) {
+      return null;
+    }
+
+    const filteredChildren: HierarchicalTask[] = [];
+    for (const child of task.children) {
+      const filteredChild = filterRecursive(child, currentDepth + 1);
+      if (filteredChild) {
+        filteredChildren.push(filteredChild);
+      }
+    }
+
+    return {
+      ...task,
+      children: filteredChildren,
+    };
+  }
+
+  const result: HierarchicalTask[] = [];
+  for (const task of tasks) {
+    const filtered = filterRecursive(task, 0);
+    if (filtered) {
+      result.push(filtered);
+    }
+  }
+
+  return result;
+}
+
+// 실행 중인 리프 태스크 찾기 (가장 깊은 실행 중인 태스크)
+export function findActiveLeafTasks(tasks: HierarchicalTask[]): HierarchicalTask[] {
+  const activeLeaves: HierarchicalTask[] = [];
+
+  function traverse(task: HierarchicalTask) {
+    const runningChildren = task.children.filter(c => c.status === "running");
+
+    if (task.status === "running") {
+      if (runningChildren.length === 0) {
+        // 실행 중인 자식이 없으면 이 태스크가 리프
+        activeLeaves.push(task);
+      } else {
+        // 실행 중인 자식이 있으면 자식을 탐색
+        for (const child of runningChildren) {
+          traverse(child);
+        }
+      }
+    }
+  }
+
+  for (const task of tasks) {
+    traverse(task);
+  }
+
+  return activeLeaves;
 }

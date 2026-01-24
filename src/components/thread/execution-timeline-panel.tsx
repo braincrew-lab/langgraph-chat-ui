@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -8,12 +8,18 @@ import {
   Wrench,
   Bot,
   Cog,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TimelineEvent, LangSmithTimelineEvents, buildTimeline } from "@/types/timeline";
+import { type LangSmithRun, buildTaskHierarchy } from "@/types/langsmith";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TaskTreeView } from "./streaming/task-tree-item";
 
 interface ExecutionTimelinePanelProps {
   langSmithEvents: LangSmithTimelineEvents;
+  runs?: LangSmithRun[];
 }
 
 const EventIcon = ({ event }: { event: TimelineEvent }) => {
@@ -243,14 +249,8 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
   );
 };
 
-export function ExecutionTimelinePanel({
-  langSmithEvents,
-}: ExecutionTimelinePanelProps) {
-  const timelineEvents = useMemo(() => {
-    return buildTimeline(langSmithEvents);
-  }, [langSmithEvents]);
-
-  if (timelineEvents.length === 0) {
+function TimelineView({ events }: { events: TimelineEvent[] }) {
+  if (events.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
         실행 로그가 없습니다
@@ -259,10 +259,114 @@ export function ExecutionTimelinePanel({
   }
 
   return (
-    <div className="p-4 space-y-1 overflow-y-auto">
-      {timelineEvents.map((event) => (
+    <div className="p-4 space-y-1">
+      {events.map((event) => (
         <TimelineEventItem key={event.id} event={event} />
       ))}
     </div>
+  );
+}
+
+function TasksView({ runs }: { runs: LangSmithRun[] }) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const hierarchy = useMemo(() => {
+    return buildTaskHierarchy(runs);
+  }, [runs]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    const allIds = new Set<string>();
+    const traverse = (tasks: typeof hierarchy) => {
+      for (const task of tasks) {
+        allIds.add(task.id);
+        traverse(task.children);
+      }
+    };
+    traverse(hierarchy);
+    setExpandedIds(allIds);
+  };
+
+  const collapseAll = () => {
+    setExpandedIds(new Set());
+  };
+
+  if (hierarchy.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+        태스크가 없습니다
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-border/50">
+        <button
+          onClick={expandAll}
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <ChevronDown className="h-3 w-3" />
+          모두 펼치기
+        </button>
+        <button
+          onClick={collapseAll}
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <ChevronUp className="h-3 w-3" />
+          모두 접기
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2">
+        <TaskTreeView
+          tasks={hierarchy}
+          expandedIds={expandedIds}
+          onToggle={toggleExpand}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function ExecutionTimelinePanel({
+  langSmithEvents,
+  runs = [],
+}: ExecutionTimelinePanelProps) {
+  const timelineEvents = useMemo(() => {
+    return buildTimeline(langSmithEvents);
+  }, [langSmithEvents]);
+
+  return (
+    <Tabs defaultValue="tasks" className="h-full flex flex-col">
+      <div className="px-4 pt-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="tasks" className="flex-1">
+            태스크
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="flex-1">
+            타임라인
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="tasks" className="flex-1 overflow-hidden mt-0">
+        <TasksView runs={runs} />
+      </TabsContent>
+
+      <TabsContent value="timeline" className="flex-1 overflow-y-auto mt-0">
+        <TimelineView events={timelineEvents} />
+      </TabsContent>
+    </Tabs>
   );
 }

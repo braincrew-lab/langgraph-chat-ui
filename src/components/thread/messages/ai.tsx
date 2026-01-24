@@ -110,10 +110,12 @@ export function AssistantMessage({
   message,
   isLoading,
   handleRegenerate,
+  compactView = false,
 }: {
   message: Message | undefined;
   isLoading: boolean;
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
+  compactView?: boolean;
 }) {
   const content = message?.content ?? [];
   const contentString = getContentString(content);
@@ -136,20 +138,35 @@ export function AssistantMessage({
     ? parseAnthropicStreamedToolCalls(content)
     : undefined;
 
-  const hasToolCalls =
-    message &&
-    "tool_calls" in message &&
-    message.tool_calls &&
-    message.tool_calls.length > 0;
+  // Task/TodoWrite 도구는 TODO 박스에서 통합 표시하므로 필터링
+  const filterIntegratedTools = (toolCalls: AIMessage["tool_calls"]) => {
+    return toolCalls?.filter(tc => {
+      const name = tc.name?.toLowerCase() || "";
+      return name !== "task" && !name.includes("todo");
+    });
+  };
+
+  const filteredToolCalls = filterIntegratedTools(message && "tool_calls" in message ? message.tool_calls : undefined);
+  const filteredAnthropicToolCalls = filterIntegratedTools(anthropicStreamedToolCalls);
+
+  const hasToolCalls = filteredToolCalls && filteredToolCalls.length > 0;
   const toolCallsHaveContents =
     hasToolCalls &&
-    message.tool_calls?.some(
+    filteredToolCalls?.some(
       (tc) => tc.args && Object.keys(tc.args).length > 0,
     );
-  const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
+  const hasAnthropicToolCalls = !!filteredAnthropicToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
-  if (isToolResult && hideToolCalls) {
+  // compactView 또는 hideToolCalls일 때 tool 메시지 숨김
+  if (isToolResult && (hideToolCalls || compactView)) {
+    return null;
+  }
+
+  // Task/TodoWrite 도구 결과는 TODO 박스에서 통합 표시하므로 여기서 숨김
+  const toolName = message?.name?.toLowerCase() || "";
+  const isIntegratedTool = toolName === "task" || toolName.includes("todo");
+  if (isToolResult && isIntegratedTool) {
     return null;
   }
 
@@ -173,16 +190,16 @@ export function AssistantMessage({
               </div>
             )}
 
-            {!hideToolCalls && (
+            {!hideToolCalls && !compactView && (
               <>
                 {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={message.tool_calls} isLoading={isLoading} />
+                  <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
                 )) ||
                   (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={anthropicStreamedToolCalls} isLoading={isLoading} />
+                    <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
                   )) ||
                   (hasToolCalls && (
-                    <ToolCalls toolCalls={message.tool_calls} isLoading={isLoading} />
+                    <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
                   ))}
               </>
             )}

@@ -27,6 +27,7 @@ import {
   PanelRight,
 } from "lucide-react";
 import { ExecutionTimelinePanel } from "./execution-timeline-panel";
+import { StreamingTaskView } from "./streaming-task-view";
 import { useLangSmithRuns } from "@/hooks/useLangSmithRuns";
 import {
   mapRunToToolCallEvent,
@@ -36,6 +37,7 @@ import {
 } from "@/types/langsmith";
 import { type LangSmithTimelineEvents } from "@/types/timeline";
 import { useQueryState, parseAsBoolean } from "nuqs";
+import { Layers } from "lucide-react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
 import { toast } from "sonner";
@@ -134,6 +136,11 @@ export function Thread() {
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
   );
+  // 컴팩트 뷰 모드 (스트리밍 태스크 뷰 사용)
+  const [compactView, setCompactView] = useQueryState(
+    "compactView",
+    parseAsBoolean.withDefault(true),
+  );
   // LangSmith Tracing 사이드바 열기/닫기 상태 (URL 쿼리 파라미터)
   const [sidebarOpen, setSidebarOpen] = useQueryState(
     "tracing",
@@ -167,6 +174,7 @@ export function Thread() {
   // LangSmith API 연동 - threadId로 runs 조회
   // 스트리밍 중에만 2초 폴링 활성화
   const {
+    runs: allRuns,
     middlewareRuns: langSmithMiddlewareRuns,
     toolRuns: langSmithToolRuns,
     llmRuns: langSmithLLMRuns,
@@ -529,8 +537,12 @@ export function Thread() {
                 <>
                   {messages
                     .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .map((message, index) =>
-                      message.type === "human" ? (
+                    .map((message, index) => {
+                      // 컴팩트 뷰에서는 tool 메시지를 숨김
+                      if (compactView && message.type === "tool") {
+                        return null;
+                      }
+                      return message.type === "human" ? (
                         <HumanMessage
                           key={message.id || `${message.type}-${index}`}
                           message={message}
@@ -542,9 +554,10 @@ export function Thread() {
                           message={message}
                           isLoading={isLoading}
                           handleRegenerate={handleRegenerate}
+                          compactView={compactView}
                         />
-                      ),
-                    )}
+                      );
+                    })}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
                     We need to render it outside of the messages list, since there are no messages to render */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
@@ -553,6 +566,15 @@ export function Thread() {
                       message={undefined}
                       isLoading={isLoading}
                       handleRegenerate={handleRegenerate}
+                      compactView={compactView}
+                    />
+                  )}
+                  {/* 컴팩트 뷰: 스트리밍 태스크 뷰 (스트리밍 중이거나 메시지/runs가 있을 때 표시) */}
+                  {compactView && (isLoading || allRuns.length > 0 || messages.length > 0) && (
+                    <StreamingTaskView
+                      runs={allRuns}
+                      messages={messages}
+                      isStreaming={isLoading}
                     />
                   )}
                   {isLoading && !firstTokenReceived && (
@@ -713,6 +735,28 @@ export function Thread() {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => setCompactView((prev) => !prev)}
+                                  className={cn(
+                                    "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
+                                    compactView
+                                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                      : "bg-muted text-muted-foreground hover:bg-accent"
+                                  )}
+                                >
+                                  <Layers className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p>{compactView ? "Standard view" : "Compact task view"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                               <AssistantSelector
                                 assistants={assistants}
                                 selectedAssistantId={assistantSelectValue}
@@ -800,7 +844,7 @@ export function Thread() {
 
             {/* 컨텐츠 */}
             <div className="flex-1 overflow-y-auto">
-              <ExecutionTimelinePanel langSmithEvents={langSmithEvents} />
+              <ExecutionTimelinePanel langSmithEvents={langSmithEvents} runs={allRuns} />
             </div>
           </div>
         )}
