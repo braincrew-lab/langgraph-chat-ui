@@ -23,7 +23,10 @@ import { AssistantConfigProvider } from "./AssistantConfig";
 import { normalizeApiUrl } from "./client";
 import { TIMING } from "@/lib/constants";
 
-export type StateType = { messages: Message[]; ui?: UIMessage[] };
+export type StateType = {
+  messages: Message[];
+  ui?: UIMessage[];
+};
 
 const useTypedStream = useStream<
   StateType,
@@ -95,6 +98,7 @@ const StreamSession = ({
   // Memoize callbacks to prevent infinite re-renders
   const handleCustomEvent = useCallback(
     (event: unknown, options: { mutate: (fn: (prev: StateType) => StateType) => void }) => {
+      // Handle UI messages
       if (isUIMessage(event) || isRemoveUIMessage(event)) {
         options.mutate((prev: StateType) => {
           const ui = uiMessageReducer(prev.ui ?? [], event);

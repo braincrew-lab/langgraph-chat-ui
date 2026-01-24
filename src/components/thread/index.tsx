@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { UI } from "@/lib/constants";
@@ -23,7 +23,18 @@ import {
   Wrench,
   ArrowUp,
   BookOpen,
+  RefreshCw,
+  PanelRight,
 } from "lucide-react";
+import { ExecutionTimelinePanel } from "./execution-timeline-panel";
+import { useLangSmithRuns } from "@/hooks/useLangSmithRuns";
+import {
+  mapRunToToolCallEvent,
+  mapRunToToolResultEvent,
+  mapRunToLLMEvent,
+  mapRunToMiddlewareEvent,
+} from "@/types/langsmith";
+import { type LangSmithTimelineEvents } from "@/types/timeline";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
@@ -39,12 +50,6 @@ import {
 } from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
-import {
-  useArtifactOpen,
-  ArtifactContent,
-  ArtifactTitle,
-  useArtifactContext,
-} from "./artifact";
 import { useSettings } from "@/hooks/useSettings";
 import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
@@ -117,11 +122,9 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
-  const [artifactContext, setArtifactContext] = useArtifactContext();
-  const [artifactOpen, closeArtifact] = useArtifactOpen();
   const { config, userSettings } = useSettings();
 
-  const [threadId, _setThreadId] = useQueryState("threadId");
+  const [threadId, setThreadId] = useQueryState("threadId");
   const [assistantQueryId, setAssistantQueryId] = useQueryState("assistantId");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
@@ -129,6 +132,11 @@ export function Thread() {
   );
   const [hideToolCalls, setHideToolCalls] = useQueryState(
     "hideToolCalls",
+    parseAsBoolean.withDefault(false),
+  );
+  // LangSmith Tracing 사이드바 열기/닫기 상태 (URL 쿼리 파라미터)
+  const [sidebarOpen, setSidebarOpen] = useQueryState(
+    "tracing",
     parseAsBoolean.withDefault(false),
   );
   const [input, setInput] = useState("");
@@ -156,15 +164,45 @@ export function Thread() {
     refetchAssistants,
   } = useAssistantConfig();
 
+  // LangSmith API 연동 - threadId로 runs 조회
+  // 스트리밍 중에만 2초 폴링 활성화
+  const {
+    middlewareRuns: langSmithMiddlewareRuns,
+    toolRuns: langSmithToolRuns,
+    llmRuns: langSmithLLMRuns,
+    loading: langSmithLoading,
+    refetch: refetchLangSmith,
+  } = useLangSmithRuns(threadId, null, {
+    pollingInterval: 2000,
+    autoPolling: isLoading, // 스트리밍 중에만 폴링
+  });
+
+  // LangSmith runs를 타임라인 이벤트로 변환
+  const langSmithEvents: LangSmithTimelineEvents = useMemo(() => {
+    return {
+      middlewares: langSmithMiddlewareRuns.map(mapRunToMiddlewareEvent),
+      toolCalls: langSmithToolRuns.map(mapRunToToolCallEvent),
+      toolResults: langSmithToolRuns
+        .filter(run => run.status === "success" || run.status === "error")
+        .map(mapRunToToolResultEvent),
+      llmEnds: langSmithLLMRuns.map(mapRunToLLMEvent),
+    };
+  }, [langSmithMiddlewareRuns, langSmithToolRuns, langSmithLLMRuns]);
+
+  // 스트리밍 완료 시 LangSmith 재조회
+  const prevIsLoading = useRef(isLoading);
+  useEffect(() => {
+    // isLoading이 true -> false로 변경되면 스트리밍 완료
+    if (prevIsLoading.current && !isLoading) {
+      // 스트리밍 완료 후 잠시 대기 후 LangSmith 조회 (트레이스 기록 시간 확보)
+      setTimeout(() => {
+        refetchLangSmith();
+      }, 2000);
+    }
+    prevIsLoading.current = isLoading;
+  }, [isLoading, refetchLangSmith]);
+
   const lastError = useRef<string | undefined>(undefined);
-
-  const setThreadId = (id: string | null) => {
-    _setThreadId(id);
-
-    // close artifact and reset artifact context
-    closeArtifact();
-    setArtifactContext({});
-  };
 
   const assistantSelectValue = assistantQueryId?.trim() || "none";
 
@@ -263,18 +301,14 @@ export function Thread() {
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
-    const context =
-      Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
-
     stream.submit(
-      { messages: [...toolMessages, newHumanMessage], context },
+      { messages: [...toolMessages, newHumanMessage] },
       {
-        streamMode: ["values"],
+        streamMode: ["values", "custom"],
         streamSubgraphs: true,
         streamResumable: true,
         optimisticValues: (prev) => ({
           ...prev,
-          context,
           messages: [
             ...(prev.messages ?? []),
             ...toolMessages,
@@ -296,7 +330,7 @@ export function Thread() {
     setFirstTokenReceived(false);
     stream.submit(undefined, {
       checkpoint: parentCheckpoint,
-      streamMode: ["values"],
+      streamMode: ["values", "custom"],
       streamSubgraphs: true,
       streamResumable: true,
     });
@@ -341,7 +375,7 @@ export function Thread() {
       <div
         className={cn(
           "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-          artifactOpen && "grid-cols-[3fr_2fr]",
+          sidebarOpen && "grid-cols-[3fr_2fr]",
         )}
       >
         <motion.div
@@ -381,7 +415,30 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <OpenGitHubRepo />
+              <div className="flex items-center gap-2">
+                {/* 사이드바 토글 버튼 */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSidebarOpen((prev) => !prev)}
+                        className={cn(
+                          "h-9 w-9",
+                          sidebarOpen && "bg-accent"
+                        )}
+                      >
+                        <PanelRight className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>{sidebarOpen ? "Close tracing panel" : "Open tracing panel"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <OpenGitHubRepo />
+              </div>
             </div>
           )}
           {chatStarted && (
@@ -427,7 +484,30 @@ export function Thread() {
                 </motion.button>
               </div>
 
-              <OpenGitHubRepo />
+              <div className="flex items-center gap-2">
+                {/* 사이드바 토글 버튼 */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSidebarOpen((prev) => !prev)}
+                        className={cn(
+                          "h-9 w-9",
+                          sidebarOpen && "bg-accent"
+                        )}
+                      >
+                        <PanelRight className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>{sidebarOpen ? "Close tracing panel" : "Open tracing panel"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <OpenGitHubRepo />
+              </div>
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>
@@ -680,20 +760,50 @@ export function Thread() {
             />
           </StickToBottom>
         </motion.div>
-        <div className="relative flex flex-col border-l">
-          <div className="absolute inset-0 flex min-w-[30vw] flex-col">
-            <div className="grid grid-cols-[1fr_auto] border-b p-4">
-              <ArtifactTitle className="truncate overflow-hidden" />
-              <button
-                onClick={closeArtifact}
-                className="cursor-pointer"
-              >
-                <XIcon className="size-5" />
-              </button>
+
+        {/* LangSmith Tracing 사이드바 */}
+        {sidebarOpen && (
+          <div className="relative flex flex-col border-l min-w-[30vw] h-full overflow-hidden">
+            {/* 헤더 */}
+            <div className="flex-shrink-0 flex items-center justify-between border-b px-4 py-3">
+              <h2 className="font-semibold">LangSmith Tracing</h2>
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => refetchLangSmith()}
+                        disabled={langSmithLoading}
+                        className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-accent disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          className={cn(
+                            "h-4 w-4",
+                            langSmithLoading && "animate-spin"
+                          )}
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Refresh</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-accent"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <ArtifactContent className="relative flex-grow" />
+
+            {/* 컨텐츠 */}
+            <div className="flex-1 overflow-y-auto">
+              <ExecutionTimelinePanel langSmithEvents={langSmithEvents} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <FullDescriptionModal
         open={fullDescriptionOpen}
