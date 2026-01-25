@@ -58,7 +58,7 @@ import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
-import { shouldRenderMessage } from "./utils";
+import { shouldRenderMessage, isSubagentMessage } from "./utils";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -559,19 +559,39 @@ export function Thread() {
                   )}
 
                   {/* AI 메시지 - TODO 박스 아래에 렌더링 */}
-                  {messages
-                    .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .filter((m) => shouldRenderMessage(m, todoLifecycle, compactView))
-                    .filter((m) => m.type !== "human")
-                    .map((message, index) => (
-                      <AssistantMessage
-                        key={message.id || `ai-${index}`}
-                        message={message}
-                        isLoading={isLoading}
-                        handleRegenerate={handleRegenerate}
-                        compactView={compactView}
-                      />
-                    ))}
+                  {(() => {
+                    // 마지막 메인 에이전트 AI 메시지 ID 계산
+                    const filteredMessages = messages.filter(
+                      (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
+                    );
+                    const mainAgentAiMessages = filteredMessages.filter(
+                      (m) => m.type === "ai" && !isSubagentMessage(m)
+                    );
+                    const lastMainAgentMessageId =
+                      mainAgentAiMessages.length > 0
+                        ? mainAgentAiMessages[mainAgentAiMessages.length - 1].id
+                        : null;
+
+                    return filteredMessages
+                      .filter((m) =>
+                        shouldRenderMessage(
+                          m,
+                          todoLifecycle,
+                          compactView,
+                          m.id === lastMainAgentMessageId
+                        )
+                      )
+                      .filter((m) => m.type !== "human")
+                      .map((message, index) => (
+                        <AssistantMessage
+                          key={message.id || `ai-${index}`}
+                          message={message}
+                          isLoading={isLoading}
+                          handleRegenerate={handleRegenerate}
+                          compactView={compactView}
+                        />
+                      ));
+                  })()}
 
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt. */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
