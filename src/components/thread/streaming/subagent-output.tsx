@@ -48,7 +48,8 @@ const TaskTypeIcon = ({ type }: { type: HierarchicalTask["type"] }) => {
 };
 
 function SubagentChildTask({ task, depth = 0 }: { task: HierarchicalTask; depth?: number }) {
-  const [isExpanded, setIsExpanded] = useState(depth < 1);
+  // 기본적으로 접힌 상태
+  const [isExpanded, setIsExpanded] = useState(false);
   const hasChildren = task.children.length > 0;
   const hasContent = task.toolResult || task.toolArgs;
 
@@ -122,7 +123,8 @@ function SubagentChildTask({ task, depth = 0 }: { task: HierarchicalTask; depth?
 }
 
 export function SubagentOutput({ task, isStreaming, defaultExpanded = false }: SubagentOutputProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded || task.status === "running");
+  // 기본적으로 접힌 상태 (자동 확장 비활성화)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // 완료된 자식 수 계산
   const completedCount = task.children.filter(c => c.status === "completed").length;
@@ -210,7 +212,7 @@ export function SubagentList({ tasks, isStreaming }: SubagentListProps) {
           key={task.id}
           task={task}
           isStreaming={isStreaming}
-          defaultExpanded={task.status === "running"}
+          defaultExpanded={false}
         />
       ))}
     </div>

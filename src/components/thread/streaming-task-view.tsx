@@ -1,48 +1,38 @@
 "use client";
 
-import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { type LangSmithRun } from "@/types/langsmith";
-import { useStreamingView } from "@/hooks/useStreamingView";
+import { type HierarchicalTask } from "@/types/task-hierarchy";
+import { type HierarchicalTodoItem } from "@/types/task-hierarchy";
 import { HierarchicalTodoList } from "./streaming/hierarchical-todo-list";
 import { ActiveTasksList } from "./streaming/active-task";
-import { CompletedSummary } from "./streaming/completed-summary";
 import { cn } from "@/lib/utils";
 
 interface StreamingTaskViewProps {
-  runs: LangSmithRun[];
-  messages: unknown[];
+  hierarchicalTodos: HierarchicalTodoItem[];
+  activeLeafTasks: HierarchicalTask[];
   isStreaming: boolean;
   className?: string;
+  // TODO ↔ 사이드바 연동
+  selectedTaskId?: string | null;
+  onSelectTask?: (taskId: string | null) => void;
 }
 
+/**
+ * StreamingTaskView - 스트리밍 중 태스크 진행 상황 표시
+ *
+ * 주의: 이 컴포넌트는 부모에서 hasVisibleContent 조건을 확인한 후에만 렌더링되어야 합니다.
+ * 컨텐츠가 없을 때 이 컴포넌트를 렌더링하면 빈 gap이 발생할 수 있습니다.
+ */
 export function StreamingTaskView({
-  runs,
-  messages,
+  hierarchicalTodos,
+  activeLeafTasks,
   isStreaming,
   className,
+  selectedTaskId,
+  onSelectTask,
 }: StreamingTaskViewProps) {
-  const {
-    viewState,
-    stats,
-    showCompletedDetails,
-    setShowCompletedDetails,
-    activeLeafTasks,
-    hierarchicalTodos,
-  } = useStreamingView(runs, isStreaming, messages);
-
-
-  // 표시할 태스크가 있는지 확인
-  const hasContent = useMemo(() => {
-    return (
-      hierarchicalTodos.length > 0 ||
-      activeLeafTasks.length > 0 ||
-      viewState.completedTasks.length > 0
-    );
-  }, [hierarchicalTodos, activeLeafTasks, viewState.completedTasks]);
-
-  // 컨텐츠가 없고 스트리밍 중이 아니면 렌더링하지 않음
-  if (!hasContent && !isStreaming) {
+  // 컨텐츠가 없으면 렌더링하지 않음 (이중 체크 - 부모에서도 체크해야 함)
+  if (hierarchicalTodos.length === 0 && activeLeafTasks.length === 0) {
     return null;
   }
 
@@ -57,22 +47,14 @@ export function StreamingTaskView({
         <HierarchicalTodoList
           items={hierarchicalTodos}
           isStreaming={isStreaming}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={onSelectTask}
         />
       )}
 
       {/* 현재 실행 중인 태스크 (TODO 없이 태스크만 있을 때 표시) */}
       {hierarchicalTodos.length === 0 && activeLeafTasks.length > 0 && (
         <ActiveTasksList tasks={activeLeafTasks} isStreaming={isStreaming} />
-      )}
-
-      {/* 완료된 태스크 요약 */}
-      {viewState.completedTasks.length > 0 && (
-        <CompletedSummary
-          tasks={viewState.completedTasks}
-          stats={stats}
-          isExpanded={showCompletedDetails}
-          onToggle={() => setShowCompletedDetails(!showCompletedDetails)}
-        />
       )}
     </motion.div>
   );

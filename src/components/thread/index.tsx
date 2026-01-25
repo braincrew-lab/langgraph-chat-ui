@@ -58,7 +58,7 @@ import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
-import { shouldRenderMessage, isSubagentMessage, buildSubagentContext } from "./utils";
+import { shouldRenderMessage, buildSubagentContext } from "./utils";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -150,6 +150,8 @@ export function Thread() {
   );
   const [input, setInput] = useState("");
   const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
+  // TODO ↔ 사이드바 연동을 위한 선택된 Task ID
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const {
     contentBlocks,
     setContentBlocks,
@@ -198,7 +200,12 @@ export function Thread() {
   }, [langSmithMiddlewareRuns, langSmithToolRuns, langSmithLLMRuns]);
 
   // 스트리밍 뷰 상태 (TODO 라이프사이클 등)
-  const { todoLifecycle } = useStreamingView(allRuns, isLoading, messages);
+  const {
+    todoLifecycle,
+    hasVisibleContent,
+    hierarchicalTodos,
+    activeLeafTasks,
+  } = useStreamingView(allRuns, isLoading, messages);
 
   // 서브에이전트 메시지 감지를 위한 컨텍스트
   const subagentContext = useMemo(() => {
@@ -217,6 +224,26 @@ export function Thread() {
     }
     prevIsLoading.current = isLoading;
   }, [isLoading, refetchLangSmith]);
+
+  // threadId 변경 시 화면 초기화
+  const prevThreadId = useRef(threadId);
+  useEffect(() => {
+    // threadId가 변경된 경우
+    if (prevThreadId.current !== threadId) {
+      // 메인 페이지로 이동 (threadId가 null)
+      if (threadId === null) {
+        // 사이드바 닫기
+        setSidebarOpen(false);
+        // 입력 초기화
+        setInput("");
+        setContentBlocks([]);
+        setFirstTokenReceived(false);
+      }
+      // 채팅 페이지로 이동 (threadId가 있음)
+      // -> useLangSmithRuns 훅에서 threadId 변경 시 자동으로 데이터 재조회
+    }
+    prevThreadId.current = threadId;
+  }, [threadId, setSidebarOpen, setContentBlocks]);
 
   const lastError = useRef<string | undefined>(undefined);
 
@@ -388,10 +415,10 @@ export function Thread() {
       )}
 
       <div
-        className={cn(
-          "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-          sidebarOpen && "grid-cols-[3fr_2fr]",
-        )}
+        className="grid w-full transition-all duration-500"
+        style={{
+          gridTemplateColumns: sidebarOpen ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px` : '1fr 0fr',
+        }}
       >
         <motion.div
           className={cn(
@@ -444,7 +471,7 @@ export function Thread() {
                           sidebarOpen && "bg-accent"
                         )}
                       >
-                        <PanelRight className="h-5 w-5" />
+                        <PanelRight className="size-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">
@@ -513,7 +540,7 @@ export function Thread() {
                           sidebarOpen && "bg-accent"
                         )}
                       >
-                        <PanelRight className="h-5 w-5" />
+                        <PanelRight className="size-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">
@@ -542,63 +569,133 @@ export function Thread() {
               )}
               content={
                 <>
-                  {/* Human 메시지 먼저 렌더링 */}
-                  {messages
-                    .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .filter((m) => m.type === "human")
-                    .map((message, index) => (
-                      <HumanMessage
-                        key={message.id || `human-${index}`}
-                        message={message}
-                        isLoading={isLoading}
-                      />
-                    ))}
-
-                  {/* 컴팩트 뷰: 스트리밍 태스크 뷰 (TODO 박스) - Human 메시지 다음에 표시 */}
-                  {compactView && (isLoading || allRuns.length > 0 || messages.length > 0) && (
-                    <StreamingTaskView
-                      runs={allRuns}
-                      messages={messages}
-                      isStreaming={isLoading}
-                    />
-                  )}
-
-                  {/* AI 메시지 - TODO 박스 아래에 렌더링 */}
+                  {/* 메시지를 원래 순서대로 렌더링 (Human-AI-Human-AI 순서 유지) */}
                   {(() => {
-                    // 마지막 메인 에이전트 AI 메시지 ID 계산 (서브에이전트 컨텍스트 활용)
                     const filteredMessages = messages.filter(
                       (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
                     );
-                    // messages 배열 전달로 실시간 위치 기반 서브에이전트 감지 활성화
-                    const mainAgentAiMessages = filteredMessages.filter(
-                      (m) => m.type === "ai" && !isSubagentMessage(m, subagentContext, filteredMessages)
-                    );
-                    const lastMainAgentMessageId =
-                      mainAgentAiMessages.length > 0
-                        ? mainAgentAiMessages[mainAgentAiMessages.length - 1].id
-                        : null;
 
-                    return filteredMessages
-                      .filter((m) =>
-                        shouldRenderMessage(
-                          m,
-                          todoLifecycle,
-                          compactView,
-                          m.id === lastMainAgentMessageId,
-                          subagentContext,
-                          filteredMessages  // messages 배열 전달
-                        )
-                      )
-                      .filter((m) => m.type !== "human")
-                      .map((message, index) => (
-                        <AssistantMessage
-                          key={message.id || `ai-${index}`}
-                          message={message}
-                          isLoading={isLoading}
-                          handleRegenerate={handleRegenerate}
-                          compactView={compactView}
-                        />
-                      ));
+                    // 마지막 human 메시지 인덱스 찾기
+                    let lastHumanIndex = -1;
+                    for (let i = filteredMessages.length - 1; i >= 0; i--) {
+                      if (filteredMessages[i].type === "human") {
+                        lastHumanIndex = i;
+                        break;
+                      }
+                    }
+
+                    // compactView + TODO 박스 표시 시: 마지막 Human 이후 메인 에이전트 AI 메시지 중 텍스트가 있는 마지막 것만 표시
+                    // 서브에이전트 메시지는 TODO 박스 안에서만 표시되어야 하므로 제외
+                    let lastVisibleAiMessageId: string | null = null;
+                    if (compactView && hasVisibleContent && lastHumanIndex >= 0) {
+                      // 마지막 Human 이후의 메인 에이전트 AI 메시지들 중에서 텍스트 content가 있는 마지막 것 찾기
+                      for (let i = filteredMessages.length - 1; i > lastHumanIndex; i--) {
+                        const msg = filteredMessages[i];
+                        if (msg.type === "ai") {
+                          // 서브에이전트 메시지 제외 (Task/Todo 호출이 없고 활성 Task 스코프 내에 있는 메시지)
+                          const aiMsg = msg as { tool_calls?: Array<{ name?: string }> };
+                          const hasMainAgentCall = aiMsg.tool_calls?.some(
+                            tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
+                          );
+                          // 메인 에이전트 도구 호출이 있거나, 서브에이전트가 아닌 경우에만 선택
+                          const isSubagent = !hasMainAgentCall && subagentContext.subagentMessageIds.has(msg.id || "");
+                          if (isSubagent) {
+                            continue; // 서브에이전트 메시지 스킵
+                          }
+
+                          const content = msg.content;
+                          const hasTextContent = typeof content === "string"
+                            ? content.trim().length > 0
+                            : Array.isArray(content) && content.some(
+                                (c: unknown) => typeof c === "object" && c !== null && "type" in c &&
+                                (c as { type: string }).type === "text" && "text" in c &&
+                                typeof (c as { text: unknown }).text === "string" &&
+                                ((c as { text: string }).text).trim().length > 0
+                              );
+                          if (hasTextContent) {
+                            lastVisibleAiMessageId = msg.id ?? null;
+                            break;
+                          }
+                        }
+                      }
+                    }
+
+                    const elements: React.ReactNode[] = [];
+
+                    filteredMessages.forEach((message, index) => {
+                      if (message.type === "human") {
+                        // Human 메시지 렌더링
+                        elements.push(
+                          <HumanMessage
+                            key={message.id || `human-${index}`}
+                            message={message}
+                            isLoading={isLoading}
+                          />
+                        );
+
+                        // 마지막 Human 메시지 다음에 StreamingTaskView 삽입 (컨텐츠가 있을 때만)
+                        if (compactView && index === lastHumanIndex && hasVisibleContent) {
+                          elements.push(
+                            <StreamingTaskView
+                              key="streaming-task-view"
+                              hierarchicalTodos={hierarchicalTodos}
+                              activeLeafTasks={activeLeafTasks}
+                              isStreaming={isLoading}
+                              selectedTaskId={selectedTaskId}
+                              onSelectTask={setSelectedTaskId}
+                            />
+                          );
+                        }
+                      } else {
+                        // AI/Tool 메시지 필터링
+                        const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
+
+                        // compactView + TODO 박스 표시 + 마지막 Human 이후인 경우: 지정된 AI 메시지만 표시
+                        if (compactView && hasVisibleContent && isAfterLastHuman) {
+                          // tool 메시지는 숨김
+                          if (message.type === "tool") {
+                            return;
+                          }
+                          // AI 메시지 처리
+                          if (message.type === "ai") {
+                            // 서브에이전트 메시지는 항상 숨김 (TODO 박스 안에서만 표시)
+                            if (subagentContext.subagentMessageIds.has(message.id || "")) {
+                              return;
+                            }
+                            // 지정된 마지막 메인 에이전트 메시지만 표시
+                            if (message.id !== lastVisibleAiMessageId) {
+                              return;
+                            }
+                          }
+                        }
+
+                        // 그 외의 경우 기존 shouldRenderMessage 로직 사용
+                        if (!compactView || !hasVisibleContent || !isAfterLastHuman) {
+                          if (!shouldRenderMessage(
+                            message,
+                            todoLifecycle,
+                            compactView,
+                            false,
+                            subagentContext,
+                            filteredMessages
+                          )) {
+                            return;
+                          }
+                        }
+
+                        elements.push(
+                          <AssistantMessage
+                            key={message.id || `ai-${index}`}
+                            message={message}
+                            isLoading={isLoading}
+                            handleRegenerate={handleRegenerate}
+                            compactView={compactView}
+                          />
+                        );
+                      }
+                    });
+
+                    return elements;
                   })()}
 
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt. */}
@@ -841,7 +938,10 @@ export function Thread() {
 
         {/* LangSmith Tracing 사이드바 */}
         {sidebarOpen && (
-          <div className="relative flex flex-col border-l min-w-[30vw] h-full overflow-hidden">
+          <div
+            className="relative flex flex-col border-l h-full overflow-hidden"
+            style={{ width: UI.TRACING_SIDEBAR_WIDTH }}
+          >
             {/* 헤더 */}
             <div className="flex-shrink-0 flex items-center justify-between border-b px-4 py-3">
               <h2 className="font-semibold">LangSmith Tracing</h2>
@@ -878,7 +978,11 @@ export function Thread() {
 
             {/* 컨텐츠 */}
             <div className="flex-1 overflow-y-auto">
-              <ExecutionTimelinePanel langSmithEvents={langSmithEvents} runs={allRuns} />
+              <ExecutionTimelinePanel
+                langSmithEvents={langSmithEvents}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={setSelectedTaskId}
+              />
             </div>
           </div>
         )}

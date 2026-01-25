@@ -172,6 +172,15 @@ export const AssistantMessage = memo(function AssistantMessage({
     return null;
   }
 
+  // 빈 메시지 체크: 내용, 도구 호출, 인터럽트가 모두 없으면 렌더링하지 않음
+  const hasInterrupt = threadInterrupt?.value && (isLastMessage || hasNoAIOrToolMessages);
+  const hasContent = contentString.length > 0;
+  const hasVisibleToolCalls = !hideToolCalls && !compactView && (hasToolCalls || hasAnthropicToolCalls);
+
+  if (!isToolResult && !hasContent && !hasVisibleToolCalls && !hasInterrupt) {
+    return null;
+  }
+
   return (
     <div className="group mr-auto flex items-start gap-3">
       <div className="flex flex-col gap-3">

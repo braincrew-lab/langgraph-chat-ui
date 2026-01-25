@@ -24,8 +24,15 @@ export interface LangSmithRun {
   metadata?: Record<string, unknown>;
 }
 
+// 계층 구조 정보 (parentRunId 기반)
+export interface RunHierarchy {
+  roots: string[];  // 루트 run IDs (parentRunId가 없는 runs)
+  children: Record<string, string[]>;  // parentId -> childIds 매핑
+}
+
 export interface LangSmithRunsResponse {
   runs: LangSmithRun[];
+  hierarchy?: RunHierarchy;  // 계층 구조 정보 (선택적)
   error?: string;
 }
 
@@ -204,6 +211,8 @@ export function mapRunToMiddlewareEvent(run: LangSmithRun): MiddlewareTimelineEv
     status = "running";
   }
 
+  const { depth } = parseDottedOrder(run.dotted_order);
+
   return {
     id: run.id,
     type: "middleware",
@@ -215,6 +224,8 @@ export function mapRunToMiddlewareEvent(run: LangSmithRun): MiddlewareTimelineEv
     status,
     error: run.error,
     data: run.outputs,
+    parentRunId: run.parentRunId,
+    depth,
   };
 }
 
@@ -233,6 +244,8 @@ export function mapRunToToolCallEvent(run: LangSmithRun): ToolCallTimelineEvent 
     }
   }
 
+  const { depth } = parseDottedOrder(run.dotted_order);
+
   return {
     id: run.id,
     type: "tool_call",
@@ -244,12 +257,15 @@ export function mapRunToToolCallEvent(run: LangSmithRun): ToolCallTimelineEvent 
     args,
     status: run.status === "success" ? "success" : run.status === "error" ? "error" : "running",
     error: run.error,
+    parentRunId: run.parentRunId,
+    depth,
   };
 }
 
 // Tool Run → ToolResultTimelineEvent 매핑
 export function mapRunToToolResultEvent(run: LangSmithRun): ToolResultTimelineEvent {
   const result = formatRunOutput(run.outputs);
+  const { depth } = parseDottedOrder(run.dotted_order);
 
   return {
     id: `${run.id}-result`,
@@ -262,6 +278,8 @@ export function mapRunToToolResultEvent(run: LangSmithRun): ToolResultTimelineEv
     result: result.length > 500 ? result.substring(0, 500) + "..." : result,
     status: run.status === "success" ? "success" : "error",
     error: run.error,
+    parentRunId: run.parentRunId,
+    depth,
   };
 }
 
@@ -270,6 +288,7 @@ export function mapRunToLLMEvent(run: LangSmithRun): LLMEndTimelineEvent {
   const content = extractLLMContent(run.outputs);
   const tokenUsage = extractTokenUsage(run.outputs);
   const model = extractModelName(run);
+  const { depth } = parseDottedOrder(run.dotted_order);
 
   return {
     id: run.id,
@@ -282,10 +301,101 @@ export function mapRunToLLMEvent(run: LangSmithRun): LLMEndTimelineEvent {
     tokenUsage,
     status: run.status === "success" ? "success" : "error",
     error: run.error,
+    parentRunId: run.parentRunId,
+    depth,
   };
 }
 
 // ============ 계층적 태스크 빌드 유틸리티 ============
+
+/**
+ * LangSmith Run에서 tool_call_id 추출
+ *
+ * LangSmith Run의 다양한 위치에서 tool_call_id를 탐색합니다:
+ * 1. inputs.tool_call_id (직접 저장된 경우)
+ * 2. inputs.input.tool_call_id (중첩된 input 구조)
+ * 3. metadata.tool_call_id (메타데이터에 저장된 경우)
+ * 4. metadata.langgraph_tool_call_id (LangGraph 특화 필드)
+ * 5. inputs.messages에서 tool_call_id가 있는 메시지 탐색
+ *
+ * @param run - LangSmith Run 객체
+ * @returns tool_call_id 또는 null
+ */
+export function extractToolCallIdFromRun(run: LangSmithRun): string | null {
+  // 1. inputs.tool_call_id
+  if (run.inputs && typeof run.inputs === "object") {
+    const inputs = run.inputs as Record<string, unknown>;
+
+    if (typeof inputs.tool_call_id === "string" && inputs.tool_call_id) {
+      return inputs.tool_call_id;
+    }
+
+    // 2. inputs.input.tool_call_id (중첩 구조)
+    if (inputs.input && typeof inputs.input === "object") {
+      const input = inputs.input as Record<string, unknown>;
+      if (typeof input.tool_call_id === "string" && input.tool_call_id) {
+        return input.tool_call_id;
+      }
+    }
+
+    // 5. inputs.messages에서 tool_call_id 탐색
+    if (Array.isArray(inputs.messages)) {
+      for (const msg of inputs.messages) {
+        if (msg && typeof msg === "object") {
+          const message = msg as Record<string, unknown>;
+          // Tool 메시지의 tool_call_id
+          if (typeof message.tool_call_id === "string" && message.tool_call_id) {
+            return message.tool_call_id;
+          }
+          // AI 메시지의 tool_calls에서 찾기
+          if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+            const toolCall = message.tool_calls[0] as Record<string, unknown>;
+            if (typeof toolCall.id === "string" && toolCall.id) {
+              return toolCall.id;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. metadata.tool_call_id
+  if (run.metadata && typeof run.metadata === "object") {
+    const metadata = run.metadata as Record<string, unknown>;
+
+    if (typeof metadata.tool_call_id === "string" && metadata.tool_call_id) {
+      return metadata.tool_call_id;
+    }
+
+    // 4. metadata.langgraph_tool_call_id (LangGraph 특화)
+    if (typeof metadata.langgraph_tool_call_id === "string" && metadata.langgraph_tool_call_id) {
+      return metadata.langgraph_tool_call_id;
+    }
+  }
+
+  return null;
+}
+
+// Run 배열에서 계층 구조 정보 추출
+export function buildRunHierarchy(runs: LangSmithRun[]): RunHierarchy {
+  const roots: string[] = [];
+  const children: Record<string, string[]> = {};
+
+  for (const run of runs) {
+    if (run.parentRunId) {
+      // 부모가 있는 경우 children 맵에 추가
+      if (!children[run.parentRunId]) {
+        children[run.parentRunId] = [];
+      }
+      children[run.parentRunId].push(run.id);
+    } else {
+      // 부모가 없는 경우 roots에 추가
+      roots.push(run.id);
+    }
+  }
+
+  return { roots, children };
+}
 
 // dotted_order 파싱하여 depth 계산
 export function parseDottedOrder(dottedOrder: string | undefined): { depth: number; parts: string[] } {
@@ -350,6 +460,9 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
   // Tool result 추출
   const toolResult = run.runType === "tool" ? formatRunOutput(run.outputs) : undefined;
 
+  // tool_call_id 추출 (메시지 매칭용)
+  const toolCallId = extractToolCallIdFromRun(run);
+
   return {
     id: run.id,
     name: run.name,
@@ -368,6 +481,7 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
     llmOutput,
     runId: run.id,
     error: run.error,
+    toolCallId: toolCallId ?? undefined,
   };
 }
 

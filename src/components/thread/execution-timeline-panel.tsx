@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useEffect, useCallback } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -8,19 +8,9 @@ import {
   Wrench,
   Bot,
   Cog,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TimelineEvent, LangSmithTimelineEvents, buildTimeline } from "@/types/timeline";
-import { type LangSmithRun, buildTaskHierarchy } from "@/types/langsmith";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { TaskTreeView } from "./streaming/task-tree-item";
-
-interface ExecutionTimelinePanelProps {
-  langSmithEvents: LangSmithTimelineEvents;
-  runs?: LangSmithRun[];
-}
 
 const EventIcon = ({ event }: { event: TimelineEvent }) => {
   switch (event.type) {
@@ -117,7 +107,17 @@ const MetadataBadge = ({ children, variant = "default" }: { children: React.Reac
   );
 };
 
-const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
+const TimelineEventItem = ({
+  event,
+  isHighlighted,
+  onClick,
+  eventRef,
+}: {
+  event: TimelineEvent;
+  isHighlighted?: boolean;
+  onClick?: () => void;
+  eventRef?: React.Ref<HTMLDivElement>;
+}) => {
   const latencyStr = formatLatency(event.latency);
 
   const renderContent = () => {
@@ -137,7 +137,7 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
               </div>
             )}
             {event.data && Object.keys(event.data).length > 0 && (
-              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto whitespace-pre-wrap max-h-32">
+              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto whitespace-pre-wrap max-h-32 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
                 {JSON.stringify(event.data, null, 2)}
               </pre>
             )}
@@ -184,8 +184,8 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
               )}
             </div>
             {Object.keys(event.args).length > 0 && (
-              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto max-h-20">
-                {JSON.stringify(event.args, null, 2).substring(0, 200)}
+              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto max-h-24 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+                {JSON.stringify(event.args, null, 2)}
               </pre>
             )}
             {event.error && (
@@ -206,7 +206,7 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
                 </MetadataBadge>
               )}
             </div>
-            <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto whitespace-pre-wrap max-h-20">
+            <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto whitespace-pre-wrap max-h-24 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
               {event.result}
             </pre>
             {event.error && (
@@ -224,7 +224,15 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
   const timeStr = formatTime(event.timestamp);
 
   return (
-    <div className="flex gap-3 py-2 border-b border-border/50 last:border-b-0">
+    <div
+      ref={eventRef}
+      className={cn(
+        "flex gap-3 py-2 border-b border-border/50 last:border-b-0 transition-colors duration-200",
+        isHighlighted && "bg-blue-100/50 dark:bg-blue-900/30 ring-2 ring-blue-400 ring-inset rounded",
+        onClick && "cursor-pointer hover:bg-muted/30"
+      )}
+      onClick={onClick}
+    >
       <div className="flex flex-col items-center pt-1">
         <EventIcon event={event} />
         <div className="w-px flex-1 bg-border/50 mt-1" />
@@ -249,8 +257,108 @@ const TimelineEventItem = ({ event }: { event: TimelineEvent }) => {
   );
 };
 
-function TimelineView({ events }: { events: TimelineEvent[] }) {
-  if (events.length === 0) {
+interface ExecutionTimelinePanelProps {
+  langSmithEvents: LangSmithTimelineEvents;
+  // TODO ↔ 사이드바 연동
+  selectedTaskId?: string | null;
+  onSelectTask?: (taskId: string | null) => void;
+}
+
+export function ExecutionTimelinePanel({
+  langSmithEvents,
+  selectedTaskId,
+  onSelectTask,
+}: ExecutionTimelinePanelProps) {
+  const timelineEvents = useMemo(() => {
+    return buildTimeline(langSmithEvents);
+  }, [langSmithEvents]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
+  const prevEventsLengthRef = useRef(0);
+  // 각 이벤트의 ref를 저장 (auto-scroll용)
+  const eventRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // 선택된 Task에 해당하는 이벤트 ID 집합 계산
+  const highlightedEventIds = useMemo(() => {
+    if (!selectedTaskId) return new Set<string>();
+
+    const ids = new Set<string>();
+    for (const event of timelineEvents) {
+      // 이벤트 자체가 선택된 Task인 경우
+      if (event.id === selectedTaskId) {
+        ids.add(event.id);
+      }
+      // 이벤트의 부모가 선택된 Task인 경우 (하위 도구/LLM 호출)
+      if (event.parentRunId === selectedTaskId) {
+        ids.add(event.id);
+      }
+    }
+    return ids;
+  }, [selectedTaskId, timelineEvents]);
+
+  // 스크롤이 하단에 있는지 확인
+  const checkIsAtBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return true;
+    const threshold = 50; // 50px 여유
+    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
+
+  // 스크롤 이벤트 핸들러 (passive listener 사용)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      isAtBottomRef.current = checkIsAtBottom();
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [checkIsAtBottom]);
+
+  // 이벤트 추가 시 하단이었다면 자동 스크롤
+  useEffect(() => {
+    if (timelineEvents.length > prevEventsLengthRef.current && isAtBottomRef.current) {
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+    prevEventsLengthRef.current = timelineEvents.length;
+  }, [timelineEvents.length]);
+
+  // selectedTaskId 변경 시 해당 이벤트로 자동 스크롤
+  useEffect(() => {
+    if (!selectedTaskId) return;
+
+    // 하이라이트된 첫 번째 이벤트로 스크롤
+    const firstHighlightedId = Array.from(highlightedEventIds)[0];
+    if (firstHighlightedId) {
+      const eventEl = eventRefs.current.get(firstHighlightedId);
+      if (eventEl) {
+        eventEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [selectedTaskId, highlightedEventIds]);
+
+  // 이벤트 클릭 핸들러 (사이드바 → TODO 연동)
+  const handleEventClick = useCallback((event: TimelineEvent) => {
+    if (!onSelectTask) return;
+
+    // 현재 선택된 이벤트인 경우 선택 해제
+    if (highlightedEventIds.has(event.id)) {
+      onSelectTask(null);
+      return;
+    }
+
+    // 이벤트의 parentRunId가 있으면 그것을 선택, 없으면 자신의 id 선택
+    const taskIdToSelect = event.parentRunId || event.id;
+    onSelectTask(taskIdToSelect);
+  }, [onSelectTask, highlightedEventIds]);
+
+  if (timelineEvents.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
         실행 로그가 없습니다
@@ -259,114 +367,28 @@ function TimelineView({ events }: { events: TimelineEvent[] }) {
   }
 
   return (
-    <div className="p-4 space-y-1">
-      {events.map((event) => (
-        <TimelineEventItem key={event.id} event={event} />
+    <div
+      ref={scrollRef}
+      className={cn(
+        "h-full overflow-y-auto p-4 space-y-1",
+        "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
+      )}
+    >
+      {timelineEvents.map((event) => (
+        <TimelineEventItem
+          key={event.id}
+          event={event}
+          isHighlighted={highlightedEventIds.has(event.id)}
+          onClick={onSelectTask ? () => handleEventClick(event) : undefined}
+          eventRef={(el) => {
+            if (el) {
+              eventRefs.current.set(event.id, el);
+            } else {
+              eventRefs.current.delete(event.id);
+            }
+          }}
+        />
       ))}
     </div>
-  );
-}
-
-function TasksView({ runs }: { runs: LangSmithRun[] }) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  const hierarchy = useMemo(() => {
-    return buildTaskHierarchy(runs);
-  }, [runs]);
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const expandAll = () => {
-    const allIds = new Set<string>();
-    const traverse = (tasks: typeof hierarchy) => {
-      for (const task of tasks) {
-        allIds.add(task.id);
-        traverse(task.children);
-      }
-    };
-    traverse(hierarchy);
-    setExpandedIds(allIds);
-  };
-
-  const collapseAll = () => {
-    setExpandedIds(new Set());
-  };
-
-  if (hierarchy.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-        태스크가 없습니다
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-border/50">
-        <button
-          onClick={expandAll}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-        >
-          <ChevronDown className="h-3 w-3" />
-          모두 펼치기
-        </button>
-        <button
-          onClick={collapseAll}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-        >
-          <ChevronUp className="h-3 w-3" />
-          모두 접기
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        <TaskTreeView
-          tasks={hierarchy}
-          expandedIds={expandedIds}
-          onToggle={toggleExpand}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function ExecutionTimelinePanel({
-  langSmithEvents,
-  runs = [],
-}: ExecutionTimelinePanelProps) {
-  const timelineEvents = useMemo(() => {
-    return buildTimeline(langSmithEvents);
-  }, [langSmithEvents]);
-
-  return (
-    <Tabs defaultValue="tasks" className="h-full flex flex-col">
-      <div className="px-4 pt-2">
-        <TabsList className="w-full">
-          <TabsTrigger value="tasks" className="flex-1">
-            태스크
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-1">
-            타임라인
-          </TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="tasks" className="flex-1 overflow-hidden mt-0">
-        <TasksView runs={runs} />
-      </TabsContent>
-
-      <TabsContent value="timeline" className="flex-1 overflow-y-auto mt-0">
-        <TimelineView events={timelineEvents} />
-      </TabsContent>
-    </Tabs>
   );
 }

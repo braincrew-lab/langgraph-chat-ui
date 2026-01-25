@@ -18,6 +18,9 @@ import { type HierarchicalTodoItem, type ToolCallInfo, type ReasoningInfo } from
 interface HierarchicalTodoListProps {
   items: HierarchicalTodoItem[];
   isStreaming: boolean;
+  // TODO ↔ 사이드바 연동
+  selectedTaskId?: string | null;
+  onSelectTask?: (taskId: string | null) => void;
 }
 
 // 상태 아이콘 컴포넌트
@@ -210,6 +213,8 @@ function HierarchicalTodoItemComponent({
   onToggle,
   expandedIds,
   onToggleChild,
+  selectedTaskId,
+  onSelectTask,
 }: {
   item: HierarchicalTodoItem;
   depth: number;
@@ -217,9 +222,28 @@ function HierarchicalTodoItemComponent({
   onToggle: () => void;
   expandedIds: Set<string>;
   onToggleChild: (id: string) => void;
+  // TODO ↔ 사이드바 연동
+  selectedTaskId?: string | null;
+  onSelectTask?: (taskId: string | null) => void;
 }) {
   const hasExpandableContent = item.children.length > 0 || item.tools.length > 0 || item.reasoning.length > 0;
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+
+  // 선택 상태 확인 (matchedTaskId가 selectedTaskId와 일치하면 선택됨)
+  const isSelected = selectedTaskId && item.matchedTaskId === selectedTaskId;
+  // 클릭 가능 여부 (matchedTaskId가 있으면 사이드바 연동 가능)
+  const hasMatchedTask = !!item.matchedTaskId;
+
+  // 클릭 핸들러 (확장/축소 또는 Task 선택)
+  const handleClick = useCallback(() => {
+    if (hasMatchedTask && onSelectTask) {
+      // 이미 선택된 경우 선택 해제, 아니면 선택
+      onSelectTask(isSelected ? null : item.matchedTaskId ?? null);
+    }
+    if (hasExpandableContent) {
+      onToggle();
+    }
+  }, [hasMatchedTask, onSelectTask, isSelected, item.matchedTaskId, hasExpandableContent, onToggle]);
 
   return (
     <div>
@@ -230,10 +254,12 @@ function HierarchicalTodoItemComponent({
           "transition-colors duration-150",
           item.status === "completed" && "text-muted-foreground",
           item.status === "in_progress" && "bg-blue-50/50 dark:bg-blue-950/20",
-          hasExpandableContent && "cursor-pointer hover:bg-muted/30"
+          // 선택 상태 하이라이트
+          isSelected && "ring-2 ring-blue-400 ring-inset bg-blue-100/50 dark:bg-blue-900/30",
+          (hasExpandableContent || hasMatchedTask) && "cursor-pointer hover:bg-muted/30"
         )}
         style={{ paddingLeft: 12 + depth * 16 }}
-        onClick={hasExpandableContent ? onToggle : undefined}
+        onClick={(hasExpandableContent || hasMatchedTask) ? handleClick : undefined}
       >
         {/* 확장 버튼 */}
         <div className="w-4 flex-shrink-0 mt-0.5">
@@ -298,6 +324,8 @@ function HierarchicalTodoItemComponent({
                 onToggle={() => onToggleChild(child.id)}
                 expandedIds={expandedIds}
                 onToggleChild={onToggleChild}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
               />
             ))}
           </motion.div>
@@ -309,43 +337,16 @@ function HierarchicalTodoItemComponent({
 
 const MAX_HEIGHT = 300; // TODO 목록 최대 높이 (px)
 
-export const HierarchicalTodoList = memo(function HierarchicalTodoList({ items, isStreaming }: HierarchicalTodoListProps) {
-  // 로컬 확장 상태 관리
+export const HierarchicalTodoList = memo(function HierarchicalTodoList({
+  items,
+  isStreaming,
+  selectedTaskId,
+  onSelectTask,
+}: HierarchicalTodoListProps) {
+  // 로컬 확장 상태 관리 (기본적으로 모두 접힌 상태)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   // TODO 섹션 전체 접기/펴기 상태
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // 진행 중인 TODO ID를 useMemo로 계산 (매 렌더링마다 재계산 방지)
-  const inProgressIds = useMemo(() => {
-    if (!isStreaming) return new Set<string>();
-
-    const ids = new Set<string>();
-    function findInProgress(todoItems: HierarchicalTodoItem[]) {
-      for (const item of todoItems) {
-        if (item.status === "in_progress") {
-          ids.add(item.id);
-        }
-        if (item.children.length > 0) {
-          findInProgress(item.children);
-        }
-      }
-    }
-    findInProgress(items);
-    return ids;
-  }, [items, isStreaming]);
-
-  // inProgressIds가 변경되면 expandedIds에 추가
-  useEffect(() => {
-    if (inProgressIds.size > 0) {
-      setExpandedIds(prev => {
-        const next = new Set(prev);
-        for (const id of inProgressIds) {
-          next.add(id);
-        }
-        return next;
-      });
-    }
-  }, [inProgressIds]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -422,6 +423,8 @@ export const HierarchicalTodoList = memo(function HierarchicalTodoList({ items, 
                       onToggle={() => toggleExpand(item.id)}
                       expandedIds={expandedIds}
                       onToggleChild={toggleExpand}
+                      selectedTaskId={selectedTaskId}
+                      onSelectTask={onSelectTask}
                     />
                   </motion.div>
                 ))}

@@ -90,6 +90,8 @@ interface UseStreamingViewReturn {
   currentToolCalls: CurrentToolCall[];
   hierarchicalTodos: HierarchicalTodoItem[];
   todoLifecycle: TodoLifecycleState;
+  /** 컨텐츠가 있어서 StreamingTaskView를 렌더링해야 하는지 여부 */
+  hasVisibleContent: boolean;
 }
 
 // 메시지 타입 정의
@@ -140,6 +142,45 @@ function extractCurrentToolCalls(messages: unknown[], isStreaming: boolean): Cur
   return [];
 }
 
+// ============================================
+// toolCallId 기반 인덱스 및 개선된 매칭 유틸리티
+// ============================================
+
+/**
+ * HierarchicalTask 배열에서 toolCallId → Task 인덱스 빌드
+ *
+ * toolCallId가 있는 모든 태스크를 인덱싱하여 빠른 조회를 지원합니다.
+ *
+ * @param tasks - HierarchicalTask 배열 (계층 구조)
+ * @returns Map<toolCallId, HierarchicalTask>
+ */
+function buildToolCallIdIndex(tasks: HierarchicalTask[]): Map<string, HierarchicalTask> {
+  const index = new Map<string, HierarchicalTask>();
+
+  function traverse(task: HierarchicalTask) {
+    if (task.toolCallId) {
+      index.set(task.toolCallId, task);
+    }
+    for (const child of task.children) {
+      traverse(child);
+    }
+  }
+
+  for (const task of tasks) {
+    traverse(task);
+  }
+
+  return index;
+}
+
+// 매칭 결과 타입
+interface MatchResult {
+  taskId: string;
+  taskName: string;
+  confidence: number;
+  matchType: "exact" | "fuzzy";
+}
+
 // 텍스트 유사도 계산 (단순 키워드 매칭)
 function calculateTextSimilarity(text1: string, text2: string): number {
   const words1 = text1.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -157,16 +198,16 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   return matchCount / Math.max(words1.length, words2.length);
 }
 
-// Rule-based TODO-서브에이전트 매칭
-function matchTodoToSubagent(
+// Rule-based TODO-서브에이전트 매칭 (기존 - fuzzy만)
+function matchTodoToSubagentFuzzy(
   todo: TodoItem,
   todoIndex: number,
   subagents: HierarchicalTask[],
   usedTaskIds: Set<string>
-): { taskId: string; taskName: string; confidence: number } | null {
+): MatchResult | null {
   if (subagents.length === 0) return null;
 
-  let bestMatch: { taskId: string; taskName: string; confidence: number } | null = null;
+  let bestMatch: MatchResult | null = null;
 
   for (const subagent of subagents) {
     if (usedTaskIds.has(subagent.id)) continue;
@@ -205,13 +246,71 @@ function matchTodoToSubagent(
       bestMatch = {
         taskId: subagent.id,
         taskName: subagent.name,
-        confidence
+        confidence,
+        matchType: "fuzzy"
       };
     }
   }
 
   return bestMatch;
 }
+
+/**
+ * 개선된 TODO-서브에이전트 매칭 (미사용 - 향후 사용 예정)
+ *
+ * 1차: toolCallId 기반 정확 매칭 (confidence 1.0)
+ * 2차: 텍스트 유사도 + 상태 + 순서 기반 fuzzy 매칭 (confidence 0.3~0.7)
+ *
+ * @param todo - TODO 항목
+ * @param todoIndex - TODO의 인덱스
+ * @param subagents - 서브에이전트 태스크 배열
+ * @param usedTaskIds - 이미 사용된 Task ID (중복 방지)
+ * @param toolCallIdIndex - toolCallId → HierarchicalTask 인덱스
+ * @returns 매칭 결과 또는 null
+ */
+function _matchTodoToSubagentImproved(
+  todo: TodoItem,
+  todoIndex: number,
+  subagents: HierarchicalTask[],
+  usedTaskIds: Set<string>,
+  toolCallIdIndex: Map<string, HierarchicalTask>
+): MatchResult | null {
+  // 1차: toolCallId 기반 정확 매칭
+  const linkedToolCallId = todo.linkedTaskToolCallId;
+  if (linkedToolCallId) {
+    const exactMatch = toolCallIdIndex.get(linkedToolCallId);
+    if (exactMatch && !usedTaskIds.has(exactMatch.id)) {
+      return {
+        taskId: exactMatch.id,
+        taskName: exactMatch.name,
+        confidence: 1.0,
+        matchType: "exact"
+      };
+    }
+  }
+
+  // 2차: fuzzy 매칭 폴백
+  return matchTodoToSubagentFuzzy(todo, todoIndex, subagents, usedTaskIds);
+}
+
+// 기존 matchTodoToSubagent 함수는 호환성을 위해 유지 (현재 사용되지 않음)
+function _matchTodoToSubagent(
+  todo: TodoItem,
+  todoIndex: number,
+  subagents: HierarchicalTask[],
+  usedTaskIds: Set<string>
+): { taskId: string; taskName: string; confidence: number } | null {
+  const result = matchTodoToSubagentFuzzy(todo, todoIndex, subagents, usedTaskIds);
+  if (!result) return null;
+  return {
+    taskId: result.taskId,
+    taskName: result.taskName,
+    confidence: result.confidence
+  };
+}
+
+// ESLint 억제를 위한 빈 export
+export { _matchTodoToSubagent };
 
 // 서브에이전트의 도구 호출 추출
 function extractToolsFromTask(task: HierarchicalTask): ToolCallInfo[] {
@@ -328,6 +427,81 @@ function isTaskToolName(name: string | undefined): boolean {
 }
 
 // ============================================
+// Task 스코프 추적 유틸리티 (병렬 에이전트 격리용)
+// ============================================
+
+/**
+ * Task 스코프 정보
+ *
+ * 각 Task 도구 호출의 정확한 시작/종료 범위를 추적합니다.
+ * 병렬 에이전트 실행 시에도 각 Task의 스코프가 정확하게 분리됩니다.
+ */
+interface TaskScope {
+  taskToolCallId: string;
+  startMessageIndex: number;
+  endMessageIndex: number; // -1 if still running
+  toolCallIds: string[]; // 이 Task 스코프 내의 도구 호출 ID들
+}
+
+/**
+ * 메시지에서 모든 Task 스코프 빌드
+ *
+ * 각 Task 도구 호출의 시작/종료 인덱스를 계산하고,
+ * 해당 스코프 내의 도구 호출 ID들을 수집합니다.
+ *
+ * @param messages - 메시지 배열
+ * @returns Map<taskToolCallId, TaskScope>
+ */
+function buildTaskScopes(messages: LangGraphMessage[]): Map<string, TaskScope> {
+  const scopes = new Map<string, TaskScope>();
+
+  // 1. Task 시작 지점 수집
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        if (tc.name?.toLowerCase() === "task" && tc.id) {
+          scopes.set(tc.id, {
+            taskToolCallId: tc.id,
+            startMessageIndex: i,
+            endMessageIndex: messages.length, // 기본값: 끝까지 (아직 완료 안됨)
+            toolCallIds: [],
+          });
+        }
+      }
+    }
+  }
+
+  // 2. Task 종료 지점 업데이트 (tool 결과 메시지)
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as { type?: string; tool_call_id?: string; name?: string };
+    if (msg.type === "tool" && msg.name?.toLowerCase() === "task" && msg.tool_call_id) {
+      const scope = scopes.get(msg.tool_call_id);
+      if (scope) {
+        scope.endMessageIndex = i;
+      }
+    }
+  }
+
+  // 3. 각 스코프 내의 도구 호출 ID 수집
+  for (const [_taskId, scope] of scopes) {
+    for (let i = scope.startMessageIndex + 1; i < scope.endMessageIndex; i++) {
+      const msg = messages[i];
+      if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          // Task와 Todo 도구는 제외
+          if (tc.id && tc.name && !tc.name.toLowerCase().includes("task") && !tc.name.toLowerCase().includes("todo")) {
+            scope.toolCallIds.push(tc.id);
+          }
+        }
+      }
+    }
+  }
+
+  return scopes;
+}
+
+// ============================================
 // 순서 기반 TODO-Task 매칭 유틸리티
 // ============================================
 
@@ -360,7 +534,16 @@ function extractOrderedTodosAndTasks(messages: LangGraphMessage[]): {
     msg.tool_calls.forEach((tc, tcIdx) => {
       // TodoWrite에서 in_progress TODO 추출
       if (isTodoToolName(tc.name)) {
-        const todosArr = extractTodosArraySafe(tc.args);
+        // 스트리밍 중 args가 문자열(partial JSON)인 경우 파싱 시도
+        let todoArgs: unknown = tc.args;
+        if (typeof todoArgs === "string" && todoArgs.length > 0) {
+          try {
+            todoArgs = parsePartialJson(todoArgs);
+          } catch {
+            return; // forEach에서는 continue 대신 return
+          }
+        }
+        const todosArr = extractTodosArraySafe(todoArgs);
         if (todosArr) {
           const items = safeMapToTodoItems(todosArr);
           items.forEach((todo, todoIdx) => {
@@ -377,7 +560,16 @@ function extractOrderedTodosAndTasks(messages: LangGraphMessage[]): {
 
       // Task 호출 추출
       if (isTaskToolName(tc.name)) {
-        const args = tc.args as { description?: string } | undefined;
+        // 스트리밍 중 args가 문자열(partial JSON)인 경우 파싱 시도
+        let taskArgs: unknown = tc.args;
+        if (typeof taskArgs === "string" && taskArgs.length > 0) {
+          try {
+            taskArgs = parsePartialJson(taskArgs);
+          } catch {
+            return; // forEach에서는 continue 대신 return
+          }
+        }
+        const args = taskArgs as { description?: string } | undefined;
         taskCalls.push({
           toolCallId: tc.id || `task-${msgIdx}-${tcIdx}`,
           description: args?.description || "",
@@ -430,23 +622,34 @@ function parseTaskArgsAsTodo(args: unknown, index: number): TodoItem | null {
   };
 }
 
-// 메시지에서 TodoWrite 항목만 추출
+// 메시지에서 TodoWrite 항목만 추출 (중복 제거)
 function extractTodoWriteItems(msg: LangGraphMessage): TodoItem[] {
   const items: TodoItem[] = [];
+  const seenToolCallIds = new Set<string>(); // 중복 방지용
 
-  // tool_calls에서 TodoWrite 찾기
+  // tool_calls에서 TodoWrite 찾기 (우선)
   if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
     for (const tc of msg.tool_calls) {
       if (isTodoToolName(tc.name)) {
-        const todosArr = extractTodosArraySafe(tc.args);
+        // 스트리밍 중 args가 문자열(partial JSON)인 경우 파싱 시도
+        let args: unknown = tc.args;
+        if (typeof args === "string" && args.length > 0) {
+          try {
+            args = parsePartialJson(args);
+          } catch {
+            continue;
+          }
+        }
+        const todosArr = extractTodosArraySafe(args);
         if (todosArr) {
           items.push(...safeMapToTodoItems(todosArr));
+          if (tc.id) seenToolCallIds.add(tc.id);
         }
       }
     }
   }
 
-  // content의 tool_use에서 TodoWrite 찾기
+  // content의 tool_use에서 TodoWrite 찾기 (중복된 ID 스킵)
   if (msg.type === "ai" && Array.isArray(msg.content)) {
     const toolUseContents = msg.content.filter(
       (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
@@ -454,6 +657,11 @@ function extractTodoWriteItems(msg: LangGraphMessage): TodoItem[] {
     );
 
     for (const tc of toolUseContents) {
+      // 이미 tool_calls에서 추출된 ID는 스킵
+      if (tc.id && seenToolCallIds.has(tc.id)) {
+        continue;
+      }
+
       if (isTodoToolName(tc.name)) {
         let args: unknown = tc.input;
         if (typeof args === "string" && args.length > 0) {
@@ -466,6 +674,7 @@ function extractTodoWriteItems(msg: LangGraphMessage): TodoItem[] {
         const todosArr = extractTodosArraySafe(args);
         if (todosArr) {
           items.push(...safeMapToTodoItems(todosArr));
+          if (tc.id) seenToolCallIds.add(tc.id);
         }
       }
     }
@@ -480,24 +689,47 @@ interface TaskCallInfo {
   toolCallId?: string;
 }
 
-// 메시지에서 Task 도구 호출만 추출 (tool_call_id 포함)
-function extractTaskItemsWithIds(msg: LangGraphMessage, startIndex: number): TaskCallInfo[] {
+// 메시지에서 Task 도구 호출만 추출 (tool_call_id 포함, 중복 제거)
+// globalSeenIds: 메시지 간 전역 중복 방지용 Set (선택)
+function extractTaskItemsWithIds(
+  msg: LangGraphMessage,
+  startIndex: number,
+  globalSeenIds?: Set<string>
+): TaskCallInfo[] {
   const items: TaskCallInfo[] = [];
+  const seenToolCallIds = new Set<string>(); // 메시지 내 중복 방지용
   let taskIndex = startIndex;
 
-  // tool_calls에서 Task 찾기
+  // tool_calls에서 Task 찾기 (우선)
   if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
     for (const tc of msg.tool_calls) {
       if (isTaskToolName(tc.name)) {
-        const taskAsTodo = parseTaskArgsAsTodo(tc.args, taskIndex++);
+        // 전역 중복 체크: 이미 다른 메시지에서 추출된 ID는 스킵
+        if (tc.id && globalSeenIds?.has(tc.id)) {
+          continue;
+        }
+        // 스트리밍 중 args가 문자열(partial JSON)인 경우 파싱 시도
+        let args: unknown = tc.args;
+        if (typeof args === "string" && args.length > 0) {
+          try {
+            args = parsePartialJson(args);
+          } catch {
+            continue;
+          }
+        }
+        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
         if (taskAsTodo) {
           items.push({ todo: taskAsTodo, toolCallId: tc.id });
+          if (tc.id) {
+            seenToolCallIds.add(tc.id);
+            globalSeenIds?.add(tc.id); // 전역 Set에도 추가
+          }
         }
       }
     }
   }
 
-  // content의 tool_use에서 Task 찾기
+  // content의 tool_use에서 Task 찾기 (중복된 ID 스킵)
   if (msg.type === "ai" && Array.isArray(msg.content)) {
     const toolUseContents = msg.content.filter(
       (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
@@ -505,6 +737,11 @@ function extractTaskItemsWithIds(msg: LangGraphMessage, startIndex: number): Tas
     );
 
     for (const tc of toolUseContents) {
+      // 메시지 내 중복 또는 전역 중복 스킵
+      if (tc.id && (seenToolCallIds.has(tc.id) || globalSeenIds?.has(tc.id))) {
+        continue;
+      }
+
       if (isTaskToolName(tc.name)) {
         let args: unknown = tc.input;
         if (typeof args === "string" && args.length > 0) {
@@ -517,6 +754,10 @@ function extractTaskItemsWithIds(msg: LangGraphMessage, startIndex: number): Tas
         const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
         if (taskAsTodo) {
           items.push({ todo: taskAsTodo, toolCallId: tc.id });
+          if (tc.id) {
+            seenToolCallIds.add(tc.id);
+            globalSeenIds?.add(tc.id); // 전역 Set에도 추가
+          }
         }
       }
     }
@@ -531,39 +772,92 @@ function extractTodosFromMessages(messages: unknown[]): TodoItem[] {
     return [];
   }
 
-  // 0. 완료된 tool_call_id 수집 (tool 결과 메시지에서)
+  // 0. Task 스코프 범위 계산 (서브에이전트 메시지 판별용)
+  // Task 호출 ~ Task 결과 사이의 메시지는 서브에이전트에서 온 것
+  const taskScopeRanges: Array<{ start: number; end: number; taskId: string }> = [];
+
+  // 완료된 tool_call_id 수집 (tool 결과 메시지에서)
   const completedToolCallIds = new Set<string>();
-  for (const msg of messages) {
-    const m = msg as { type?: string; tool_call_id?: string; name?: string };
+  const taskResultIndices = new Map<string, number>(); // taskId -> result message index
+
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i] as { type?: string; tool_call_id?: string; name?: string };
     if (m.type === "tool" && m.tool_call_id && isTaskToolName(m.name)) {
       completedToolCallIds.add(m.tool_call_id);
+      taskResultIndices.set(m.tool_call_id, i);
     }
   }
 
-  // 1. 가장 최신 TodoWrite 메시지 찾기 (역순 탐색)
+  // Task 시작 인덱스 수집 및 스코프 범위 계산
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        if (isTaskToolName(tc.name) && tc.id) {
+          const endIndex = taskResultIndices.get(tc.id) ?? messages.length;
+          taskScopeRanges.push({
+            start: i,
+            end: endIndex,
+            taskId: tc.id,
+          });
+        }
+      }
+    }
+  }
+
+  // 특정 메시지 인덱스가 Task 스코프(서브에이전트) 내에 있는지 확인
+  function isInsideTaskScope(index: number): boolean {
+    return taskScopeRanges.some(range => index > range.start && index < range.end);
+  }
+
+  // 1. 메인 에이전트의 가장 최신 TodoWrite 메시지 찾기 (역순 탐색)
+  // ⚠️ 중요: Task 스코프 내의 TodoWrite는 서브에이전트의 것이므로 제외
+  // ⚠️ 예외: Task 시작 메시지에 TodoWrite가 있으면 메인 에이전트의 것
   let latestTodoWriteItems: TodoItem[] = [];
+
+  // Task 시작 인덱스 Set (같은 메시지에 TodoWrite가 있으면 메인 에이전트)
+  const taskStartIndices = new Set(taskScopeRanges.map(r => r.start));
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i] as LangGraphMessage;
+
+    // 먼저 TodoWrite가 있는지 확인
     const todoItems = extractTodoWriteItems(msg);
-    if (todoItems.length > 0) {
+    if (todoItems.length === 0) continue;
+
+    // Task 시작 메시지인 경우: TodoWrite도 있으면 메인 에이전트의 것
+    // (Task 호출과 TodoWrite가 같은 AI 응답에 있는 패턴)
+    if (taskStartIndices.has(i)) {
       latestTodoWriteItems = todoItems;
       break;
     }
+
+    // 순수하게 Task 스코프 내부인 경우 (서브에이전트의 TodoWrite)
+    if (isInsideTaskScope(i)) continue;
+
+    // 메인 에이전트의 TodoWrite
+    latestTodoWriteItems = todoItems;
+    break;
   }
 
-  // 2. 모든 메시지에서 Task 도구 호출 수집
+  // 2. 모든 메시지에서 Task 도구 호출 수집 (전역 중복 방지)
   const taskItems: TodoItem[] = [];
   let taskIndex = 0;
+  // 메시지 간 전역 중복 방지 Set (동일 tool_call_id가 여러 메시지에서 나타날 수 있음)
+  const seenTaskToolCallIds = new Set<string>();
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i] as LangGraphMessage;
-    const taskInfos = extractTaskItemsWithIds(msg, taskIndex);
+    const taskInfos = extractTaskItemsWithIds(msg, taskIndex, seenTaskToolCallIds);
     if (taskInfos.length > 0) {
       for (const info of taskInfos) {
         // tool_call_id가 있고 완료된 경우 status를 completed로 변경
         if (info.toolCallId && completedToolCallIds.has(info.toolCallId)) {
           info.todo.status = "completed";
+        }
+        // linkedTaskToolCallId 설정 (서브에이전트 도구 추출용)
+        if (info.toolCallId) {
+          info.todo.linkedTaskToolCallId = info.toolCallId;
         }
         taskItems.push(info.todo);
       }
@@ -750,53 +1044,150 @@ function extractSubagentStreamingOutput(
 }
 
 /**
- * 메시지 기반 도구 추출 (LangSmith 폴백용)
+ * 메시지 기반 도구 추출 (PRIMARY 방식)
  *
  * Task 스코프 내의 tool_calls를 수집하고, tool 결과 메시지에서 상태/결과를 업데이트합니다.
- * LangSmith 데이터가 없을 때 기본 도구 정보를 제공합니다.
+ * LangSmith 데이터 유무와 관계없이 정확한 도구 귀속을 보장합니다.
+ *
+ * ## 핵심 원칙
+ * - 각 Task의 스코프를 정확히 식별 (시작: Task 호출, 종료: Task 결과)
+ * - 스코프 내의 도구만 해당 Task에 귀속 (병렬 에이전트 격리)
+ * - 중첩 Task는 별도 스코프로 처리 (서브에이전트 내부 도구 제외)
+ * - 병렬 Task (같은 메시지에서 호출)는 종료 순서로 스코프 분리
  *
  * @param messages - 메시지 배열
  * @param taskToolCallId - Task의 tool_call_id
+ * @param taskScopes - 전체 Task 스코프 맵 (중첩/병렬 Task 제외용, 선택)
  * @returns ToolCallInfo[]
  */
-function extractToolsFromMessages(
+function extractToolsFromMessagesForTask(
   messages: LangGraphMessage[],
-  taskToolCallId: string
+  taskToolCallId: string,
+  taskScopes?: Map<string, TaskScope>
 ): ToolCallInfo[] {
   const tools: ToolCallInfo[] = [];
 
-  // Task 스코프 찾기
-  let taskStartIndex = -1;
-  let taskEndIndex = messages.length;
+  // Task 스코프 찾기 (전달된 스코프 맵 사용 또는 직접 계산)
+  let scope: TaskScope | undefined;
 
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
+  if (taskScopes) {
+    scope = taskScopes.get(taskToolCallId);
+  }
 
-    // Task 시작 지점 찾기
-    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
-      for (const tc of msg.tool_calls) {
-        if (tc.name?.toLowerCase() === "task" && tc.id === taskToolCallId) {
-          taskStartIndex = i;
-          break;
+  // 스코프가 없으면 직접 계산
+  if (!scope) {
+    let taskStartIndex = -1;
+    let taskEndIndex = messages.length;
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+
+      // Task 시작 지점 찾기
+      if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          if (tc.name?.toLowerCase() === "task" && tc.id === taskToolCallId) {
+            taskStartIndex = i;
+            break;
+          }
         }
+      }
+
+      // Task 종료 지점 찾기 (tool 결과)
+      const toolMsg = msg as { type?: string; tool_call_id?: string; name?: string };
+      if (toolMsg.type === "tool" && toolMsg.name?.toLowerCase() === "task" && toolMsg.tool_call_id === taskToolCallId) {
+        taskEndIndex = i;
+        break;
       }
     }
 
-    // Task 종료 지점 찾기 (tool 결과)
-    const toolMsg = msg as { type?: string; tool_call_id?: string; name?: string };
-    if (toolMsg.type === "tool" && toolMsg.name?.toLowerCase() === "task" && toolMsg.tool_call_id === taskToolCallId) {
-      taskEndIndex = i;
-      break;
+    if (taskStartIndex < 0) {
+      return tools;
+    }
+
+    scope = {
+      taskToolCallId,
+      startMessageIndex: taskStartIndex,
+      endMessageIndex: taskEndIndex,
+      toolCallIds: [],
+    };
+  }
+
+  // ========================================
+  // 제외할 Task 범위 수집 (중첩 + 병렬)
+  // ========================================
+  const excludedRanges: Array<{ start: number; end: number; taskId: string }> = [];
+
+  if (taskScopes) {
+    for (const [otherId, otherScope] of taskScopes) {
+      if (otherId === taskToolCallId) continue;
+
+      // Case 1: 병렬 Task (같은 시작 인덱스)
+      // 병렬 Task의 도구가 혼합되지 않도록 스코프 격리
+      if (otherScope.startMessageIndex === scope.startMessageIndex) {
+        // 병렬 Task 스코프 격리 전략:
+        // 1. 먼저 끝나는 Task의 전체 범위를 나중에 끝나는 Task에서 제외
+        // 2. 현재 Task가 먼저 끝나면, 현재 범위는 endMessageIndex로 자동 제한됨
+        //
+        // 이렇게 하면:
+        // - Task A (0-5), Task B (0-10) 에서
+        // - Task B는 A의 범위(0-5)를 제외 → B는 6-9만 봄
+        // - Task A는 B보다 먼저 끝나므로 → A는 1-4만 봄 (자동 제한)
+        if (otherScope.endMessageIndex < scope.endMessageIndex) {
+          // 다른 Task가 먼저 끝남 → 그 범위 전체 제외
+          excludedRanges.push({
+            start: otherScope.startMessageIndex,
+            end: otherScope.endMessageIndex,
+            taskId: otherId,
+          });
+        }
+        // 현재 Task가 먼저 끝나는 경우: 자동으로 scope.endMessageIndex까지만 처리됨
+        // 동시 종료: 양쪽 다 동일한 메시지를 봄 (드문 케이스)
+        continue;
+      }
+
+      // Case 2: 중첩 Task (현재 스코프 내에서 시작하는 다른 Task)
+      if (otherScope.startMessageIndex > scope.startMessageIndex &&
+          otherScope.startMessageIndex < scope.endMessageIndex) {
+        excludedRanges.push({
+          start: otherScope.startMessageIndex,
+          end: otherScope.endMessageIndex,
+          taskId: otherId,
+        });
+      }
+    }
+  } else {
+    // taskScopes가 없으면 직접 중첩 Task 찾기
+    for (let i = scope.startMessageIndex + 1; i < scope.endMessageIndex; i++) {
+      const msg = messages[i];
+      if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          if (tc.name?.toLowerCase() === "task" && tc.id && tc.id !== taskToolCallId) {
+            // 이 중첩 Task의 종료 지점 찾기
+            let nestedEnd = scope.endMessageIndex;
+            for (let j = i + 1; j < scope.endMessageIndex; j++) {
+              const endMsg = messages[j] as { type?: string; tool_call_id?: string; name?: string };
+              if (endMsg.type === "tool" && endMsg.name?.toLowerCase() === "task" && endMsg.tool_call_id === tc.id) {
+                nestedEnd = j;
+                break;
+              }
+            }
+            excludedRanges.push({ start: i, end: nestedEnd, taskId: tc.id });
+          }
+        }
+      }
     }
   }
 
-  if (taskStartIndex < 0) {
-    return tools;
+  // 특정 인덱스가 제외 범위 내에 있는지 확인
+  function isInExcludedRange(index: number): boolean {
+    return excludedRanges.some(range => index > range.start && index < range.end);
   }
 
-  // 완료된 tool_call_id 수집
+  // 완료된 tool_call_id 수집 (스코프 내, 제외 범위 제외)
   const completedToolIds = new Map<string, { status: "completed" | "error"; result?: unknown }>();
-  for (let i = taskStartIndex + 1; i < taskEndIndex; i++) {
+  for (let i = scope.startMessageIndex + 1; i < scope.endMessageIndex; i++) {
+    if (isInExcludedRange(i)) continue;
+
     const msg = messages[i] as {
       type?: string;
       tool_call_id?: string;
@@ -815,8 +1206,11 @@ function extractToolsFromMessages(
     }
   }
 
-  // Task 스코프 내의 tool_calls 수집
-  for (let i = taskStartIndex + 1; i < taskEndIndex; i++) {
+  // Task 스코프 내의 tool_calls 수집 (제외 범위 제외)
+  for (let i = scope.startMessageIndex + 1; i < scope.endMessageIndex; i++) {
+    // 제외 범위(중첩/병렬 Task) 내의 메시지는 스킵
+    if (isInExcludedRange(i)) continue;
+
     const msg = messages[i] as LangGraphMessage;
 
     if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
@@ -850,6 +1244,17 @@ function extractToolsFromMessages(
   return tools;
 }
 
+// 기존 함수 유지 (호환성) - 내부적으로 새 함수 호출
+function _extractToolsFromMessages(
+  messages: LangGraphMessage[],
+  taskToolCallId: string
+): ToolCallInfo[] {
+  return extractToolsFromMessagesForTask(messages, taskToolCallId);
+}
+
+// ESLint 억제를 위한 빈 export (호환성 함수)
+export { _extractToolsFromMessages };
+
 // 서브에이전트 TODO인지 확인 (Task 도구로 생성된 TODO)
 function isSubagentTodo(todo: TodoItem): boolean {
   return todo.id.startsWith("task-");
@@ -862,7 +1267,7 @@ interface IndexedTodo {
   originalIndex: number;
 }
 
-// 텍스트 유사도 기반 부모 매칭 함수
+// 텍스트 유사도 기반 부모 매칭 함수 (폴백용)
 function findBestMatchingParent(
   subagentTodo: TodoItem,
   parents: IndexedTodo[]
@@ -873,13 +1278,133 @@ function findBestMatchingParent(
 
   for (const parent of parents) {
     const score = calculateTextSimilarity(subagentTodo.content, parent.todo.content);
-    // 최소 유사도 임계값 0.2 이상인 경우에만 매칭 후보로 고려
-    if (score > 0.2 && (!bestMatch || score > bestMatch.score)) {
+    // 최소 유사도 임계값 0.1 이상인 경우에만 매칭 후보로 고려
+    // (낮은 임계값으로 더 많은 매칭 기회 제공)
+    if (score > 0.1 && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { parent, score };
     }
   }
 
   return bestMatch?.parent ?? null;
+}
+
+/**
+ * 메시지 순서 기반 서브에이전트-부모 TODO 매칭 (PRIMARY 방식)
+ *
+ * Task 호출 직전의 TodoWrite에서 in_progress 상태였던 TODO를 부모로 매칭합니다.
+ * 이 방식은 텍스트 유사도보다 정확하며, 병렬 에이전트에서도 올바르게 작동합니다.
+ *
+ * ## 알고리즘
+ * 1. subagentTodo의 linkedTaskToolCallId로 Task 호출 메시지 위치 찾기
+ * 2. 해당 Task 호출 이전의 가장 최신 TodoWrite 찾기
+ * 3. 그 TodoWrite에서 in_progress 상태인 TODO를 부모로 매칭
+ *
+ * @param subagentTodo - 서브에이전트 TODO (task-*)
+ * @param mainTodos - 메인 TODO 목록 (todo-*)
+ * @param messages - 메시지 배열
+ * @param taskScopes - Task 스코프 맵 (선택)
+ * @returns 매칭된 부모 TODO 또는 null
+ */
+function matchSubagentToParentByMessageOrder(
+  subagentTodo: TodoItem,
+  mainTodos: IndexedTodo[],
+  messages: LangGraphMessage[],
+  taskScopes?: Map<string, TaskScope>
+): IndexedTodo | null {
+  const linkedTaskToolCallId = subagentTodo.linkedTaskToolCallId;
+  if (!linkedTaskToolCallId) return null;
+
+  // 1. Task 호출 메시지 인덱스 찾기
+  let taskCallMessageIndex = -1;
+
+  if (taskScopes) {
+    const scope = taskScopes.get(linkedTaskToolCallId);
+    if (scope) {
+      taskCallMessageIndex = scope.startMessageIndex;
+    }
+  }
+
+  // 스코프에서 못 찾으면 직접 탐색
+  if (taskCallMessageIndex < 0) {
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          if (tc.name?.toLowerCase() === "task" && tc.id === linkedTaskToolCallId) {
+            taskCallMessageIndex = i;
+            break;
+          }
+        }
+        if (taskCallMessageIndex >= 0) break;
+      }
+    }
+  }
+
+  if (taskCallMessageIndex < 0) return null;
+
+  // 2. Task 호출 이전의 가장 최신 TodoWrite 찾기 (역순 탐색)
+  let lastTodoWriteBeforeTask: { todos: TodoItem[]; messageIndex: number } | null = null;
+
+  for (let i = taskCallMessageIndex; i >= 0; i--) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
+
+    for (const tc of msg.tool_calls) {
+      if (isTodoToolName(tc.name)) {
+        // 스트리밍 중 args가 문자열(partial JSON)인 경우 파싱 시도
+        let args: unknown = tc.args;
+        if (typeof args === "string" && args.length > 0) {
+          try {
+            args = parsePartialJson(args);
+          } catch {
+            continue;
+          }
+        }
+        const todosArr = extractTodosArraySafe(args);
+        if (todosArr) {
+          const items = safeMapToTodoItems(todosArr);
+          if (items.length > 0) {
+            lastTodoWriteBeforeTask = { todos: items, messageIndex: i };
+            break;
+          }
+        }
+      }
+    }
+    if (lastTodoWriteBeforeTask) break;
+  }
+
+  if (!lastTodoWriteBeforeTask) return null;
+
+  // 3. 해당 TodoWrite에서 in_progress 상태인 TODO 찾기
+  const inProgressTodos = lastTodoWriteBeforeTask.todos.filter(t => t.status === "in_progress");
+
+  if (inProgressTodos.length === 0) return null;
+
+  // 4. mainTodos에서 일치하는 TODO 찾기 (content로 매칭)
+  for (const inProgressTodo of inProgressTodos) {
+    const matchedParent = mainTodos.find(m => m.todo.content === inProgressTodo.content);
+    if (matchedParent) {
+      return matchedParent;
+    }
+  }
+
+  // 5. content가 정확히 일치하지 않으면 첫 번째 in_progress를 mainTodos에서 찾기
+  // (TODO 목록이 업데이트되어 content가 약간 다를 수 있음)
+  for (const inProgressTodo of inProgressTodos) {
+    // 가장 높은 유사도를 가진 mainTodo 찾기
+    let bestMatch: { parent: IndexedTodo; score: number } | null = null;
+    for (const mainTodo of mainTodos) {
+      const score = calculateTextSimilarity(inProgressTodo.content, mainTodo.todo.content);
+      if (score > 0.5 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { parent: mainTodo, score };
+      }
+    }
+    if (bestMatch) {
+      return bestMatch.parent;
+    }
+  }
+
+  return null;
 }
 
 function partitionTodosByType(todos: TodoItem[]): {
@@ -975,24 +1500,36 @@ function createHierarchicalTodoItem(
 /**
  * 도구/reasoning 추출 및 서브에이전트 매칭
  *
- * ## LangSmith 의존성 및 폴백
- * - 1차: LangSmith runs에서 빌드된 subagents 배열 사용
- * - 2차 (폴백): LangSmith 미설정 또는 매칭 실패 시 메시지 기반 추출
+ * ## 매칭 전략 (개선된 우선순위)
+ *
+ * ### 도구 추출: 상황에 따라 최적 방식 선택
+ * 1. 병렬 Task (같은 메시지에서 호출): LangSmith 우선 (메시지로는 구분 불가능)
+ * 2. 순차 Task: 메시지 기반 추출 (정확한 스코프 식별 가능)
+ * 3. LangSmith 없음: 메시지 기반 추출 (최선의 노력)
+ *
+ * ### 이 방식의 장점
+ * - 병렬 에이전트: LangSmith 사용으로 정확한 귀속
+ * - 순차 에이전트: 메시지 기반으로 빠르고 정확한 추출
+ * - LangSmith 없어도 기본 기능 동작
  *
  * @param todo - TODO 항목
  * @param originalIndex - 원본 인덱스
  * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크
  * @param usedTaskIds - 이미 사용된 Task ID (중복 방지)
- * @param messages - 메시지 배열 (폴백용, 선택)
- * @param linkedTaskToolCallId - 연결된 Task의 tool_call_id (폴백용, 선택)
+ * @param toolCallIdIndex - toolCallId → HierarchicalTask 인덱스 (LangSmith 매칭용)
+ * @param messages - 메시지 배열 (메시지 기반 도구 추출용)
+ * @param linkedTaskToolCallId - 연결된 Task의 tool_call_id
+ * @param taskScopes - 전체 Task 스코프 맵 (병렬 Task 감지 및 스코프 격리용)
  */
 function extractToolsAndReasoningWithMatch(
   todo: TodoItem,
   originalIndex: number,
   subagents: HierarchicalTask[],
   usedTaskIds: Set<string>,
+  toolCallIdIndex: Map<string, HierarchicalTask>,
   messages?: LangGraphMessage[],
-  linkedTaskToolCallId?: string
+  linkedTaskToolCallId?: string,
+  taskScopes?: Map<string, TaskScope>
 ): {
   tools: ToolCallInfo[];
   reasoning: ReasoningInfo[];
@@ -1000,22 +1537,82 @@ function extractToolsAndReasoningWithMatch(
 } {
   let tools: ToolCallInfo[] = [];
   let reasoning: ReasoningInfo[] = [];
+  let match: { taskId: string; taskName: string; confidence: number } | null = null;
 
-  // 1차: LangSmith 기반 추출
-  const match = matchTodoToSubagent(todo, originalIndex, subagents, usedTaskIds);
-  if (match) {
-    usedTaskIds.add(match.taskId);
-    const matchedTask = subagents.find(t => t.id === match.taskId);
-    if (matchedTask) {
-      tools = extractToolsFromTask(matchedTask);
-      reasoning = extractReasoningFromTask(matchedTask);
+  // ========================================
+  // 병렬 Task 감지: 같은 startMessageIndex를 가진 다른 Task 존재 여부
+  // ========================================
+  let isParallelTask = false;
+  if (linkedTaskToolCallId && taskScopes) {
+    const currentScope = taskScopes.get(linkedTaskToolCallId);
+    if (currentScope) {
+      for (const [otherId, otherScope] of taskScopes) {
+        if (otherId !== linkedTaskToolCallId &&
+            otherScope.startMessageIndex === currentScope.startMessageIndex) {
+          isParallelTask = true;
+          break;
+        }
+      }
     }
   }
 
-  // 2차: 메시지 기반 폴백 (LangSmith 없거나 도구 추출 실패 시)
-  if (tools.length === 0 && messages && linkedTaskToolCallId) {
-    tools = extractToolsFromMessages(messages, linkedTaskToolCallId);
-    // reasoning은 메시지 기반으로는 추출 불가 (LLM 내부 정보)
+  // ========================================
+  // LangSmith 매칭 먼저 시도 (병렬 Task에서는 PRIMARY)
+  // ========================================
+  let langSmithMatch: HierarchicalTask | null = null;
+  if (linkedTaskToolCallId) {
+    const exactMatch = toolCallIdIndex.get(linkedTaskToolCallId);
+    if (exactMatch && !usedTaskIds.has(exactMatch.id)) {
+      langSmithMatch = exactMatch;
+      match = {
+        taskId: exactMatch.id,
+        taskName: exactMatch.name,
+        confidence: 1.0
+      };
+      usedTaskIds.add(exactMatch.id);
+      reasoning = extractReasoningFromTask(exactMatch);
+    }
+  }
+
+  // ========================================
+  // 도구 추출 전략 분기
+  // ========================================
+  if (isParallelTask && langSmithMatch) {
+    // 병렬 Task + LangSmith 있음: LangSmith에서 도구 추출 (메시지로는 구분 불가)
+    tools = extractToolsFromTask(langSmithMatch);
+  } else if (linkedTaskToolCallId && messages) {
+    // 순차 Task 또는 LangSmith 없음: 메시지 기반 추출
+    tools = extractToolsFromMessagesForTask(messages, linkedTaskToolCallId, taskScopes);
+
+    // 메시지에서 추출 실패 시 LangSmith 폴백
+    if (tools.length === 0 && langSmithMatch) {
+      tools = extractToolsFromTask(langSmithMatch);
+    }
+  } else if (langSmithMatch) {
+    // linkedTaskToolCallId 없지만 LangSmith 매치 있음
+    tools = extractToolsFromTask(langSmithMatch);
+  }
+
+  // ========================================
+  // 3차: fuzzy 매칭 (메타데이터 보강용 ONLY)
+  // ========================================
+  // 정확 매칭 실패 시 fuzzy 매칭 시도
+  // 주의: fuzzy 매칭에서는 도구를 추출하지 않음 (병렬 에이전트 도구 중복 방지)
+  if (!match) {
+    const fuzzyMatch = matchTodoToSubagentFuzzy(todo, originalIndex, subagents, usedTaskIds);
+    if (fuzzyMatch) {
+      match = fuzzyMatch;
+      usedTaskIds.add(fuzzyMatch.taskId);
+
+      // fuzzy 매칭에서는 reasoning만 가져옴 (도구 추출 금지)
+      const matchedTask = subagents.find(t => t.id === fuzzyMatch.taskId);
+      if (matchedTask) {
+        reasoning = extractReasoningFromTask(matchedTask);
+        // 주의: tools = extractToolsFromTask(matchedTask) 하지 않음!
+        // fuzzy 매칭은 병렬 에이전트에서 잘못된 Task에 매칭될 수 있으므로
+        // 도구 목록을 가져오면 다른 에이전트의 도구가 표시됨
+      }
+    }
   }
 
   return { tools, reasoning, match };
@@ -1024,23 +1621,33 @@ function extractToolsAndReasoningWithMatch(
 /**
  * 계층적 TODO 구조 생성 (중첩 지원)
  *
- * ## 부모-자식 매칭 로직
+ * ## 도구 추출 전략 (개선됨)
+ * - PRIMARY: 메시지 기반 추출 (extractToolsFromMessagesForTask)
+ *   - 각 Task 스코프 내의 도구만 정확히 추출
+ *   - 병렬 에이전트 격리, 중첩 Task 처리
+ * - SECONDARY: LangSmith 메타데이터 보강 (reasoning, latency 등)
+ * - fuzzy 매칭에서는 도구 추출 금지 (병렬 에이전트 도구 중복 방지)
+ *
+ * ## 부모-자식 매칭 전략 (개선됨)
  * 1. TODO 타입별 분류: 메인 TODO (todo-*) vs 서브에이전트 TODO (task-*)
  * 2. 부모 후보 선택: in_progress/pending 상태 우선, 없으면 전체 메인 TODO 사용
- * 3. 1:1 매칭: 각 서브에이전트 TODO를 하나의 부모에만 할당 (중복 방지)
- * 4. 매칭 우선순위:
- *    - 텍스트 유사도 기반 (calculateTextSimilarity, 임계값 0.2)
- *    - 실패 시 순서 기반 fallback (첫 번째 사용 가능한 부모)
+ * 3. 매칭 우선순위:
+ *    - PRIMARY: 메시지 순서 기반 (matchSubagentToParentByMessageOrder)
+ *      - Task 호출 직전의 TodoWrite에서 in_progress인 TODO가 부모
+ *    - FALLBACK 1: 텍스트 유사도 기반 (calculateTextSimilarity, 임계값 0.2)
+ *    - FALLBACK 2: 첫 번째 사용 가능한 부모
+ *    - FALLBACK 3: 순환 할당 (부모 부족 시)
  *
- * ## LangSmith 의존성
- * - tools/reasoning 추출은 LangSmith runs에서 생성된 subagentTasks 필요
- * - LangSmith 없으면 tools=[], reasoning=[] (계층 구조만 표시)
+ * ## LangSmith 의존성 (최소화됨)
+ * - tools: 메시지 기반 추출이 PRIMARY (LangSmith 없어도 작동)
+ * - reasoning: LangSmith 필요 (LLM 내부 정보)
+ * - 계층 구조: 메시지 기반 (LangSmith 없어도 작동)
  *
  * @param todos - 추출된 TODO 목록 (메인 + 서브에이전트)
- * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크 (없으면 빈 배열)
+ * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크 (메타데이터용)
  * @param currentToolCalls - 현재 스트리밍 중인 도구 호출
  * @param streamingLLMOutput - 현재 스트리밍 중인 메인 에이전트 LLM 출력
- * @param messages - 원본 메시지 배열 (순서 기반 매칭용)
+ * @param messages - 원본 메시지 배열 (PRIMARY 도구 추출 및 순서 기반 매칭용)
  * @param subagentStreamingOutputs - 각 Task별 서브에이전트 스트리밍 출력 (선택)
  */
 function buildHierarchicalTodosWithNesting(
@@ -1051,7 +1658,56 @@ function buildHierarchicalTodosWithNesting(
   messages: LangGraphMessage[] = [],
   subagentStreamingOutputs?: Map<string, string>
 ): HierarchicalTodoItem[] {
-  if (todos.length === 0) return [];
+  // toolCallId 인덱스 빌드 (LangSmith 메타데이터 매칭용)
+  const toolCallIdIndex = buildToolCallIdIndex(subagents);
+
+  // Task 스코프 맵 빌드 (병렬 에이전트 격리 및 중첩 Task 처리용)
+  const taskScopes = buildTaskScopes(messages);
+
+  // TODO가 없지만 Task 도구 호출이 있는 경우: 합성 항목 생성
+  if (todos.length === 0) {
+    // Task 도구 호출이 있는지 확인 (진행 중인 것만 - 서브에이전트 정보 표시용)
+    const hasActiveTaskCall = messages.some(msg => {
+      if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) return false;
+      return msg.tool_calls.some(tc => tc.name?.toLowerCase() === "task");
+    });
+
+    // Task 호출이 있을 때만 합성 항목 생성 (일반 도구 호출은 제외)
+    if (hasActiveTaskCall && (currentToolCalls.length > 0 || streamingLLMOutput)) {
+      const syntheticTools: ToolCallInfo[] = currentToolCalls.map(tc => ({
+        id: tc.id || `tool-${tc.name}`,
+        name: tc.name,
+        args: tc.args,
+        status: tc.status === "completed" ? "completed" : "running",
+      }));
+
+      const syntheticReasoning: ReasoningInfo[] = [];
+      if (streamingLLMOutput) {
+        syntheticReasoning.push({
+          id: "streaming-llm",
+          name: "LLM",
+          status: "running",
+          outputText: streamingLLMOutput,
+        });
+      }
+
+      // 합성 "작업 진행 중" 항목 생성
+      const syntheticItem: HierarchicalTodoItem = {
+        id: "synthetic-task",
+        content: "작업 진행 중",
+        status: "in_progress",
+        activeForm: "처리 중...",
+        depth: 0,
+        children: [],
+        tools: syntheticTools,
+        reasoning: syntheticReasoning,
+      };
+
+      return [syntheticItem];
+    }
+
+    return [];
+  }
 
   // 1. TODO 타입별 분류
   const { mainTodos, subagentTodos } = partitionTodosByType(todos);
@@ -1069,7 +1725,7 @@ function buildHierarchicalTodosWithNesting(
     }
   }
 
-  // 4. 메인 TODO와 서브에이전트 TODO 매칭 (텍스트 유사도 + 순서 기반 fallback)
+  // 4. 메인 TODO와 서브에이전트 TODO 매칭 (메시지 순서 기반 PRIMARY)
   // 모든 메인 TODO를 부모 후보로 사용 (상태 무관)
   // 단, in_progress 또는 pending 상태 우선
   const parentCandidates = mainTodos.filter(m =>
@@ -1089,18 +1745,42 @@ function buildHierarchicalTodosWithNesting(
     // 아직 사용되지 않은 부모만 후보로
     const availableParents = effectiveParents.filter(p => !usedParentIds.has(p.todo.id));
 
-    // 1. 먼저 텍스트 유사도로 가장 적합한 부모 찾기 (사용되지 않은 부모 중에서)
-    let bestParent = findBestMatchingParent(subagentTodo.todo, availableParents);
+    // ========================================
+    // PRIMARY: 메시지 순서 기반 부모 매칭
+    // ========================================
+    // Task 호출 직전의 TodoWrite에서 in_progress 상태였던 TODO를 부모로 매칭
+    // 이 방식은 텍스트 유사도보다 정확하며, 병렬 에이전트에서도 올바르게 작동
+    let bestParent = matchSubagentToParentByMessageOrder(
+      subagentTodo.todo,
+      availableParents,
+      messages,
+      taskScopes
+    );
 
-    // 2. 매칭 실패시 순서 기반 fallback (사용되지 않은 부모 중에서)
-    if (!bestParent && availableParents.length > 0) {
-      bestParent = availableParents[0]; // 첫 번째 사용 가능한 부모
+    // ========================================
+    // FALLBACK 1: 텍스트 유사도 기반 매칭
+    // ========================================
+    // 메시지 순서 매칭 실패 시 텍스트 유사도로 폴백
+    if (!bestParent) {
+      bestParent = findBestMatchingParent(subagentTodo.todo, availableParents);
     }
 
-    // 3. 사용 가능한 부모가 없으면 순서 기반으로 기존 부모에 추가 할당
-    if (!bestParent && effectiveParents.length > 0) {
-      const parentIndex = Math.min(i, effectiveParents.length - 1);
-      bestParent = effectiveParents[parentIndex];
+    // ========================================
+    // FALLBACK 2: 첫 번째 사용 가능한 부모
+    // ========================================
+    // 텍스트 유사도 매칭도 실패 시 순서 기반 폴백
+    if (!bestParent && availableParents.length > 0) {
+      bestParent = availableParents[0];
+    }
+
+    // ========================================
+    // FALLBACK 3: 순환 할당 (부모 부족 시)
+    // ========================================
+    // 모든 부모가 사용됐으면 mainTodos에서 직접 순환 할당
+    // effectiveParents 대신 mainTodos를 사용하여 항상 부모를 찾도록 보장
+    if (!bestParent && mainTodos.length > 0) {
+      const parentIndex = Math.min(i, mainTodos.length - 1);
+      bestParent = mainTodos[parentIndex];
     }
 
     if (bestParent) {
@@ -1121,33 +1801,35 @@ function buildHierarchicalTodosWithNesting(
   };
 
   // 5. 메인 TODO 처리
+  // ⚠️ 메인 TODO (todo-*)는 TodoWrite에서 온 고수준 작업 항목
+  // 도구는 서브에이전트 TODO (task-*)에서만 표시
   const resultMap = new Map<string, HierarchicalTodoItem>();
   const result: HierarchicalTodoItem[] = [];
   const usedTaskIds = new Set<string>();
 
   for (let i = 0; i < mainTodos.length; i++) {
-    const { todo, originalIndex } = mainTodos[i];
+    const { todo } = mainTodos[i];
     const linkedTaskToolCallId = todoToTaskMap.get(todo.content);
     const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
-    const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-      todo, originalIndex, subagents, usedTaskIds,
-      messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
-    );
+    // 메인 TODO는 도구를 직접 표시하지 않음 (자식 task-*에서 표시)
+    // 스트리밍 정보만 표시 (LLM 출력)
+    const finalTools: ToolCallInfo[] = [];
+    const finalReasoning: ReasoningInfo[] = [];
 
-    // 진행 중인 TODO에 스트리밍 정보 추가 (병렬 지원: 모든 in_progress에)
-    let finalTools = tools;
-    let finalReasoning = reasoning;
-    if (todo.status === "in_progress") {
-      const attached = attachStreamingInfo(tools, reasoning, streamingContext);
-      finalTools = attached.tools;
-      finalReasoning = attached.reasoning;
-      // 병렬 실행 시 모든 in_progress TODO에 스트리밍 정보 할당
-      // streamingContext.streamingOutputUsed는 업데이트하지 않음
+    // 진행 중인 TODO에 스트리밍 LLM 출력만 추가 (도구는 자식에서 표시)
+    if (todo.status === "in_progress" && streamingLLMOutput && !streamingContext.streamingOutputUsed) {
+      finalReasoning.push({
+        id: "streaming-llm",
+        name: "LLM",
+        status: "running",
+        outputText: streamingLLMOutput,
+      });
+      streamingContext.streamingOutputUsed = true;
     }
 
     const item = createHierarchicalTodoItem(
-      todo, 0, finalTools, finalReasoning, match,
+      todo, 0, finalTools, finalReasoning, null,
       linkedTaskToolCallId, isTaskCompleted
     );
     resultMap.set(todo.id, item);
@@ -1160,12 +1842,13 @@ function buildHierarchicalTodosWithNesting(
     if (!parent) continue;
 
     for (const { todo, originalIndex } of childTodos) {
-      const linkedTaskToolCallId = todoToTaskMap.get(todo.content);
+      // task-* 항목은 linkedTaskToolCallId를 직접 사용, todo-* 항목은 todoToTaskMap에서 조회
+      const linkedTaskToolCallId = todo.linkedTaskToolCallId || todoToTaskMap.get(todo.content);
       const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
       const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-        todo, originalIndex, subagents, usedTaskIds,
-        messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
+        todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
+        messages as LangGraphMessage[], linkedTaskToolCallId, taskScopes  // 메시지 기반 PRIMARY + 스코프 격리
       );
 
       // 진행 중인 서브에이전트 TODO에 스트리밍 정보 추가 (병렬 지원)
@@ -1206,12 +1889,13 @@ function buildHierarchicalTodosWithNesting(
   for (const { todo, originalIndex } of subagentTodos) {
     if (assignedSubagentIds.has(todo.id)) continue;
 
-    const linkedTaskToolCallId = todoToTaskMap.get(todo.content);
+    // task-* 항목은 linkedTaskToolCallId를 직접 사용, todo-* 항목은 todoToTaskMap에서 조회
+    const linkedTaskToolCallId = todo.linkedTaskToolCallId || todoToTaskMap.get(todo.content);
     const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
     const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-      todo, originalIndex, subagents, usedTaskIds,
-      messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
+      todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
+      messages, linkedTaskToolCallId, taskScopes  // 메시지 기반 PRIMARY + 스코프 격리
     );
 
     // 해당 Task의 서브에이전트 스트리밍 출력 사용
@@ -1294,10 +1978,26 @@ export function useStreamingView(
   }, [hierarchy]);
 
   // 서브에이전트 태스크 (agent 또는 children이 있는 chain 타입)
+  // 모든 중첩된 태스크를 포함하여 정확한 매칭 지원
   const subagentTasks = useMemo(() => {
-    return hierarchy.filter(
-      (t) => t.type === "agent" || (t.type === "chain" && t.children.length > 0)
-    );
+    const allSubagents: HierarchicalTask[] = [];
+
+    function collectSubagents(task: HierarchicalTask) {
+      // agent 타입이거나 children이 있는 chain만 수집
+      if (task.type === "agent" || (task.type === "chain" && task.children.length > 0)) {
+        allSubagents.push(task);
+      }
+      // 자식 태스크도 재귀적으로 탐색
+      for (const child of task.children) {
+        collectSubagents(child);
+      }
+    }
+
+    for (const task of hierarchy) {
+      collectSubagents(task);
+    }
+
+    return allSubagents;
   }, [hierarchy]);
 
   // Todo 리스트 추출
@@ -1435,6 +2135,9 @@ export function useStreamingView(
     }
   }, [isStreaming, hierarchy, defaultExpandDepth]);
 
+  // 컨텐츠가 있는지 여부 (StreamingTaskView를 렌더링해야 하는지)
+  const hasVisibleContent = hierarchicalTodos.length > 0 || activeLeafTasks.length > 0;
+
   return {
     viewState,
     stats,
@@ -1449,5 +2152,6 @@ export function useStreamingView(
     currentToolCalls,
     hierarchicalTodos,
     todoLifecycle,
+    hasVisibleContent,
   };
 }

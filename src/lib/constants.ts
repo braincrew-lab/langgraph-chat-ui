@@ -9,6 +9,8 @@
 export const UI = {
   /** Width of the chat history sidebar in pixels */
   CHAT_SIDEBAR_WIDTH: 300,
+  /** Width of the tracing sidebar in pixels */
+  TRACING_SIDEBAR_WIDTH: 400,
   /** Maximum height of the chat textarea in pixels */
   CHAT_TEXTAREA_MAX_HEIGHT: 490,
   /** Logo scale factor for splash screen */

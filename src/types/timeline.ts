@@ -10,6 +10,9 @@ export interface BaseTimelineEvent {
   timestamp: number;
   source?: TimelineEventSource;
   latency?: number;
+  // 계층적 표시를 위한 필드 (선택적)
+  parentRunId?: string;  // 부모 run ID (서브에이전트 그룹핑용)
+  depth?: number;        // 계층 깊이 (들여쓰기용, 0 = 루트)
 }
 
 export interface MiddlewareTimelineEvent extends BaseTimelineEvent {

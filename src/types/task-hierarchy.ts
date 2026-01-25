@@ -26,6 +26,8 @@ export interface HierarchicalTask {
   runId: string;
   // 에러 정보
   error?: string;
+  // tool_call_id (LangSmith Run에서 추출, 메시지 매칭용)
+  toolCallId?: string;
 }
 
 // Todo 아이템

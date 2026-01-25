@@ -1,6 +1,6 @@
 import { Client, type Run } from "langsmith";
 import { NextRequest, NextResponse } from "next/server";
-import { LangSmithRun } from "@/types/langsmith";
+import { LangSmithRun, buildRunHierarchy } from "@/types/langsmith";
 
 // LangSmith Run 객체를 LangSmithRun 형식으로 변환
 function convertRun(run: Run): LangSmithRun {
@@ -104,7 +104,10 @@ export async function GET(req: NextRequest) {
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
 
-    return NextResponse.json({ runs });
+    // 계층 구조 정보 빌드
+    const hierarchy = buildRunHierarchy(runs);
+
+    return NextResponse.json({ runs, hierarchy });
   } catch (error) {
     console.error("Failed to fetch LangSmith runs:", error);
     return NextResponse.json(
