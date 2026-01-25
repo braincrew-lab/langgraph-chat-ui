@@ -1,3 +1,4 @@
+import { useMemo, memo } from "react";
 import { parsePartialJson } from "@langchain/core/output_parsers";
 import { useStreamContext } from "@/hooks/useStreamContext";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
@@ -106,7 +107,7 @@ function Interrupt({
   );
 }
 
-export function AssistantMessage({
+export const AssistantMessage = memo(function AssistantMessage({
   message,
   isLoading,
   handleRegenerate,
@@ -117,7 +118,7 @@ export function AssistantMessage({
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
   compactView?: boolean;
 }) {
-  const content = message?.content ?? [];
+  const content = useMemo(() => message?.content ?? [], [message?.content]);
   const contentString = getContentString(content);
   const [hideToolCalls] = useQueryState(
     "hideToolCalls",
@@ -134,9 +135,10 @@ export function AssistantMessage({
   const threadInterrupt = thread.interrupt;
 
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
-  const anthropicStreamedToolCalls = Array.isArray(content)
-    ? parseAnthropicStreamedToolCalls(content)
-    : undefined;
+  const anthropicStreamedToolCalls = useMemo(
+    () => Array.isArray(content) ? parseAnthropicStreamedToolCalls(content) : undefined,
+    [content]
+  );
 
   // Task/TodoWrite 도구는 TODO 박스에서 통합 표시하므로 필터링
   const filterIntegratedTools = (toolCalls: AIMessage["tool_calls"]) => {
@@ -239,7 +241,7 @@ export function AssistantMessage({
       </div>
     </div>
   );
-}
+});
 
 export function AssistantMessageLoading() {
   return (

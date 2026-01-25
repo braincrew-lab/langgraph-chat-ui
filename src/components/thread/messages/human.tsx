@@ -1,8 +1,9 @@
 import { useStreamContext } from "@/hooks/useStreamContext";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { getContentString } from "../utils";
 import { cn } from "@/lib/utils";
+import { STREAM_OPTIONS } from "@/lib/constants";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MultimodalPreview } from "@/components/thread/MultimodalPreview";
@@ -34,7 +35,7 @@ function EditableContent({
   );
 }
 
-export function HumanMessage({
+export const HumanMessage = memo(function HumanMessage({
   message,
   isLoading,
 }: {
@@ -57,9 +58,7 @@ export function HumanMessage({
       { messages: [newMessage] },
       {
         checkpoint: parentCheckpoint,
-        streamMode: ["values", "custom"],
-        streamSubgraphs: true,
-        streamResumable: true,
+        ...STREAM_OPTIONS,
         optimisticValues: (prev) => {
           const values = meta?.firstSeenState?.values;
           if (!values) return prev;
@@ -148,4 +147,4 @@ export function HumanMessage({
       </div>
     </div>
   );
-}
+});

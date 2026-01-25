@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
-import { ReactNode, useEffect, useRef, useMemo } from "react";
+import { ReactNode, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { UI } from "@/lib/constants";
+import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/hooks/useStreamContext";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
@@ -29,7 +29,7 @@ import {
 import { ExecutionTimelinePanel } from "./execution-timeline-panel";
 import { StreamingTaskView } from "./streaming-task-view";
 import { useLangSmithRuns } from "@/hooks/useLangSmithRuns";
-import { useStreamingView, type TodoLifecycleState } from "@/hooks/useStreamingView";
+import { useStreamingView } from "@/hooks/useStreamingView";
 import {
   mapRunToToolCallEvent,
   mapRunToToolResultEvent,
@@ -58,26 +58,7 @@ import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
-
-// 메시지 필터링 함수 (렌더링 여부 결정)
-function shouldRenderMessage(
-  message: Message,
-  todoLifecycle: TodoLifecycleState,
-  compactView: boolean
-): boolean {
-  // 컴팩트 뷰가 아니면 모든 메시지 표시
-  if (!compactView) return true;
-
-  // tool 메시지는 항상 숨김 (컴팩트 뷰에서)
-  if (message.type === "tool") return false;
-
-  // TODO 활성 상태에서 AI 메시지 숨김 (TODO 박스에서만 표시)
-  if (todoLifecycle === "active" && message.type === "ai") {
-    return false;
-  }
-
-  return true;
-}
+import { shouldRenderMessage } from "./utils";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -175,7 +156,6 @@ export function Thread() {
     handleFileUpload,
     dropRef,
     removeBlock,
-    resetBlocks: _resetBlocks,
     dragOver,
     handlePaste,
   } = useFileUpload();
@@ -186,7 +166,6 @@ export function Thread() {
   const messages = stream.messages;
   const isLoading = stream.isLoading;
   const {
-    assistantId: _activeAssistantId,
     assistants,
     assistantsLoading,
     refetchAssistants,
@@ -202,7 +181,7 @@ export function Thread() {
     loading: langSmithLoading,
     refetch: refetchLangSmith,
   } = useLangSmithRuns(threadId, null, {
-    pollingInterval: 2000,
+    pollingInterval: TIMING.POLLING_INTERVAL,
     autoPolling: isLoading, // 스트리밍 중에만 폴링
   });
 
@@ -229,18 +208,21 @@ export function Thread() {
       // 스트리밍 완료 후 잠시 대기 후 LangSmith 조회 (트레이스 기록 시간 확보)
       setTimeout(() => {
         refetchLangSmith();
-      }, 2000);
+      }, TIMING.LANGSMITH_REFETCH_DELAY);
     }
     prevIsLoading.current = isLoading;
   }, [isLoading, refetchLangSmith]);
 
   const lastError = useRef<string | undefined>(undefined);
 
-  const assistantSelectValue = assistantQueryId?.trim() || "none";
+  const assistantSelectValue = useMemo(
+    () => assistantQueryId?.trim() || "none",
+    [assistantQueryId]
+  );
 
   const isAssistantSelected = Boolean(assistantQueryId?.trim());
 
-  const handleAssistantChange = (value: string) => {
+  const handleAssistantChange = useCallback((value: string) => {
     if (value === "none") {
       if (assistantQueryId) {
         void setAssistantQueryId(null);
@@ -265,7 +247,7 @@ export function Thread() {
     toast.success("그래프가 변경되었습니다.", {
       description: `선택한 assistant ID: ${value}`,
     });
-  };
+  }, [assistantQueryId, setAssistantQueryId, setThreadId, setContentBlocks]);
 
   useEffect(() => {
     if (!stream.error) {
@@ -309,7 +291,7 @@ export function Thread() {
     prevMessageLength.current = messages.length;
   }, [messages]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     if (!isAssistantSelected) {
       toast.error("그래프를 먼저 선택해주세요.");
@@ -336,9 +318,7 @@ export function Thread() {
     stream.submit(
       { messages: [...toolMessages, newHumanMessage] },
       {
-        streamMode: ["values", "custom"],
-        streamSubgraphs: true,
-        streamResumable: true,
+        ...STREAM_OPTIONS,
         optimisticValues: (prev) => ({
           ...prev,
           messages: [
@@ -352,9 +332,9 @@ export function Thread() {
 
     setInput("");
     setContentBlocks([]);
-  };
+  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks]);
 
-  const handleRegenerate = (
+  const handleRegenerate = useCallback((
     parentCheckpoint: Checkpoint | null | undefined,
   ) => {
     // Do this so the loading state is correct
@@ -362,11 +342,9 @@ export function Thread() {
     setFirstTokenReceived(false);
     stream.submit(undefined, {
       checkpoint: parentCheckpoint,
-      streamMode: ["values", "custom"],
-      streamSubgraphs: true,
-      streamResumable: true,
+      ...STREAM_OPTIONS,
     });
-  };
+  }, [stream]);
 
   const chatStarted = !!threadId || !!messages.length;
   const hasNoAIOrToolMessages = !messages.find(

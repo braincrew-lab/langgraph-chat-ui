@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatToolArgs } from "@/lib/format-utils";
 import { type HierarchicalTodoItem, type ToolCallInfo, type ReasoningInfo } from "@/types/task-hierarchy";
 
 interface HierarchicalTodoListProps {
@@ -44,28 +45,6 @@ const ToolStatusIcon = ({ status }: { status: ToolCallInfo["status"] }) => {
       return <Loader2 className="h-3 w-3 text-orange-500 animate-spin flex-shrink-0" />;
   }
 };
-
-// 도구 인자 포맷팅
-function formatToolArgs(args: Record<string, unknown>): string {
-  if (!args || Object.keys(args).length === 0) {
-    return "";
-  }
-
-  const entries = Object.entries(args);
-  const preview = entries.slice(0, 2).map(([key, value]) => {
-    let displayValue = String(value);
-    if (displayValue.length > 40) {
-      displayValue = displayValue.substring(0, 40) + "...";
-    }
-    return `${key}: ${displayValue}`;
-  });
-
-  if (entries.length > 2) {
-    preview.push(`+${entries.length - 2} more`);
-  }
-
-  return preview.join(", ");
-}
 
 // 도구 호출 아이템 (확장 가능)
 function ToolCallItem({ tool, depth }: { tool: ToolCallInfo; depth: number }) {
@@ -330,43 +309,45 @@ function HierarchicalTodoItemComponent({
 
 const MAX_HEIGHT = 300; // TODO 목록 최대 높이 (px)
 
-export function HierarchicalTodoList({ items, isStreaming }: HierarchicalTodoListProps) {
+export const HierarchicalTodoList = memo(function HierarchicalTodoList({ items, isStreaming }: HierarchicalTodoListProps) {
   // 로컬 확장 상태 관리
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   // TODO 섹션 전체 접기/펴기 상태
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // 진행 중인 TODO 자동 확장
-  useEffect(() => {
-    if (isStreaming) {
-      const inProgressIds = new Set<string>();
+  // 진행 중인 TODO ID를 useMemo로 계산 (매 렌더링마다 재계산 방지)
+  const inProgressIds = useMemo(() => {
+    if (!isStreaming) return new Set<string>();
 
-      function findInProgress(todoItems: HierarchicalTodoItem[]) {
-        for (const item of todoItems) {
-          if (item.status === "in_progress") {
-            inProgressIds.add(item.id);
-          }
-          if (item.children.length > 0) {
-            findInProgress(item.children);
-          }
+    const ids = new Set<string>();
+    function findInProgress(todoItems: HierarchicalTodoItem[]) {
+      for (const item of todoItems) {
+        if (item.status === "in_progress") {
+          ids.add(item.id);
+        }
+        if (item.children.length > 0) {
+          findInProgress(item.children);
         }
       }
-
-      findInProgress(items);
-
-      if (inProgressIds.size > 0) {
-        setExpandedIds(prev => {
-          const next = new Set(prev);
-          for (const id of inProgressIds) {
-            next.add(id);
-          }
-          return next;
-        });
-      }
     }
+    findInProgress(items);
+    return ids;
   }, [items, isStreaming]);
 
-  const toggleExpand = (id: string) => {
+  // inProgressIds가 변경되면 expandedIds에 추가
+  useEffect(() => {
+    if (inProgressIds.size > 0) {
+      setExpandedIds(prev => {
+        const next = new Set(prev);
+        for (const id of inProgressIds) {
+          next.add(id);
+        }
+        return next;
+      });
+    }
+  }, [inProgressIds]);
+
+  const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -376,14 +357,18 @@ export function HierarchicalTodoList({ items, isStreaming }: HierarchicalTodoLis
       }
       return next;
     });
-  };
+  }, []);
+
+  // 완료/전체 카운트 메모이제이션
+  const { completedCount, totalCount } = useMemo(() => ({
+    completedCount: items.filter((item) => item.status === "completed").length,
+    totalCount: items.length,
+  }), [items]);
 
   if (items.length === 0) {
     return null;
   }
 
-  const completedCount = items.filter((item) => item.status === "completed").length;
-  const totalCount = items.length;
   const SectionChevron = isCollapsed ? ChevronRight : ChevronDown;
 
   return (
@@ -447,4 +432,4 @@ export function HierarchicalTodoList({ items, isStreaming }: HierarchicalTodoLis
       </AnimatePresence>
     </div>
   );
-}
+});

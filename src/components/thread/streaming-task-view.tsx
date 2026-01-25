@@ -22,8 +22,6 @@ export function StreamingTaskView({
   isStreaming,
   className,
 }: StreamingTaskViewProps) {
-  console.log("[StreamingTaskView] Rendered - messages:", messages.length, "runs:", runs.length, "isStreaming:", isStreaming);
-
   const {
     viewState,
     stats,
@@ -32,8 +30,6 @@ export function StreamingTaskView({
     activeLeafTasks,
     hierarchicalTodos,
   } = useStreamingView(runs, isStreaming, messages);
-
-  console.log("[StreamingTaskView] hierarchicalTodos:", hierarchicalTodos.length, hierarchicalTodos);
 
 
   // 표시할 태스크가 있는지 확인

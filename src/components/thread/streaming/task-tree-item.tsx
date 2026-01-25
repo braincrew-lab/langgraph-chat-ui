@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatLatency } from "@/lib/format-utils";
 import { type HierarchicalTask } from "@/types/task-hierarchy";
 
 interface TaskTreeItemProps {
@@ -80,13 +82,7 @@ const TypeBadge = ({ type }: { type: HierarchicalTask["type"] }) => {
   );
 };
 
-const formatLatency = (latency?: number) => {
-  if (!latency) return null;
-  if (latency < 1000) return `${Math.round(latency)}ms`;
-  return `${(latency / 1000).toFixed(1)}s`;
-};
-
-export function TaskTreeItem({
+export const TaskTreeItem = memo(function TaskTreeItem({
   task,
   isExpanded,
   expandedIds,
@@ -176,7 +172,7 @@ export function TaskTreeItem({
       </AnimatePresence>
     </div>
   );
-}
+});
 
 interface TaskTreeViewProps {
   tasks: HierarchicalTask[];

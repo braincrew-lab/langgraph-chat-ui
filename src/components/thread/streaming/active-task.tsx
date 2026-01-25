@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ChevronDown, Wrench, Bot, GitBranch, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatValue } from "@/lib/format-utils";
 import { type HierarchicalTask } from "@/types/task-hierarchy";
 
 interface ActiveTaskProps {
@@ -73,9 +74,7 @@ export function ActiveTask({ task, depth = 0, showArgs = true }: ActiveTaskProps
                   <div key={key} className="flex gap-2">
                     <span className="text-muted-foreground flex-shrink-0">{key}:</span>
                     <span className="text-foreground/80 truncate">
-                      {typeof value === "object"
-                        ? JSON.stringify(value).substring(0, 100) + (JSON.stringify(value).length > 100 ? "..." : "")
-                        : String(value).substring(0, 100) + (String(value).length > 100 ? "..." : "")}
+                      {formatValue(value)}
                     </span>
                   </div>
                 ))}
