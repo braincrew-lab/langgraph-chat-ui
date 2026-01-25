@@ -58,7 +58,7 @@ import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
-import { shouldRenderMessage, isSubagentMessage } from "./utils";
+import { shouldRenderMessage, isSubagentMessage, buildSubagentContext } from "./utils";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -199,6 +199,11 @@ export function Thread() {
 
   // 스트리밍 뷰 상태 (TODO 라이프사이클 등)
   const { todoLifecycle } = useStreamingView(allRuns, isLoading, messages);
+
+  // 서브에이전트 메시지 감지를 위한 컨텍스트
+  const subagentContext = useMemo(() => {
+    return buildSubagentContext(messages);
+  }, [messages]);
 
   // 스트리밍 완료 시 LangSmith 재조회
   const prevIsLoading = useRef(isLoading);
@@ -560,12 +565,13 @@ export function Thread() {
 
                   {/* AI 메시지 - TODO 박스 아래에 렌더링 */}
                   {(() => {
-                    // 마지막 메인 에이전트 AI 메시지 ID 계산
+                    // 마지막 메인 에이전트 AI 메시지 ID 계산 (서브에이전트 컨텍스트 활용)
                     const filteredMessages = messages.filter(
                       (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
                     );
+                    // messages 배열 전달로 실시간 위치 기반 서브에이전트 감지 활성화
                     const mainAgentAiMessages = filteredMessages.filter(
-                      (m) => m.type === "ai" && !isSubagentMessage(m)
+                      (m) => m.type === "ai" && !isSubagentMessage(m, subagentContext, filteredMessages)
                     );
                     const lastMainAgentMessageId =
                       mainAgentAiMessages.length > 0
@@ -578,7 +584,9 @@ export function Thread() {
                           m,
                           todoLifecycle,
                           compactView,
-                          m.id === lastMainAgentMessageId
+                          m.id === lastMainAgentMessageId,
+                          subagentContext,
+                          filteredMessages  // messages 배열 전달
                         )
                       )
                       .filter((m) => m.type !== "human")

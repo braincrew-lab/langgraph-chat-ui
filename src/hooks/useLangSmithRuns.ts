@@ -27,7 +27,7 @@ interface UseLangSmithRunsReturn {
   isPolling: boolean;
 }
 
-const DEFAULT_POLLING_INTERVAL = 2000; // 2초 (스트리밍 중 폴링)
+const DEFAULT_POLLING_INTERVAL = 5000; // 5초 (스트리밍 중 폴링)
 
 export function useLangSmithRuns(
   threadId: string | null,

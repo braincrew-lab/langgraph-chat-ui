@@ -588,23 +588,267 @@ function getTextFromContent(content: string | unknown[]): string {
   return texts.join(" ");
 }
 
-// 스트리밍 중인 LLM 출력 추출 (마지막 AI 메시지의 텍스트)
-function extractStreamingLLMOutput(messages: unknown[], isStreaming: boolean): string | null {
+/**
+ * 스트리밍 중인 메인 에이전트 LLM 출력 추출
+ *
+ * 서브에이전트 메시지를 제외하고 메인 에이전트의 스트리밍 출력만 추출합니다.
+ * 서브에이전트 메시지 판별:
+ * 1. 활성 Task 스코프 내의 메시지
+ * 2. 메인 에이전트 도구 호출(Task, Todo)이 없는 AI 메시지
+ *
+ * @param messages - 메시지 배열
+ * @param isStreaming - 스트리밍 중 여부
+ * @param activeTaskCallIds - 활성 Task의 tool_call_id 집합 (선택)
+ */
+function extractStreamingLLMOutput(
+  messages: unknown[],
+  isStreaming: boolean,
+  activeTaskCallIds?: Set<string>
+): string | null {
   if (!isStreaming) return null;
 
-  // 역순으로 마지막 AI 메시지 찾기
+  // 활성 Task 스코프 내의 메시지 인덱스 범위 계산
+  const taskScopes: Array<{ startIndex: number; taskId: string }> = [];
+  const completedTaskIds = new Set<string>();
+
+  // 완료된 Task ID 수집
+  for (const msg of messages) {
+    const m = msg as { type?: string; tool_call_id?: string; name?: string };
+    if (m.type === "tool" && m.name?.toLowerCase() === "task" && m.tool_call_id) {
+      completedTaskIds.add(m.tool_call_id);
+    }
+  }
+
+  // 활성 Task 스코프 시작 인덱스 수집
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        if (tc.name?.toLowerCase() === "task" && tc.id) {
+          // activeTaskCallIds가 제공되면 해당 ID가 활성인지 확인
+          // 제공되지 않으면 completedTaskIds로 판별
+          const isActive = activeTaskCallIds
+            ? activeTaskCallIds.has(tc.id)
+            : !completedTaskIds.has(tc.id);
+          if (isActive) {
+            taskScopes.push({ startIndex: i, taskId: tc.id });
+          }
+        }
+      }
+    }
+  }
+
+  // 역순으로 메인 에이전트 AI 메시지 찾기
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i] as LangGraphMessage;
-    if (msg.type === "ai" && msg.content) {
-      const text = getTextFromContent(msg.content);
-      if (text.trim().length > 0) {
-        return text;
+
+    if (msg.type !== "ai" || !msg.content) continue;
+
+    // 이 메시지가 활성 Task 스코프 내에 있는지 확인
+    const isInTaskScope = taskScopes.some(scope => i > scope.startIndex);
+
+    if (isInTaskScope) {
+      // Task 스코프 내의 메시지는 서브에이전트로 판단
+      // 단, 메인 에이전트 도구 호출이 있으면 제외
+      const hasMainAgentCall = msg.tool_calls?.some(
+        tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
+      );
+      if (!hasMainAgentCall) {
+        continue; // 서브에이전트 메시지 스킵
       }
+    }
+
+    const text = getTextFromContent(msg.content);
+    if (text.trim().length > 0) {
+      return text;
     }
   }
   return null;
 }
 
+
+/**
+ * 각 활성 Task별 스트리밍 출력 추출
+ *
+ * 병렬 서브에이전트를 지원하여 각 Task의 스트리밍 출력을 개별 추적합니다.
+ *
+ * @param messages - 메시지 배열
+ * @param isStreaming - 스트리밍 중 여부
+ * @param activeTaskCallIds - 활성 Task의 tool_call_id 집합 (선택)
+ * @returns Map<taskToolCallId, streamingOutput>
+ */
+function extractSubagentStreamingOutput(
+  messages: unknown[],
+  isStreaming: boolean,
+  activeTaskCallIds?: Set<string>
+): Map<string, string> {
+  const outputs = new Map<string, string>();
+
+  if (!isStreaming || !activeTaskCallIds || activeTaskCallIds.size === 0) {
+    return outputs;
+  }
+
+  // 각 활성 Task의 스코프 범위 계산
+  interface TaskScope {
+    taskId: string;
+    startIndex: number;
+    endIndex: number; // 완료된 경우 tool 결과 인덱스, 미완료 시 messages.length
+  }
+
+  const taskScopes: TaskScope[] = [];
+
+  // Task 시작 인덱스 수집
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        if (tc.name?.toLowerCase() === "task" && tc.id && activeTaskCallIds.has(tc.id)) {
+          taskScopes.push({
+            taskId: tc.id,
+            startIndex: i,
+            endIndex: messages.length, // 기본값: 끝까지
+          });
+        }
+      }
+    }
+  }
+
+  // Task 종료 인덱스 업데이트 (tool 결과 메시지 찾기)
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as { type?: string; tool_call_id?: string; name?: string };
+    if (msg.type === "tool" && msg.name?.toLowerCase() === "task" && msg.tool_call_id) {
+      const scope = taskScopes.find(s => s.taskId === msg.tool_call_id);
+      if (scope) {
+        scope.endIndex = i;
+      }
+    }
+  }
+
+  // 각 Task 스코프 내에서 마지막 AI 메시지의 출력 추출
+  for (const scope of taskScopes) {
+    // 스코프 내에서 역순으로 AI 메시지 찾기
+    for (let i = scope.endIndex - 1; i > scope.startIndex; i--) {
+      const msg = messages[i] as LangGraphMessage;
+
+      if (msg.type !== "ai" || !msg.content) continue;
+
+      // 메인 에이전트 도구 호출이 있으면 스킵
+      const hasMainAgentCall = msg.tool_calls?.some(
+        tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
+      );
+      if (hasMainAgentCall) continue;
+
+      const text = getTextFromContent(msg.content);
+      if (text.trim().length > 0) {
+        outputs.set(scope.taskId, text);
+        break; // 가장 최신 출력만 사용
+      }
+    }
+  }
+
+  return outputs;
+}
+
+/**
+ * 메시지 기반 도구 추출 (LangSmith 폴백용)
+ *
+ * Task 스코프 내의 tool_calls를 수집하고, tool 결과 메시지에서 상태/결과를 업데이트합니다.
+ * LangSmith 데이터가 없을 때 기본 도구 정보를 제공합니다.
+ *
+ * @param messages - 메시지 배열
+ * @param taskToolCallId - Task의 tool_call_id
+ * @returns ToolCallInfo[]
+ */
+function extractToolsFromMessages(
+  messages: LangGraphMessage[],
+  taskToolCallId: string
+): ToolCallInfo[] {
+  const tools: ToolCallInfo[] = [];
+
+  // Task 스코프 찾기
+  let taskStartIndex = -1;
+  let taskEndIndex = messages.length;
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+
+    // Task 시작 지점 찾기
+    if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        if (tc.name?.toLowerCase() === "task" && tc.id === taskToolCallId) {
+          taskStartIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Task 종료 지점 찾기 (tool 결과)
+    const toolMsg = msg as { type?: string; tool_call_id?: string; name?: string };
+    if (toolMsg.type === "tool" && toolMsg.name?.toLowerCase() === "task" && toolMsg.tool_call_id === taskToolCallId) {
+      taskEndIndex = i;
+      break;
+    }
+  }
+
+  if (taskStartIndex < 0) {
+    return tools;
+  }
+
+  // 완료된 tool_call_id 수집
+  const completedToolIds = new Map<string, { status: "completed" | "error"; result?: unknown }>();
+  for (let i = taskStartIndex + 1; i < taskEndIndex; i++) {
+    const msg = messages[i] as {
+      type?: string;
+      tool_call_id?: string;
+      name?: string;
+      content?: unknown;
+      status?: string;
+    };
+    if (msg.type === "tool" && msg.tool_call_id) {
+      // Task 자체 결과가 아닌 경우만
+      if (msg.name?.toLowerCase() !== "task") {
+        completedToolIds.set(msg.tool_call_id, {
+          status: msg.status === "error" ? "error" : "completed",
+          result: msg.content,
+        });
+      }
+    }
+  }
+
+  // Task 스코프 내의 tool_calls 수집
+  for (let i = taskStartIndex + 1; i < taskEndIndex; i++) {
+    const msg = messages[i] as LangGraphMessage;
+
+    if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
+
+    // 메인 에이전트 도구가 아닌 호출만 수집 (Task, Todo 제외)
+    for (const tc of msg.tool_calls) {
+      if (!tc.name || tc.name.toLowerCase() === "task" || tc.name.toLowerCase().includes("todo")) {
+        continue;
+      }
+
+      const completionInfo = tc.id ? completedToolIds.get(tc.id) : undefined;
+
+      // result를 문자열로 변환 (JSON stringify 또는 기본 문자열 변환)
+      let resultStr: string | undefined;
+      if (completionInfo?.result !== undefined) {
+        resultStr = typeof completionInfo.result === "string"
+          ? completionInfo.result
+          : JSON.stringify(completionInfo.result);
+      }
+
+      tools.push({
+        id: tc.id || `tool-${i}-${tc.name}`,
+        name: tc.name,
+        args: tc.args || {},
+        status: completionInfo?.status || "running",
+        result: resultStr,
+      });
+    }
+  }
+
+  return tools;
+}
 
 // 서브에이전트 TODO인지 확인 (Task 도구로 생성된 TODO)
 function isSubagentTodo(todo: TodoItem): boolean {
@@ -731,16 +975,24 @@ function createHierarchicalTodoItem(
 /**
  * 도구/reasoning 추출 및 서브에이전트 매칭
  *
- * ⚠️ LangSmith 의존성:
- * - subagents 배열은 LangSmith runs에서 빌드됨
- * - LangSmith 미설정 시 subagents=[] → match=null → tools=[], reasoning=[]
- * - 이는 예상된 동작이며, 계층 구조는 메시지 기반으로 별도 처리됨
+ * ## LangSmith 의존성 및 폴백
+ * - 1차: LangSmith runs에서 빌드된 subagents 배열 사용
+ * - 2차 (폴백): LangSmith 미설정 또는 매칭 실패 시 메시지 기반 추출
+ *
+ * @param todo - TODO 항목
+ * @param originalIndex - 원본 인덱스
+ * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크
+ * @param usedTaskIds - 이미 사용된 Task ID (중복 방지)
+ * @param messages - 메시지 배열 (폴백용, 선택)
+ * @param linkedTaskToolCallId - 연결된 Task의 tool_call_id (폴백용, 선택)
  */
 function extractToolsAndReasoningWithMatch(
   todo: TodoItem,
   originalIndex: number,
   subagents: HierarchicalTask[],
-  usedTaskIds: Set<string>
+  usedTaskIds: Set<string>,
+  messages?: LangGraphMessage[],
+  linkedTaskToolCallId?: string
 ): {
   tools: ToolCallInfo[];
   reasoning: ReasoningInfo[];
@@ -749,6 +1001,7 @@ function extractToolsAndReasoningWithMatch(
   let tools: ToolCallInfo[] = [];
   let reasoning: ReasoningInfo[] = [];
 
+  // 1차: LangSmith 기반 추출
   const match = matchTodoToSubagent(todo, originalIndex, subagents, usedTaskIds);
   if (match) {
     usedTaskIds.add(match.taskId);
@@ -757,6 +1010,12 @@ function extractToolsAndReasoningWithMatch(
       tools = extractToolsFromTask(matchedTask);
       reasoning = extractReasoningFromTask(matchedTask);
     }
+  }
+
+  // 2차: 메시지 기반 폴백 (LangSmith 없거나 도구 추출 실패 시)
+  if (tools.length === 0 && messages && linkedTaskToolCallId) {
+    tools = extractToolsFromMessages(messages, linkedTaskToolCallId);
+    // reasoning은 메시지 기반으로는 추출 불가 (LLM 내부 정보)
   }
 
   return { tools, reasoning, match };
@@ -780,15 +1039,17 @@ function extractToolsAndReasoningWithMatch(
  * @param todos - 추출된 TODO 목록 (메인 + 서브에이전트)
  * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크 (없으면 빈 배열)
  * @param currentToolCalls - 현재 스트리밍 중인 도구 호출
- * @param streamingLLMOutput - 현재 스트리밍 중인 LLM 출력
+ * @param streamingLLMOutput - 현재 스트리밍 중인 메인 에이전트 LLM 출력
  * @param messages - 원본 메시지 배열 (순서 기반 매칭용)
+ * @param subagentStreamingOutputs - 각 Task별 서브에이전트 스트리밍 출력 (선택)
  */
 function buildHierarchicalTodosWithNesting(
   todos: TodoItem[],
   subagents: HierarchicalTask[],
   currentToolCalls: CurrentToolCall[],
   streamingLLMOutput: string | null,
-  messages: LangGraphMessage[] = []
+  messages: LangGraphMessage[] = [],
+  subagentStreamingOutputs?: Map<string, string>
 ): HierarchicalTodoItem[] {
   if (todos.length === 0) return [];
 
@@ -870,7 +1131,8 @@ function buildHierarchicalTodosWithNesting(
     const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
     const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-      todo, originalIndex, subagents, usedTaskIds
+      todo, originalIndex, subagents, usedTaskIds,
+      messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
     );
 
     // 진행 중인 TODO에 스트리밍 정보 추가 (병렬 지원: 모든 in_progress에)
@@ -902,17 +1164,27 @@ function buildHierarchicalTodosWithNesting(
       const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
       const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-        todo, originalIndex, subagents, usedTaskIds
+        todo, originalIndex, subagents, usedTaskIds,
+        messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
       );
 
       // 진행 중인 서브에이전트 TODO에 스트리밍 정보 추가 (병렬 지원)
+      // 서브에이전트별 스트리밍 출력 사용 (linkedTaskToolCallId로 매칭)
       let finalTools = tools;
       let finalReasoning = reasoning;
       if (todo.status === "in_progress") {
-        const attached = attachStreamingInfo(tools, reasoning, streamingContext);
+        // 해당 Task의 서브에이전트 스트리밍 출력 사용
+        const subagentOutput = linkedTaskToolCallId
+          ? subagentStreamingOutputs?.get(linkedTaskToolCallId) ?? null
+          : null;
+        const subagentContext: StreamingContext = {
+          streamingLLMOutput: subagentOutput,
+          currentToolCalls: [], // 서브에이전트 도구 호출은 별도 처리
+          streamingOutputUsed: false,
+        };
+        const attached = attachStreamingInfo(tools, reasoning, subagentContext);
         finalTools = attached.tools;
         finalReasoning = attached.reasoning;
-        // 병렬 실행 시 모든 in_progress TODO에 스트리밍 정보 할당
       }
 
       const childItem = createHierarchicalTodoItem(
@@ -938,13 +1210,23 @@ function buildHierarchicalTodosWithNesting(
     const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
 
     const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
-      todo, originalIndex, subagents, usedTaskIds
+      todo, originalIndex, subagents, usedTaskIds,
+      messages, linkedTaskToolCallId  // 메시지 기반 폴백 파라미터
     );
 
+    // 해당 Task의 서브에이전트 스트리밍 출력 사용
     let finalTools = tools;
     let finalReasoning = reasoning;
     if (todo.status === "in_progress") {
-      const attached = attachStreamingInfo(tools, reasoning, streamingContext);
+      const subagentOutput = linkedTaskToolCallId
+        ? subagentStreamingOutputs?.get(linkedTaskToolCallId) ?? null
+        : null;
+      const subagentContext: StreamingContext = {
+        streamingLLMOutput: subagentOutput,
+        currentToolCalls: [],
+        streamingOutputUsed: false,
+      };
+      const attached = attachStreamingInfo(tools, reasoning, subagentContext);
       finalTools = attached.tools;
       finalReasoning = attached.reasoning;
     }
@@ -1035,10 +1317,43 @@ export function useStreamingView(
     return extractCurrentToolCalls(messages, isStreaming);
   }, [messages, isStreaming]);
 
-  // 스트리밍 중인 LLM 출력 추출
+  // 활성 Task 컨텍스트 계산 (서브에이전트 메시지 감지 및 스트리밍 출력 분리용)
+  const activeTaskContext = useMemo(() => {
+    const activeTaskCallIds = new Set<string>();
+    const completedTaskIds = new Set<string>();
+
+    // 완료된 Task ID 수집
+    for (const msg of messages) {
+      const m = msg as { type?: string; tool_call_id?: string; name?: string };
+      if (m.type === "tool" && m.name?.toLowerCase() === "task" && m.tool_call_id) {
+        completedTaskIds.add(m.tool_call_id);
+      }
+    }
+
+    // 활성 Task ID 수집
+    for (const msg of messages) {
+      const m = msg as { type?: string; tool_calls?: Array<{ id?: string; name?: string }> };
+      if (m.type === "ai" && Array.isArray(m.tool_calls)) {
+        for (const tc of m.tool_calls) {
+          if (tc.name?.toLowerCase() === "task" && tc.id && !completedTaskIds.has(tc.id)) {
+            activeTaskCallIds.add(tc.id);
+          }
+        }
+      }
+    }
+
+    return { activeTaskCallIds, completedTaskIds };
+  }, [messages]);
+
+  // 스트리밍 중인 메인 에이전트 LLM 출력 추출 (서브에이전트 제외)
   const streamingLLMOutput = useMemo(() => {
-    return extractStreamingLLMOutput(messages, isStreaming);
-  }, [messages, isStreaming]);
+    return extractStreamingLLMOutput(messages, isStreaming, activeTaskContext.activeTaskCallIds);
+  }, [messages, isStreaming, activeTaskContext.activeTaskCallIds]);
+
+  // 각 서브에이전트별 스트리밍 출력 추출 (병렬 서브에이전트 지원)
+  const subagentStreamingOutputs = useMemo(() => {
+    return extractSubagentStreamingOutput(messages, isStreaming, activeTaskContext.activeTaskCallIds);
+  }, [messages, isStreaming, activeTaskContext.activeTaskCallIds]);
 
   // 계층적 TODO 빌드 (TODO + 서브에이전트 + 도구 + 스트리밍 LLM 통합, 중첩 지원, 순서 기반 매칭)
   const hierarchicalTodos = useMemo(() => {
@@ -1047,9 +1362,10 @@ export function useStreamingView(
       subagentTasks,
       currentToolCalls,
       streamingLLMOutput,
-      messages as LangGraphMessage[]
+      messages as LangGraphMessage[],
+      subagentStreamingOutputs  // 서브에이전트별 스트리밍 출력 전달
     );
-  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages]);
+  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages, subagentStreamingOutputs]);
 
   // 뷰 상태
   const viewState: StreamingViewState = useMemo(() => ({

@@ -26,7 +26,7 @@ export const TIMING = {
   /** Delay before fetching threads after creation (milliseconds) */
   THREAD_FETCH_DELAY: 4000,
   /** Polling interval for LangSmith runs (milliseconds) */
-  POLLING_INTERVAL: 2000,
+  POLLING_INTERVAL: 5000,
   /** Delay before refetching LangSmith data after streaming ends */
   LANGSMITH_REFETCH_DELAY: 2000,
   /** Default animation duration (milliseconds) */
