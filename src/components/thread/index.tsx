@@ -29,6 +29,7 @@ import {
 import { ExecutionTimelinePanel } from "./execution-timeline-panel";
 import { StreamingTaskView } from "./streaming-task-view";
 import { useLangSmithRuns } from "@/hooks/useLangSmithRuns";
+import { useStreamingView, type TodoLifecycleState } from "@/hooks/useStreamingView";
 import {
   mapRunToToolCallEvent,
   mapRunToToolResultEvent,
@@ -57,6 +58,26 @@ import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
+
+// 메시지 필터링 함수 (렌더링 여부 결정)
+function shouldRenderMessage(
+  message: Message,
+  todoLifecycle: TodoLifecycleState,
+  compactView: boolean
+): boolean {
+  // 컴팩트 뷰가 아니면 모든 메시지 표시
+  if (!compactView) return true;
+
+  // tool 메시지는 항상 숨김 (컴팩트 뷰에서)
+  if (message.type === "tool") return false;
+
+  // TODO 활성 상태에서 AI 메시지 숨김 (TODO 박스에서만 표시)
+  if (todoLifecycle === "active" && message.type === "ai") {
+    return false;
+  }
+
+  return true;
+}
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -196,6 +217,9 @@ export function Thread() {
       llmEnds: langSmithLLMRuns.map(mapRunToLLMEvent),
     };
   }, [langSmithMiddlewareRuns, langSmithToolRuns, langSmithLLMRuns]);
+
+  // 스트리밍 뷰 상태 (TODO 라이프사이클 등)
+  const { todoLifecycle } = useStreamingView(allRuns, isLoading, messages);
 
   // 스트리밍 완료 시 LangSmith 재조회
   const prevIsLoading = useRef(isLoading);
@@ -535,31 +559,43 @@ export function Thread() {
               )}
               content={
                 <>
+                  {/* Human 메시지 먼저 렌더링 */}
                   {messages
                     .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .map((message, index) => {
-                      // 컴팩트 뷰에서는 tool 메시지를 숨김
-                      if (compactView && message.type === "tool") {
-                        return null;
-                      }
-                      return message.type === "human" ? (
-                        <HumanMessage
-                          key={message.id || `${message.type}-${index}`}
-                          message={message}
-                          isLoading={isLoading}
-                        />
-                      ) : (
-                        <AssistantMessage
-                          key={message.id || `${message.type}-${index}`}
-                          message={message}
-                          isLoading={isLoading}
-                          handleRegenerate={handleRegenerate}
-                          compactView={compactView}
-                        />
-                      );
-                    })}
-                  {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
-                    We need to render it outside of the messages list, since there are no messages to render */}
+                    .filter((m) => m.type === "human")
+                    .map((message, index) => (
+                      <HumanMessage
+                        key={message.id || `human-${index}`}
+                        message={message}
+                        isLoading={isLoading}
+                      />
+                    ))}
+
+                  {/* 컴팩트 뷰: 스트리밍 태스크 뷰 (TODO 박스) - Human 메시지 다음에 표시 */}
+                  {compactView && (isLoading || allRuns.length > 0 || messages.length > 0) && (
+                    <StreamingTaskView
+                      runs={allRuns}
+                      messages={messages}
+                      isStreaming={isLoading}
+                    />
+                  )}
+
+                  {/* AI 메시지 - TODO 박스 아래에 렌더링 */}
+                  {messages
+                    .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
+                    .filter((m) => shouldRenderMessage(m, todoLifecycle, compactView))
+                    .filter((m) => m.type !== "human")
+                    .map((message, index) => (
+                      <AssistantMessage
+                        key={message.id || `ai-${index}`}
+                        message={message}
+                        isLoading={isLoading}
+                        handleRegenerate={handleRegenerate}
+                        compactView={compactView}
+                      />
+                    ))}
+
+                  {/* Special rendering case where there are no AI/tool messages, but there is an interrupt. */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
                     <AssistantMessage
                       key="interrupt-msg"
@@ -567,14 +603,6 @@ export function Thread() {
                       isLoading={isLoading}
                       handleRegenerate={handleRegenerate}
                       compactView={compactView}
-                    />
-                  )}
-                  {/* 컴팩트 뷰: 스트리밍 태스크 뷰 (스트리밍 중이거나 메시지/runs가 있을 때 표시) */}
-                  {compactView && (isLoading || allRuns.length > 0 || messages.length > 0) && (
-                    <StreamingTaskView
-                      runs={allRuns}
-                      messages={messages}
-                      isStreaming={isLoading}
                     />
                   )}
                   {isLoading && !firstTokenReceived && (

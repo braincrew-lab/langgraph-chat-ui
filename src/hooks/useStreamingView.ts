@@ -24,6 +24,9 @@ interface UseStreamingViewOptions {
   defaultExpandDepth?: number;
 }
 
+// TODO 라이프사이클 상태
+export type TodoLifecycleState = "inactive" | "active" | "all_completed";
+
 // 현재 호출 중인 도구 정보
 export interface CurrentToolCall {
   id?: string;
@@ -45,6 +48,7 @@ interface UseStreamingViewReturn {
   subagentTasks: HierarchicalTask[];
   currentToolCalls: CurrentToolCall[];
   hierarchicalTodos: HierarchicalTodoItem[];
+  todoLifecycle: TodoLifecycleState;
 }
 
 // 메시지 타입 정의
@@ -291,101 +295,44 @@ function parseTaskArgsAsTodo(args: unknown, index: number): TodoItem | null {
   const description = o.description || o.prompt || o.task;
   if (typeof description !== "string" || description.length === 0) return null;
 
-  const subagentType = o.subagent_type || o.type || "task";
+  // subagent_type은 activeForm 표시에만 사용
+  const subagentType = o.subagent_type || o.type;
+  const subagentTypeStr = typeof subagentType === "string" ? subagentType : undefined;
 
   return {
     id: `task-${index}`,
     content: description,
     status: "in_progress",
-    activeForm: typeof subagentType === "string" ? `${subagentType} 실행 중` : "작업 진행 중",
+    activeForm: subagentTypeStr ? `${subagentTypeStr} 실행 중` : "작업 진행 중",
   };
 }
 
-// 단일 메시지에서 TODO 배열 파싱 (단순화 + 방어적)
-function parseTodoFromMessage(msg: LangGraphMessage): TodoItem[] | null {
-  console.log("[TODO] parseTodoFromMessage - type:", msg.type, "name:", msg.name);
+// 메시지에서 TodoWrite 항목만 추출
+function extractTodoWriteItems(msg: LangGraphMessage): TodoItem[] {
+  const items: TodoItem[] = [];
 
-  // 1. AI 메시지의 tool_calls에서 찾기
-  if (msg.type === "ai" && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-    console.log("[TODO] Checking tool_calls:", msg.tool_calls.map(tc => tc.name));
-
-    // 먼저 TodoWrite 도구 찾기
+  // tool_calls에서 TodoWrite 찾기
+  if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
     for (const tc of msg.tool_calls) {
       if (isTodoToolName(tc.name)) {
-        console.log("[TODO] Found TodoWrite tool in tool_calls:", tc.name, "args:", JSON.stringify(tc.args).slice(0, 200));
         const todosArr = extractTodosArraySafe(tc.args);
         if (todosArr) {
-          const items = safeMapToTodoItems(todosArr);
-          console.log("[TODO] Parsed items from TodoWrite:", items.length);
-          if (items.length > 0) return items;
+          items.push(...safeMapToTodoItems(todosArr));
         }
       }
-    }
-
-    // TodoWrite 없으면 Task 도구 (서브에이전트 호출) 찾아서 TODO로 변환
-    const taskItems: TodoItem[] = [];
-    let taskIndex = 0;
-    for (const tc of msg.tool_calls) {
-      if (isTaskToolName(tc.name)) {
-        console.log("[TODO] Found Task tool:", tc.name, "args:", JSON.stringify(tc.args).slice(0, 200));
-        const taskAsTodo = parseTaskArgsAsTodo(tc.args, taskIndex++);
-        if (taskAsTodo) {
-          taskItems.push(taskAsTodo);
-        }
-      }
-    }
-    if (taskItems.length > 0) {
-      console.log("[TODO] Converted Task calls to TODOs:", taskItems.length);
-      return taskItems;
     }
   }
 
-  // 2. AI 메시지의 content에서 tool_use 찾기 (Anthropic 스트리밍)
+  // content의 tool_use에서 TodoWrite 찾기
   if (msg.type === "ai" && Array.isArray(msg.content)) {
     const toolUseContents = msg.content.filter(
       (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
         typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
     );
 
-    if (toolUseContents.length > 0) {
-      console.log("[TODO] Found tool_use in content:", toolUseContents.map(tc => tc.name));
-    }
-
-    // 먼저 TodoWrite 도구 찾기
     for (const tc of toolUseContents) {
       if (isTodoToolName(tc.name)) {
-        console.log("[TODO] Found TodoWrite tool_use:", tc.name, "input type:", typeof tc.input);
         let args: unknown = tc.input;
-
-        // input이 문자열이면 파싱 시도
-        if (typeof args === "string" && args.length > 0) {
-          try {
-            args = parsePartialJson(args);
-            console.log("[TODO] Parsed partial JSON:", typeof args);
-          } catch (e) {
-            console.log("[TODO] parsePartialJson failed:", e);
-            continue;
-          }
-        }
-
-        const todosArr = extractTodosArraySafe(args);
-        console.log("[TODO] extractTodosArraySafe result:", todosArr?.length ?? "null");
-        if (todosArr) {
-          const items = safeMapToTodoItems(todosArr);
-          console.log("[TODO] Parsed items from TodoWrite tool_use:", items.length);
-          if (items.length > 0) return items;
-        }
-      }
-    }
-
-    // TodoWrite 없으면 Task 도구 찾아서 TODO로 변환
-    const taskItems: TodoItem[] = [];
-    let taskIndex = 0;
-    for (const tc of toolUseContents) {
-      if (isTaskToolName(tc.name)) {
-        let args: unknown = tc.input;
-
-        // input이 문자열이면 파싱 시도
         if (typeof args === "string" && args.length > 0) {
           try {
             args = parsePartialJson(args);
@@ -393,42 +340,77 @@ function parseTodoFromMessage(msg: LangGraphMessage): TodoItem[] | null {
             continue;
           }
         }
-
-        console.log("[TODO] Found Task tool_use:", tc.name, "parsed args");
-        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
-        if (taskAsTodo) {
-          taskItems.push(taskAsTodo);
+        const todosArr = extractTodosArraySafe(args);
+        if (todosArr) {
+          items.push(...safeMapToTodoItems(todosArr));
         }
-      }
-    }
-    if (taskItems.length > 0) {
-      console.log("[TODO] Converted Task tool_use to TODOs:", taskItems.length);
-      return taskItems;
-    }
-  }
-
-  // 3. Tool 결과 메시지에서 찾기
-  if (msg.type === "tool" && isTodoToolName(msg.name)) {
-    console.log("[TODO] Found tool result message:", msg.name);
-    if (typeof msg.content === "string" && msg.content.trim().length > 0) {
-      try {
-        const parsed = JSON.parse(msg.content);
-        const arr = extractTodosArraySafe(parsed);
-        if (arr) {
-          const items = safeMapToTodoItems(arr);
-          console.log("[TODO] Parsed items from tool result:", items.length);
-          if (items.length > 0) return items;
-        }
-      } catch {
-        // JSON 파싱 실패
       }
     }
   }
 
-  return null;
+  return items;
 }
 
-// TodoWrite 메시지에서 Todo 리스트 추출 (가장 최신)
+// Task 도구 호출 정보 (ID 포함)
+interface TaskCallInfo {
+  todo: TodoItem;
+  toolCallId?: string;
+}
+
+// 메시지에서 Task 도구 호출만 추출 (tool_call_id 포함)
+function extractTaskItemsWithIds(msg: LangGraphMessage, startIndex: number): TaskCallInfo[] {
+  const items: TaskCallInfo[] = [];
+  let taskIndex = startIndex;
+
+  // tool_calls에서 Task 찾기
+  if (msg.type === "ai" && Array.isArray(msg.tool_calls)) {
+    for (const tc of msg.tool_calls) {
+      // 디버그: 모든 도구 이름 출력
+      if (tc.name) {
+        console.log("[TODO-DEBUG] tool_calls tool name:", tc.name, "isTask:", isTaskToolName(tc.name));
+      }
+      if (isTaskToolName(tc.name)) {
+        const taskAsTodo = parseTaskArgsAsTodo(tc.args, taskIndex++);
+        if (taskAsTodo) {
+          items.push({ todo: taskAsTodo, toolCallId: tc.id });
+        }
+      }
+    }
+  }
+
+  // content의 tool_use에서 Task 찾기
+  if (msg.type === "ai" && Array.isArray(msg.content)) {
+    const toolUseContents = msg.content.filter(
+      (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
+        typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
+    );
+
+    for (const tc of toolUseContents) {
+      // 디버그: 모든 도구 이름 출력
+      if (tc.name) {
+        console.log("[TODO-DEBUG] tool_use tool name:", tc.name, "isTask:", isTaskToolName(tc.name));
+      }
+      if (isTaskToolName(tc.name)) {
+        let args: unknown = tc.input;
+        if (typeof args === "string" && args.length > 0) {
+          try {
+            args = parsePartialJson(args);
+          } catch {
+            continue;
+          }
+        }
+        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
+        if (taskAsTodo) {
+          items.push({ todo: taskAsTodo, toolCallId: tc.id });
+        }
+      }
+    }
+  }
+
+  return items;
+}
+
+// TodoWrite와 Task를 모두 수집하여 통합된 TODO 리스트 생성
 function extractTodosFromMessages(messages: unknown[]): TodoItem[] {
   console.log("[TODO] extractTodosFromMessages called, messages:", messages.length);
 
@@ -436,35 +418,79 @@ function extractTodosFromMessages(messages: unknown[]): TodoItem[] {
     return [];
   }
 
-  // 메시지 요약 로깅 (처음 5개와 마지막 5개만)
-  const msgSummary = messages.map((m, i) => {
-    const msg = m as LangGraphMessage;
-    const toolCallNames = msg.tool_calls?.map(tc => tc.name) || [];
-    const contentTypes = Array.isArray(msg.content)
-      ? msg.content.map(c => {
-          if (typeof c === "object" && c !== null && "type" in c) {
-            const obj = c as { type: string; name?: string };
-            return obj.type === "tool_use" ? `tool_use:${obj.name || "?"}` : obj.type;
-          }
-          return typeof c;
-        })
-      : [typeof msg.content];
-    return { i, type: msg.type, name: msg.name, toolCalls: toolCallNames, content: contentTypes };
-  });
-  console.log("[TODO] Messages summary:", msgSummary);
+  // 0. 완료된 tool_call_id 수집 (tool 결과 메시지에서)
+  const completedToolCallIds = new Set<string>();
+  for (const msg of messages) {
+    const m = msg as { type?: string; tool_call_id?: string; name?: string };
+    // 디버그: 모든 tool 메시지의 name 출력
+    if (m.type === "tool") {
+      console.log("[TODO-DEBUG] tool result message, name:", m.name, "tool_call_id:", m.tool_call_id, "isTask:", isTaskToolName(m.name));
+    }
+    if (m.type === "tool" && m.tool_call_id && isTaskToolName(m.name)) {
+      completedToolCallIds.add(m.tool_call_id);
+    }
+  }
+  console.log("[TODO] Completed Task tool_call_ids:", completedToolCallIds.size);
 
-  // 메시지를 역순으로 탐색하여 가장 최신 Todo 리스트 찾기
+  // 1. 가장 최신 TodoWrite 메시지 찾기 (역순 탐색)
+  let latestTodoWriteItems: TodoItem[] = [];
+
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i] as LangGraphMessage;
-    const todos = parseTodoFromMessage(msg);
-    if (todos && todos.length > 0) {
-      console.log("[TODO] ✅ Found todos at index", i, "count:", todos.length);
-      return todos;
+    const todoItems = extractTodoWriteItems(msg);
+    if (todoItems.length > 0) {
+      latestTodoWriteItems = todoItems;
+      console.log("[TODO] ✅ Found TodoWrite at index", i, "count:", todoItems.length);
+      break;
     }
   }
 
-  console.log("[TODO] ❌ No todos found in any message");
-  return [];
+  // 2. 모든 메시지에서 Task 도구 호출 수집 (Task는 TodoWrite 전후 어디서든 발생할 수 있음)
+  const taskItems: TodoItem[] = [];
+  let taskIndex = 0;
+
+  // 디버그: AI 메시지의 tool_calls 구조 출력
+  let aiMsgCount = 0;
+  let aiWithToolCallsCount = 0;
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type === "ai") {
+      aiMsgCount++;
+      if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+        aiWithToolCallsCount++;
+        console.log("[TODO-DEBUG] AI msg at", i, "has", msg.tool_calls.length, "tool_calls:", msg.tool_calls.map(tc => tc.name));
+      }
+    }
+  }
+  console.log("[TODO-DEBUG] Total AI messages:", aiMsgCount, "with tool_calls:", aiWithToolCallsCount);
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+    const taskInfos = extractTaskItemsWithIds(msg, taskIndex);
+    if (taskInfos.length > 0) {
+      console.log("[TODO] Found Task calls at index", i, "count:", taskInfos.length);
+      for (const info of taskInfos) {
+        // tool_call_id가 있고 완료된 경우 status를 completed로 변경
+        if (info.toolCallId && completedToolCallIds.has(info.toolCallId)) {
+          info.todo.status = "completed";
+          console.log("[TODO] Task completed:", info.todo.id, info.toolCallId);
+        }
+        taskItems.push(info.todo);
+      }
+      taskIndex += taskInfos.length;
+    }
+  }
+
+  // 3. TodoWrite 항목과 Task 항목 결합
+  const allItems = [...latestTodoWriteItems, ...taskItems];
+
+  if (allItems.length > 0) {
+    console.log("[TODO] ✅ Total items:", allItems.length, "(TodoWrite:", latestTodoWriteItems.length, ", Task:", taskItems.length, ")");
+  } else {
+    console.log("[TODO] ❌ No todos found in any message");
+  }
+
+  return allItems;
 }
 
 // 메시지 content에서 텍스트 추출
@@ -497,8 +523,108 @@ function extractStreamingLLMOutput(messages: unknown[], isStreaming: boolean): s
   return null;
 }
 
-// 계층적 TODO 구조 생성 (단순화된 버전)
-function buildHierarchicalTodosSimple(
+
+// 서브에이전트 TODO인지 확인 (Task 도구로 생성된 TODO)
+function isSubagentTodo(todo: TodoItem): boolean {
+  return todo.id.startsWith("task-");
+}
+
+// 텍스트 정규화 (비교용)
+function normalizeForMatch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[()[\]{}]/g, " ")  // 괄호 제거
+    .replace(/[^\w\sㄱ-ㅎㅏ-ㅣ가-힣]/g, " ")  // 특수문자 제거 (한글 유지)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 단어 집합 추출
+function extractWords(text: string): Set<string> {
+  const normalized = normalizeForMatch(text);
+  return new Set(normalized.split(" ").filter(w => w.length > 1));
+}
+
+// 텍스트 유사도 계산 (Jaccard similarity + 포함 관계)
+function calculateMatchScore(taskContent: string, todoContent: string): number {
+  const taskNorm = normalizeForMatch(taskContent);
+  const todoNorm = normalizeForMatch(todoContent);
+
+  // 1. 포함 관계 체크 (높은 점수)
+  if (taskNorm.includes(todoNorm) || todoNorm.includes(taskNorm)) {
+    return 0.9;
+  }
+
+  // 2. 단어 기반 Jaccard 유사도
+  const taskWords = extractWords(taskContent);
+  const todoWords = extractWords(todoContent);
+
+  if (taskWords.size === 0 || todoWords.size === 0) return 0;
+
+  let intersection = 0;
+  for (const word of taskWords) {
+    if (todoWords.has(word)) {
+      intersection++;
+    }
+  }
+
+  const union = taskWords.size + todoWords.size - intersection;
+  const jaccard = intersection / union;
+
+  // 3. 부분 문자열 매칭 보너스
+  let substringBonus = 0;
+  for (const taskWord of taskWords) {
+    for (const todoWord of todoWords) {
+      if (taskWord.length > 2 && todoWord.length > 2) {
+        if (taskWord.includes(todoWord) || todoWord.includes(taskWord)) {
+          substringBonus += 0.1;
+        }
+      }
+    }
+  }
+
+  return Math.min(jaccard + substringBonus, 1.0);
+}
+
+// 텍스트 유사도 기반으로 부모 TODO 찾기
+function findParentTodoByTextMatch(
+  taskTodo: TodoItem,
+  mainTodos: TodoItem[],
+  usedParentIds: Set<string>
+): TodoItem | null {
+  if (mainTodos.length === 0) return null;
+
+  let bestMatch: { todo: TodoItem; score: number } | null = null;
+
+  for (const mainTodo of mainTodos) {
+    // 이미 사용된 부모는 스킵
+    if (usedParentIds.has(mainTodo.id)) continue;
+
+    const score = calculateMatchScore(taskTodo.content, mainTodo.content);
+
+    if (score > 0.2 && (!bestMatch || score > bestMatch.score)) {
+      bestMatch = { todo: mainTodo, score };
+    }
+  }
+
+  if (bestMatch) {
+    console.log("[TODO] ✅ Matched by text similarity:", taskTodo.content.slice(0, 30), "→", bestMatch.todo.content.slice(0, 30), "score:", bestMatch.score.toFixed(2));
+    return bestMatch.todo;
+  }
+
+  // 매칭 실패 시 첫 번째 미사용 TODO 반환
+  for (const mainTodo of mainTodos) {
+    if (!usedParentIds.has(mainTodo.id)) {
+      console.log("[TODO] ⚠️ No text match, using first available:", mainTodo.content.slice(0, 30));
+      return mainTodo;
+    }
+  }
+
+  return null;
+}
+
+// 계층적 TODO 구조 생성 (중첩 지원)
+function buildHierarchicalTodosWithNesting(
   todos: TodoItem[],
   subagents: HierarchicalTask[],
   currentToolCalls: CurrentToolCall[],
@@ -506,20 +632,42 @@ function buildHierarchicalTodosSimple(
 ): HierarchicalTodoItem[] {
   if (todos.length === 0) return [];
 
-  const result: HierarchicalTodoItem[] = [];
-  const inProgressIndex = todos.findIndex(t => t.status === "in_progress");
+  console.log("[TODO-HIERARCHY] Input todos:", todos.map(t => ({ id: t.id, content: t.content.slice(0, 30) })));
+
+  // 스트리밍 출력 사용 여부 추적 (중복 방지)
+  let streamingOutputUsed = false;
+
+  // 1. 메인 TODO(todo-*)와 서브에이전트 TODO(task-*) 분리
+  const mainTodos: { todo: TodoItem; originalIndex: number }[] = [];
+  const subagentTodos: { todo: TodoItem; originalIndex: number }[] = [];
 
   for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i];
+    if (isSubagentTodo(todos[i])) {
+      subagentTodos.push({ todo: todos[i], originalIndex: i });
+    } else {
+      mainTodos.push({ todo: todos[i], originalIndex: i });
+    }
+  }
+
+  console.log("[TODO-HIERARCHY] mainTodos:", mainTodos.length, "subagentTodos:", subagentTodos.length);
+
+  // 2. 메인 TODO에 대한 HierarchicalTodoItem 생성
+  const resultMap = new Map<string, HierarchicalTodoItem>();
+  const result: HierarchicalTodoItem[] = [];
+  const usedTaskIds = new Set<string>();
+  const inProgressMainIndex = mainTodos.findIndex(m => m.todo.status === "in_progress");
+
+  for (let i = 0; i < mainTodos.length; i++) {
+    const { todo, originalIndex } = mainTodos[i];
 
     // 도구/reasoning 추출
     let tools: ToolCallInfo[] = [];
     let reasoning: ReasoningInfo[] = [];
 
     // 서브에이전트 매칭 시도
-    const usedTaskIds = new Set<string>();
-    const match = matchTodoToSubagent(todo, i, subagents, usedTaskIds);
+    const match = matchTodoToSubagent(todo, originalIndex, subagents, usedTaskIds);
     if (match) {
+      usedTaskIds.add(match.taskId);
       const matchedTask = subagents.find(t => t.id === match.taskId);
       if (matchedTask) {
         tools = extractToolsFromTask(matchedTask);
@@ -527,19 +675,19 @@ function buildHierarchicalTodosSimple(
       }
     }
 
-    // 현재 진행 중인 TODO라면
-    if (i === inProgressIndex) {
-      // 스트리밍 LLM 출력 추가
-      if (streamingLLMOutput) {
+    // 현재 진행 중인 메인 TODO라면 스트리밍 정보 추가
+    if (i === inProgressMainIndex) {
+      // 스트리밍 출력은 한 번만 사용 (중복 방지)
+      if (streamingLLMOutput && !streamingOutputUsed) {
         reasoning.unshift({
           id: "streaming-llm",
           name: "LLM",
           status: "running",
           outputText: streamingLLMOutput,
         });
+        streamingOutputUsed = true;
       }
 
-      // currentToolCalls 추가
       if (currentToolCalls.length > 0) {
         const runningTools = currentToolCalls.map(tc => ({
           id: tc.id || `running-${tc.name}`,
@@ -556,7 +704,7 @@ function buildHierarchicalTodosSimple(
       }
     }
 
-    result.push({
+    const item: HierarchicalTodoItem = {
       id: todo.id,
       content: todo.content,
       status: todo.status,
@@ -568,8 +716,105 @@ function buildHierarchicalTodosSimple(
       matchedTaskId: match?.taskId,
       matchedTaskName: match?.taskName,
       matchConfidence: match?.confidence,
-    });
+    };
+
+    resultMap.set(todo.id, item);
+    result.push(item);
   }
+
+  // 3. 서브에이전트 TODO를 텍스트 유사도 기반으로 부모 찾아서 중첩
+  const mainTodoItems = mainTodos.map(m => m.todo);
+  const usedParentIds = new Set<string>();  // 이미 자식이 할당된 부모 추적
+
+  for (const { todo, originalIndex } of subagentTodos) {
+    // 텍스트 유사도 기반으로 부모 TODO 찾기
+    const parentTodo = findParentTodoByTextMatch(todo, mainTodoItems, usedParentIds);
+
+    // 찾은 부모를 사용됨으로 표시
+    if (parentTodo) {
+      usedParentIds.add(parentTodo.id);
+    }
+
+    // 도구/reasoning 추출
+    let tools: ToolCallInfo[] = [];
+    let reasoning: ReasoningInfo[] = [];
+
+    // 서브에이전트 태스크 매칭 시도
+    const match = matchTodoToSubagent(todo, originalIndex, subagents, usedTaskIds);
+    if (match) {
+      usedTaskIds.add(match.taskId);
+      const matchedTask = subagents.find(t => t.id === match.taskId);
+      if (matchedTask) {
+        tools = extractToolsFromTask(matchedTask);
+        reasoning = extractReasoningFromTask(matchedTask);
+      }
+    }
+
+    // 서브에이전트 TODO가 진행 중이면 스트리밍 정보 추가
+    if (todo.status === "in_progress") {
+      // 스트리밍 출력은 한 번만 사용 (중복 방지)
+      if (streamingLLMOutput && !streamingOutputUsed) {
+        reasoning.unshift({
+          id: "streaming-llm",
+          name: "LLM",
+          status: "running",
+          outputText: streamingLLMOutput,
+        });
+        streamingOutputUsed = true;
+      }
+
+      if (currentToolCalls.length > 0) {
+        const runningTools = currentToolCalls.map(tc => ({
+          id: tc.id || `running-${tc.name}`,
+          name: tc.name,
+          args: tc.args,
+          status: tc.status as "running" | "completed" | "error",
+        }));
+        const existingNames = new Set(tools.map(t => t.name));
+        for (const rt of runningTools) {
+          if (!existingNames.has(rt.name)) {
+            tools.push(rt);
+          }
+        }
+      }
+    }
+
+    const childItem: HierarchicalTodoItem = {
+      id: todo.id,
+      content: todo.content,
+      status: todo.status,
+      activeForm: todo.activeForm,
+      depth: 1, // 자식이므로 depth 1
+      children: [],
+      tools,
+      reasoning,
+      matchedTaskId: match?.taskId,
+      matchedTaskName: match?.taskName,
+      matchConfidence: match?.confidence,
+    };
+
+    if (parentTodo) {
+      const parent = resultMap.get(parentTodo.id);
+      if (parent) {
+        console.log("[TODO-HIERARCHY] ✅ Adding child", todo.id, "to parent", parentTodo.id);
+        parent.children.push(childItem);
+      } else {
+        console.log("[TODO-HIERARCHY] ❌ Parent not in resultMap:", parentTodo.id);
+        result.push(childItem);
+      }
+    } else {
+      console.log("[TODO-HIERARCHY] ❌ No parent found for", todo.id, "- adding to root");
+      childItem.depth = 0;
+      result.push(childItem);
+    }
+  }
+
+  console.log("[TODO-HIERARCHY] Final result:", result.map(r => ({
+    id: r.id,
+    depth: r.depth,
+    childrenCount: r.children.length,
+    children: r.children.map(c => c.id)
+  })));
 
   return result;
 }
@@ -639,6 +884,13 @@ export function useStreamingView(
     return extractTodosFromMessages(messages);
   }, [messages, isStreaming]);
 
+  // TODO 라이프사이클 상태 계산
+  const todoLifecycle = useMemo((): TodoLifecycleState => {
+    if (currentTodo.length === 0) return "inactive";
+    if (currentTodo.every(t => t.status === "completed")) return "all_completed";
+    return "active";
+  }, [currentTodo]);
+
   // 현재 호출 중인 도구 추출
   const currentToolCalls = useMemo(() => {
     return extractCurrentToolCalls(messages, isStreaming);
@@ -649,9 +901,9 @@ export function useStreamingView(
     return extractStreamingLLMOutput(messages, isStreaming);
   }, [messages, isStreaming]);
 
-  // 계층적 TODO 빌드 (TODO + 서브에이전트 + 도구 + 스트리밍 LLM 통합)
+  // 계층적 TODO 빌드 (TODO + 서브에이전트 + 도구 + 스트리밍 LLM 통합, 중첩 지원)
   const hierarchicalTodos = useMemo(() => {
-    return buildHierarchicalTodosSimple(currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput);
+    return buildHierarchicalTodosWithNesting(currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput);
   }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput]);
 
   // 뷰 상태
@@ -735,5 +987,6 @@ export function useStreamingView(
     subagentTasks,
     currentToolCalls,
     hierarchicalTodos,
+    todoLifecycle,
   };
 }

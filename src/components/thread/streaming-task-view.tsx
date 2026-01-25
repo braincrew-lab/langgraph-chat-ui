@@ -58,7 +58,10 @@ export function StreamingTaskView({
     >
       {/* 계층적 Todo 리스트 (TODO + 서브에이전트 + 도구 통합) */}
       {hierarchicalTodos.length > 0 && (
-        <HierarchicalTodoList items={hierarchicalTodos} isStreaming={isStreaming} />
+        <HierarchicalTodoList
+          items={hierarchicalTodos}
+          isStreaming={isStreaming}
+        />
       )}
 
       {/* 현재 실행 중인 태스크 (TODO 없이 태스크만 있을 때 표시) */}
