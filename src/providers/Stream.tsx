@@ -22,10 +22,12 @@ import { toast } from "sonner";
 import { AssistantConfigProvider } from "./AssistantConfig";
 import { normalizeApiUrl } from "./client";
 import { TIMING } from "@/lib/constants";
+import type { ServerAssistantData } from "@/lib/assistant-api-server";
 
 export type StateType = {
-  messages: Message[];
+  messages?: Message[];
   ui?: UIMessage[];
+  [key: string]: unknown; // Allow dynamic fields from input_schema
 };
 
 const useTypedStream = useStream<
@@ -86,11 +88,13 @@ const StreamSession = ({
   apiKey,
   apiUrl,
   assistantId,
+  initialAssistantData,
 }: {
   children: ReactNode;
   apiKey: string | null;
   apiUrl: string;
   assistantId: string;
+  initialAssistantData?: ServerAssistantData;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads } = useThreads();
@@ -153,6 +157,7 @@ const StreamSession = ({
         apiUrl={apiUrl}
         assistantId={assistantId}
         apiKey={apiKey}
+        initialData={initialAssistantData}
       >
         {children}
       </AssistantConfigProvider>
@@ -160,8 +165,12 @@ const StreamSession = ({
   );
 };
 
-export const StreamProvider: React.FC<{ children: ReactNode }> = ({
+export const StreamProvider: React.FC<{
+  children: ReactNode;
+  initialAssistantData?: ServerAssistantData;
+}> = ({
   children,
+  initialAssistantData,
 }) => {
   // Get environment variables
   const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
@@ -217,6 +226,7 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
       apiKey={apiKey}
       apiUrl={resolvedApiUrl}
       assistantId={finalAssistantId}
+      initialAssistantData={initialAssistantData}
     >
       {children}
     </StreamSession>

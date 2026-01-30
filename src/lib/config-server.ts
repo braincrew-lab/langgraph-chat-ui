@@ -7,5 +7,5 @@ import { fullConfig } from "@/configs";
  * @returns The site configuration
  */
 export async function loadServerConfig(): Promise<ChatConfig> {
-  return fullConfig as ChatConfig;
+  return fullConfig as unknown as ChatConfig;
 }

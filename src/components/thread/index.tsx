@@ -19,9 +19,6 @@ import {
   PanelRightOpen,
   PanelRightClose,
   XIcon,
-  Paperclip,
-  Wrench,
-  ArrowUp,
   BookOpen,
   RefreshCw,
   PanelRight,
@@ -38,12 +35,10 @@ import {
 } from "@/types/langsmith";
 import { type LangSmithTimelineEvents } from "@/types/timeline";
 import { useQueryState, parseAsBoolean } from "nuqs";
-import { Layers } from "lucide-react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Label } from "../ui/label";
 import { GitHubSVG } from "../icons/github";
 import {
   Tooltip,
@@ -52,13 +47,17 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import { useSettings } from "@/hooks/useSettings";
 import { FullDescriptionModal } from "./FullDescriptionModal";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
-import { AssistantSelector } from "./AssistantSelector";
 import { ChatOpeners } from "./ChatOpeners";
 import { shouldRenderMessage, buildSubagentContext } from "./utils";
+import { useSchemaUI } from "@/hooks/useSchemaUI";
+import {
+  UnifiedInputArea,
+  FormSubmissionMessage,
+} from "./schema-ui";
+import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -163,6 +162,16 @@ export function Thread() {
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
+
+  // Schema UI for dynamic form fields
+  const schemaUI = useSchemaUI();
+  const { parsedSchema, getSubmitPayload, resetForm } = schemaUI;
+  const isFormMode = parsedSchema.uiMode === "form";
+
+  // Form mode submission state
+  const [formSubmissions, setFormSubmissions] = useState<
+    Array<{ data: FormState; fields: SchemaFieldConfig[]; timestamp: Date }>
+  >([]);
 
   const stream = useStreamContext();
   const messages = stream.messages;
@@ -347,8 +356,11 @@ export function Thread() {
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
+    // Get schema payload (additional fields from input_schema)
+    const schemaPayload = getSubmitPayload();
+
     stream.submit(
-      { messages: [...toolMessages, newHumanMessage] },
+      { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
       {
         ...STREAM_OPTIONS,
         optimisticValues: (prev) => ({
@@ -364,7 +376,7 @@ export function Thread() {
 
     setInput("");
     setContentBlocks([]);
-  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks]);
+  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks, getSubmitPayload]);
 
   const handleRegenerate = useCallback((
     parentCheckpoint: Checkpoint | null | undefined,
@@ -378,7 +390,28 @@ export function Thread() {
     });
   }, [stream]);
 
-  const chatStarted = !!threadId || !!messages.length;
+  // Form mode submission handler
+  const handleFormSubmit = useCallback(() => {
+    if (!isAssistantSelected) {
+      toast.error("그래프를 먼저 선택해주세요.");
+      return;
+    }
+
+    const payload = getSubmitPayload();
+    const allFields = [...parsedSchema.requiredFields, ...parsedSchema.optionalFields];
+
+    // Save form submission for display
+    setFormSubmissions((prev) => [
+      ...prev,
+      { data: payload, fields: allFields, timestamp: new Date() },
+    ]);
+
+    setFirstTokenReceived(false);
+    stream.submit(payload, STREAM_OPTIONS);
+    resetForm();
+  }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
+
+  const chatStarted = !!threadId || !!messages.length || formSubmissions.length > 0;
   const hasNoAIOrToolMessages = !messages.find(
     (m) => m.type === "ai" || m.type === "tool",
   );
@@ -564,11 +597,21 @@ export function Thread() {
                 userSettings.chatWidth === "default" ? "px-4" : "px-2",
               )}
               contentClassName={cn(
-                messages.length > 0 ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full" : "",
+                (messages.length > 0 || formSubmissions.length > 0) ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full" : "",
                 userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
               )}
               content={
                 <>
+                  {/* Form mode: render form submissions */}
+                  {isFormMode && formSubmissions.map((submission, idx) => (
+                    <FormSubmissionMessage
+                      key={`form-submission-${idx}`}
+                      formData={submission.data}
+                      fields={submission.fields}
+                      timestamp={submission.timestamp}
+                    />
+                  ))}
+
                   {/* 메시지를 원래 순서대로 렌더링 (Human-AI-Human-AI 순서 유지) */}
                   {(() => {
                     const filteredMessages = messages.filter(
@@ -749,7 +792,10 @@ export function Thread() {
                           </button>
                         )}
                       </div>
-                      {config.branding.chatOpeners && config.branding.chatOpeners.length > 0 && (
+                      {schemaUI.isLoading && (
+                        <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+                      )}
+                      {config.branding.chatOpeners && config.branding.chatOpeners.length > 0 && !isFormMode && !schemaUI.isLoading && (
                         <ChatOpeners
                           disabled={isLoading || !isAssistantSelected}
                           chatOpeners={config.branding.chatOpeners}
@@ -767,168 +813,42 @@ export function Thread() {
 
                   <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
 
+                  {/* Input area container */}
                   <div
-                    ref={dropRef}
                     className={cn(
-                      "relative z-10 mx-auto mb-8 w-full rounded-3xl shadow-md transition-all border bg-card dark:bg-[#212121]",
+                      "relative z-10 mx-auto mb-8 w-full",
                       userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl",
-                      dragOver
-                        ? "border-primary border-2 border-dotted"
-                        : "border-border",
                     )}
                   >
-                    <form
-                      onSubmit={handleSubmit}
-                      className={cn(
-                        "mx-auto grid grid-rows-[1fr_auto]",
-                        userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
-                      )}
-                    >
-                      <ContentBlocksPreview
-                        blocks={contentBlocks}
-                        onRemove={removeBlock}
-                      />
-                      <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onPaste={handlePaste}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            !e.shiftKey &&
-                            !e.metaKey &&
-                            !e.nativeEvent.isComposing
-                          ) {
-                            e.preventDefault();
-                            const el = e.target as HTMLElement | undefined;
-                            const form = el?.closest("form");
-                            form?.requestSubmit();
-                          }
-                        }}
-                        placeholder={config.buttons.chatInputPlaceholder}
-                        rows={1}
-                        style={{ maxHeight: `${UI.CHAT_TEXTAREA_MAX_HEIGHT}px` }}
-                        className="field-sizing-content resize-none border-none bg-transparent px-4 pt-4 pb-2 text-base leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none placeholder:text-muted-foreground overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
-                      />
-
-
-                      <div className="flex items-center justify-between gap-2 px-3 pb-3">
-                        <div className="flex items-center gap-2">
-                          {config.buttons.enableFileUpload && (
-                            <>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Label
-                                      htmlFor="file-input"
-                                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-accent"
-                                    >
-                                      <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                    </Label>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p>Upload files</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <input
-                                id="file-input"
-                                type="file"
-                                onChange={handleFileUpload}
-                                multiple
-                                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-                                className="hidden"
-                              />
-                            </>
-                          )}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => setHideToolCalls((prev) => !prev)}
-                                  className={cn(
-                                    "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                                    hideToolCalls
-                                      ? "bg-muted text-muted-foreground hover:bg-accent"
-                                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                                  )}
-                                >
-                                  <Wrench className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>{hideToolCalls ? "Show tool calls" : "Hide tool calls"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => setCompactView((prev) => !prev)}
-                                  className={cn(
-                                    "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                                    compactView
-                                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                      : "bg-muted text-muted-foreground hover:bg-accent"
-                                  )}
-                                >
-                                  <Layers className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>{compactView ? "Standard view" : "Compact task view"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                              <AssistantSelector
-                                assistants={assistants}
-                                selectedAssistantId={assistantSelectValue}
-                                isLoading={assistantsLoading}
-                                onSelect={handleAssistantChange}
-                                onRefresh={refetchAssistants}
-                              />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>그래프 선택</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                        </div>
-                        {stream.isLoading ? (
-                          <Button
-                            key="stop"
-                            onClick={() => stream.stop()}
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8"
-                          >
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                          </Button>
-                        ) : (
-                          <Button
-                            type="submit"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg"
-                            disabled={
-                              isLoading ||
-                              (!input.trim() && contentBlocks.length === 0) ||
-                              !isAssistantSelected
-                            }
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </form>
+                    {/* Unified input area - handles both Form and Chat modes */}
+                    <UnifiedInputArea
+                      schemaUI={schemaUI}
+                      isFormMode={isFormMode}
+                      onFormSubmit={handleFormSubmit}
+                      input={input}
+                      onInputChange={setInput}
+                      onChatSubmit={handleSubmit}
+                      contentBlocks={contentBlocks}
+                      onRemoveBlock={removeBlock}
+                      onFileUpload={handleFileUpload}
+                      onPaste={handlePaste}
+                      dropRef={dropRef}
+                      dragOver={dragOver}
+                      isLoading={isLoading}
+                      onStop={() => stream.stop()}
+                      isAssistantSelected={isAssistantSelected}
+                      enableFileUpload={config.buttons.enableFileUpload}
+                      placeholder={config.buttons.chatInputPlaceholder}
+                      hideToolCalls={hideToolCalls ?? false}
+                      onHideToolCallsChange={(value) => setHideToolCalls(value)}
+                      compactView={compactView ?? true}
+                      onCompactViewChange={(value) => setCompactView(value)}
+                      assistants={assistants}
+                      selectedAssistantId={assistantSelectValue}
+                      assistantsLoading={assistantsLoading}
+                      onAssistantChange={handleAssistantChange}
+                      onRefreshAssistants={refetchAssistants}
+                    />
                   </div>
                 </div>
               }

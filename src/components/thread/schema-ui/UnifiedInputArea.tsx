@@ -1,0 +1,231 @@
+/**
+ * Unified Input Area Component
+ * Combines Form mode and Chat mode into a single component
+ *
+ * Structure:
+ * ┌─────────────────────────────────────────┐
+ * │  SchemaFieldsSection (optional)         │  ← 고급 입력 (스키마 필드 있을 때만)
+ * ├─────────────────────────────────────────┤
+ * │  InputSection (조건부 분기)             │
+ * │  - Form: RequiredFields                 │
+ * │  - Chat: textarea                       │
+ * ├─────────────────────────────────────────┤
+ * │  ActionBar (공통)                       │  ← 하단 100% width
+ * │  - 좌측: 설정 (도구, 뷰, 그래프 선택)   │
+ * │  - 우측: 파일 업로드 (Chat) + Submit    │
+ * └─────────────────────────────────────────┘
+ */
+
+import React, { FormEvent, ChangeEvent, RefObject } from "react";
+import { cn } from "@/lib/utils";
+import { SchemaFieldsSection } from "./SchemaFieldsSection";
+import { SchemaField } from "./SchemaField";
+import { ActionBar } from "./ActionBar";
+import { ContentBlocksPreview } from "../ContentBlocksPreview";
+import type { UseSchemaUIReturn } from "@/hooks/useSchemaUI";
+import type { Assistant } from "@/lib/assistant-api";
+import type { Base64ContentBlock } from "@langchain/core/messages";
+import { UI } from "@/lib/constants";
+
+interface UnifiedInputAreaProps {
+  schemaUI: UseSchemaUIReturn;
+  isFormMode: boolean;
+
+  // Form mode
+  onFormSubmit: () => void;
+
+  // Chat mode
+  input: string;
+  onInputChange: (value: string) => void;
+  onChatSubmit: (e: FormEvent) => void;
+  contentBlocks: Base64ContentBlock[];
+  onRemoveBlock: (idx: number) => void;
+  onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  dropRef: RefObject<HTMLDivElement | null>;
+  dragOver: boolean;
+
+  // Common
+  isLoading: boolean;
+  onStop: () => void;
+  isAssistantSelected: boolean;
+  enableFileUpload: boolean;
+  placeholder?: string;
+  className?: string;
+
+  // Toolbar controls
+  hideToolCalls: boolean;
+  onHideToolCallsChange: (value: boolean) => void;
+  compactView: boolean;
+  onCompactViewChange: (value: boolean) => void;
+
+  // Assistant selector
+  assistants: Assistant[];
+  selectedAssistantId: string;
+  assistantsLoading: boolean;
+  onAssistantChange: (value: string) => void;
+  onRefreshAssistants: () => void;
+}
+
+export function UnifiedInputArea({
+  schemaUI,
+  isFormMode,
+  onFormSubmit,
+  input,
+  onInputChange,
+  onChatSubmit,
+  contentBlocks,
+  onRemoveBlock,
+  onFileUpload,
+  onPaste,
+  dropRef,
+  dragOver,
+  isLoading,
+  onStop,
+  isAssistantSelected,
+  enableFileUpload,
+  placeholder = "메시지를 입력하세요...",
+  className,
+  hideToolCalls,
+  onHideToolCallsChange,
+  compactView,
+  onCompactViewChange,
+  assistants,
+  selectedAssistantId,
+  assistantsLoading,
+  onAssistantChange,
+  onRefreshAssistants,
+}: UnifiedInputAreaProps) {
+  const { isFormValid, parsedSchema, formState, setFieldValue, isLoading: schemaLoading } = schemaUI;
+  const { requiredFields, rawSchema } = parsedSchema;
+
+  // Hidden while schema is loading (SSR should prevent this in most cases)
+  if (schemaLoading) {
+    return null;
+  }
+
+  // Hidden during streaming in form mode
+  if (isFormMode && isLoading) {
+    return null;
+  }
+
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (isFormValid && !isLoading) {
+      onFormSubmit();
+    }
+  };
+
+  return (
+    <div
+      ref={isFormMode ? undefined : dropRef}
+      className={cn(
+        "bg-card mb-4 rounded-3xl border shadow-md dark:bg-[#212121]",
+        "animate-in fade-in-0 slide-in-from-bottom-2 duration-200",
+        !isFormMode && dragOver
+          ? "border-primary border-2 border-dotted"
+          : "border-border",
+        className,
+      )}
+    >
+      <form
+        onSubmit={isFormMode ? handleFormSubmit : onChatSubmit}
+        className="grid grid-rows-[1fr_auto]"
+      >
+        {/* 공통: SchemaFieldsSection - 상단, 고급 입력 (optional fields) */}
+        <SchemaFieldsSection
+          schemaUI={schemaUI}
+          disabled={isLoading}
+        />
+
+        {/* 조건부 분기: InputSection */}
+        {isFormMode ? (
+          /* Form mode: RequiredFields + Submit 버튼 */
+          <>
+            {requiredFields.length > 0 && rawSchema && (
+              <div className="space-y-3 px-4 py-3">
+                {requiredFields.map((field) => (
+                  <SchemaField
+                    key={field.name}
+                    field={field}
+                    rootSchema={rawSchema}
+                    value={formState[field.name]}
+                    onChange={(value) => setFieldValue(field.name, value)}
+                    disabled={isLoading}
+                  />
+                ))}
+              </div>
+            )}
+            <ActionBar
+              isFormMode={true}
+              isLoading={isLoading}
+              disabled={!isFormValid || isLoading}
+              hideToolCalls={hideToolCalls}
+              onHideToolCallsChange={onHideToolCallsChange}
+              compactView={compactView}
+              onCompactViewChange={onCompactViewChange}
+              assistants={assistants}
+              selectedAssistantId={selectedAssistantId}
+              assistantsLoading={assistantsLoading}
+              onAssistantChange={onAssistantChange}
+              onRefreshAssistants={onRefreshAssistants}
+            />
+          </>
+        ) : (
+          /* Chat mode: textarea + file upload + submit */
+          <>
+            <ContentBlocksPreview
+              blocks={contentBlocks}
+              onRemove={onRemoveBlock}
+            />
+
+            <textarea
+              value={input}
+              onChange={(e) => onInputChange(e.target.value)}
+              onPaste={onPaste}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.metaKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  const el = e.target as HTMLElement | undefined;
+                  const form = el?.closest("form");
+                  form?.requestSubmit();
+                }
+              }}
+              placeholder={placeholder}
+              rows={1}
+              style={{ maxHeight: `${UI.CHAT_TEXTAREA_MAX_HEIGHT}px` }}
+              className="placeholder:text-muted-foreground [&::-webkit-scrollbar-thumb]:bg-border field-sizing-content resize-none overflow-y-auto border-none bg-transparent px-4 pt-4 pb-2 text-base leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+            />
+
+            <ActionBar
+              isFormMode={false}
+              isLoading={isLoading}
+              disabled={
+                isLoading ||
+                (!input.trim() && contentBlocks.length === 0) ||
+                !isAssistantSelected
+              }
+              onStop={onStop}
+              enableFileUpload={enableFileUpload}
+              onFileUpload={onFileUpload}
+              hideToolCalls={hideToolCalls}
+              onHideToolCallsChange={onHideToolCallsChange}
+              compactView={compactView}
+              onCompactViewChange={onCompactViewChange}
+              assistants={assistants}
+              selectedAssistantId={selectedAssistantId}
+              assistantsLoading={assistantsLoading}
+              onAssistantChange={onAssistantChange}
+              onRefreshAssistants={onRefreshAssistants}
+            />
+          </>
+        )}
+      </form>
+    </div>
+  );
+}

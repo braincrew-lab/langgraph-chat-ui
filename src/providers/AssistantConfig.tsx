@@ -16,6 +16,7 @@ import {
   type AssistantSchemas,
   type Assistant,
 } from "@/lib/assistant-api";
+import type { ServerAssistantData } from "@/lib/assistant-api-server";
 
 export interface AssistantConfigContextType {
   config: AssistantConfigType | null;
@@ -39,14 +40,25 @@ export const AssistantConfigProvider: React.FC<{
   apiUrl: string;
   assistantId: string;
   apiKey: string | null;
-}> = ({ children, apiUrl, assistantId: initialAssistantId, apiKey }) => {
-  const [config, setConfig] = useState<AssistantConfigType | null>(null);
-  const [schemas, setSchemas] = useState<AssistantSchemas | null>(null);
-  // Always start with no assistant selected; fetchConfig will populate it once resolved.
-  const [assistantId, setAssistantId] = useState<string | null>(() => null);
-  const [isLoading, setIsLoading] = useState(true);
+  initialData?: ServerAssistantData;
+}> = ({ children, apiUrl, assistantId: initialAssistantId, apiKey, initialData }) => {
+  // Use initial data from SSR if available
+  const [config, setConfig] = useState<AssistantConfigType | null>(
+    () => initialData?.assistant?.config ?? null
+  );
+  const [schemas, setSchemas] = useState<AssistantSchemas | null>(
+    () => initialData?.schemas ?? null
+  );
+  // Use resolved assistant ID from SSR if available
+  const [assistantId, setAssistantId] = useState<string | null>(
+    () => initialData?.assistantId ?? null
+  );
+  // Skip loading if we have initial data
+  const [isLoading, setIsLoading] = useState(() => !initialData?.schemas);
   const [error, setError] = useState<string | null>(null);
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [assistants, setAssistants] = useState<Assistant[]>(
+    () => initialData?.assistants ?? []
+  );
   const [assistantsLoading, setAssistantsLoading] = useState(false);
 
   const fetchAssistants = useCallback(async () => {
@@ -170,6 +182,13 @@ export const AssistantConfigProvider: React.FC<{
         apiKey || undefined
       );
 
+      // Debug: Log state_schema to understand structure
+      console.log("[AssistantConfig] 📋 Fetched schemas:", {
+        graph_id: assistantSchemas?.graph_id,
+        state_schema: assistantSchemas?.state_schema,
+        input_schema: assistantSchemas?.input_schema,
+      });
+
       setSchemas(assistantSchemas);
     } catch (err) {
       console.error("Error fetching assistant config:", err);
@@ -179,13 +198,24 @@ export const AssistantConfigProvider: React.FC<{
     }
   }, [apiUrl, initialAssistantId, apiKey]);
 
+  // Skip initial fetch if we have SSR data
   useEffect(() => {
+    // If we have initial schemas from SSR, skip the fetch
+    if (initialData?.schemas && initialData?.assistantId) {
+      console.log("[AssistantConfig] Using SSR data, skipping initial fetch");
+      return;
+    }
     fetchConfig();
-  }, [fetchConfig]);
+  }, [fetchConfig, initialData?.schemas, initialData?.assistantId]);
 
   useEffect(() => {
+    // If we have initial assistants from SSR, skip the fetch
+    if (initialData?.assistants && initialData.assistants.length > 0) {
+      console.log("[AssistantConfig] Using SSR assistants, skipping initial fetch");
+      return;
+    }
     fetchAssistants();
-  }, [fetchAssistants]);
+  }, [fetchAssistants, initialData?.assistants]);
 
   const updateConfig = useCallback(async (
     newConfig: AssistantConfigType

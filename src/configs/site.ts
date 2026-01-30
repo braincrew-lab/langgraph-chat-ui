@@ -24,7 +24,7 @@ export const siteConfig = {
     sidebarOpenByDefault: true,
   },
   theme: {
-    fontFamily: "serif" as const,
+    fontFamily: "sans" as const,
     fontSize: "large" as const,
     colorScheme: "light" as const,
   },
