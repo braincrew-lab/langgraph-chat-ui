@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { type Message } from "@langchain/langgraph-sdk";
@@ -23,6 +24,7 @@ import { AssistantConfigProvider } from "./AssistantConfig";
 import { normalizeApiUrl } from "./client";
 import { TIMING } from "@/lib/constants";
 import type { ServerAssistantData } from "@/lib/assistant-api-server";
+import { saveActiveConnectionToCookies } from "@/lib/connection-cookies";
 
 export type StateType = {
   messages?: Message[];
@@ -220,6 +222,22 @@ export const StreamProvider: React.FC<{
     finalAssistantId,
     apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "none",
   });
+
+  // Sync connection to cookies for SSR (only on client, and only when values are set)
+  const hasSyncedRef = useRef(false);
+  useEffect(() => {
+    // Only sync once on mount, and only if we have meaningful values
+    if (hasSyncedRef.current) return;
+    if (!resolvedApiUrl) return;
+
+    hasSyncedRef.current = true;
+    saveActiveConnectionToCookies({
+      id: "current",
+      apiUrl: resolvedApiUrl,
+      assistantId: finalAssistantId || undefined,
+      apiKey: apiKey || undefined,
+    });
+  }, [resolvedApiUrl, finalAssistantId, apiKey]);
 
   return (
     <StreamSession

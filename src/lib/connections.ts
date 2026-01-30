@@ -1,3 +1,5 @@
+import { saveActiveConnectionToCookies } from "./connection-cookies";
+
 const STORAGE_KEY = "lg:connections";
 
 export interface Connection {
@@ -144,4 +146,24 @@ export function switchConnection(connectionId: string): void {
   const storage = loadConnections();
   storage.activeConnectionId = connectionId;
   saveConnections(storage);
+
+  // Sync to cookies for SSR
+  const activeConn = getActiveConnection();
+  saveActiveConnectionToCookies({
+    id: activeConn.id,
+    apiUrl: activeConn.apiUrl,
+    assistantId: activeConn.assistantId,
+    apiKey: activeConn.apiKey,
+  });
+}
+
+// Sync active connection to cookies (call on app init)
+export function syncActiveConnectionToCookies(): void {
+  const activeConn = getActiveConnection();
+  saveActiveConnectionToCookies({
+    id: activeConn.id,
+    apiUrl: activeConn.apiUrl,
+    assistantId: activeConn.assistantId,
+    apiKey: activeConn.apiKey,
+  });
 }
