@@ -24,7 +24,7 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        const email = credentials.email as string;
+        const email = (credentials.email as string).toLowerCase();
         const password = credentials.password as string;
 
         const user = await prisma.user.findUnique({
@@ -40,6 +40,16 @@ export const authConfig: NextAuthConfig = {
         const isPasswordValid = await compare(password, user.password);
 
         if (!isPasswordValid) {
+          return null;
+        }
+
+        // Block pending users from logging in
+        if (user.status === "pending") {
+          return null;
+        }
+
+        // Block suspended users from logging in
+        if (user.status === "suspended") {
           return null;
         }
 

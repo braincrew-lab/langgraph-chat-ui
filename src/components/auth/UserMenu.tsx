@@ -24,13 +24,13 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50">
+            <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground max-w-[120px] truncate">
+              <span className="text-sm text-muted-foreground max-w-[160px] truncate">
                 {user.name || user.email}
               </span>
             </div>
@@ -54,7 +54,7 @@ export function UserMenu() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>Sign out</p>
+            <p>로그아웃</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

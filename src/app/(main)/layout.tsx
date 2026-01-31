@@ -3,6 +3,7 @@ import { loadServerConfig } from "@/lib/config-server";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
 import { MainLayoutClient } from "@/components/layout/MainLayoutClient";
 import { getAllSettings } from "@/lib/services/settings.service";
+import { resolveAssistantId } from "@/lib/assistant-api-server";
 
 export default async function MainLayout({
   children,
@@ -18,20 +19,27 @@ export default async function MainLayout({
   const cookieAssistantId = cookieStore.get(CONNECTION_COOKIE_NAMES.assistantId)?.value;
   const cookieApiKey = cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value;
 
-  // Priority: Admin default connection (if selection disabled) > Cookies > Environment variables
+  // Priority: Admin default (if set) > Cookies > Environment variables
+  // 서버 전역값이 설정되어 있으면 항상 우선 적용
   const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
-  const connectionSelectionEnabled = globalSettings["features.enableConnectionSelection"];
+  const adminDefaultGraphId = globalSettings["features.defaultGraphId"];
 
-  // If connection selection is disabled and admin set a default, use that
-  const apiUrl = !connectionSelectionEnabled && adminDefaultApiUrl
+  const apiUrl = adminDefaultApiUrl
     ? adminDefaultApiUrl
     : (cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "");
-  const assistantId = cookieAssistantId || "";
+  const assistantIdOrGraphId = adminDefaultGraphId
+    ? adminDefaultGraphId
+    : (cookieAssistantId || "");
   const apiKey = cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
+
+  // Resolve graph_id to UUID if needed
+  const resolvedAssistantId = assistantIdOrGraphId
+    ? await resolveAssistantId(apiUrl, assistantIdOrGraphId, apiKey || undefined)
+    : null;
 
   const initialConnection = {
     apiUrl,
-    assistantId,
+    assistantId: resolvedAssistantId || assistantIdOrGraphId,
     apiKey,
   };
 

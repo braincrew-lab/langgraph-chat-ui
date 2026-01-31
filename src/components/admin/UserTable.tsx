@@ -89,6 +89,28 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
     }
   };
 
+  const handleRoleChange = async (userId: string, newRole: "admin" | "user") => {
+    setLoading(userId);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || "Role change failed");
+      } else {
+        router.refresh();
+      }
+    } catch {
+      alert("An error occurred");
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -217,12 +239,12 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
                         <>
                           <DropdownMenuSeparator />
                           {user.role === "user" ? (
-                            <DropdownMenuItem onClick={() => {}}>
+                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, "admin")}>
                               <Shield className="mr-2 h-4 w-4" />
                               관리자로 승격
                             </DropdownMenuItem>
                           ) : user.role === "admin" ? (
-                            <DropdownMenuItem onClick={() => {}}>
+                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, "user")}>
                               <ShieldOff className="mr-2 h-4 w-4" />
                               일반회원으로 강등
                             </DropdownMenuItem>

@@ -4,6 +4,7 @@ import { ThreadListContainer } from "./ThreadListContainer";
 import { ThreadItem } from "./thread-item";
 import { useThreadOperations } from "../hooks/useThreadOperations";
 import { getThreadDisplayText } from "../utils/threadHelpers";
+import { useSettings } from "@/hooks/useSettings";
 
 interface ThreadListProps {
   threads: Thread[];
@@ -13,6 +14,8 @@ interface ThreadListProps {
 export function ThreadList({ threads, onThreadClick }: ThreadListProps) {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { deleteThread, updateThreadTitle } = useThreadOperations();
+  const { globalSettings } = useSettings();
+  const enableDeletion = globalSettings["features.enableDeletion"];
 
   return (
     <ThreadListContainer>
@@ -30,7 +33,7 @@ export function ThreadList({ threads, onThreadClick }: ThreadListProps) {
               if (t.thread_id === threadId) return;
               setThreadId(t.thread_id);
             }}
-            onDelete={deleteThread}
+            onDelete={enableDeletion ? deleteThread : undefined}
             onUpdateTitle={updateThreadTitle}
           />
         );

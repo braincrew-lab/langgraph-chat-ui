@@ -7,7 +7,7 @@ interface ThreadItemNormalProps {
   isActive: boolean;
   onSelect: () => void;
   onRename: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
 }
 
 export function ThreadItemNormal({

@@ -1,8 +1,9 @@
-import { getAllSettings } from "@/lib/services/settings.service";
+import { getAllSettings, getServerDefaults } from "@/lib/services/settings.service";
 import { SettingsForm } from "@/components/admin/SettingsForm";
 
 export default async function SettingsPage() {
   const settings = await getAllSettings();
+  const serverDefaults = getServerDefaults();
 
   return (
     <div className="space-y-6">
@@ -13,7 +14,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <SettingsForm initialSettings={settings} />
+      <SettingsForm initialSettings={settings} serverDefaults={serverDefaults} />
     </div>
   );
 }

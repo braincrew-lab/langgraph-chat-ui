@@ -6,9 +6,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban } from "lucide-react";
+import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban, Clock, CheckCircle } from "lucide-react";
 import { siteConfig } from "@/configs/site";
 import { useAuthContext } from "../AuthLayoutClient";
+import type { UserStatus } from "@/types/auth-mode";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -32,7 +33,7 @@ const itemVariants = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { allowRegistration } = useAuthContext();
+  const { allowRegistration, registrationPolicy } = useAuthContext();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,8 +42,73 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<UserStatus | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const errorRef = useRef<HTMLDivElement>(null);
+
+  // Focus error message when error occurs
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.focus();
+    }
+  }, [error]);
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (password.length < 8) {
+      errors.password = "비밀번호는 8자 이상이어야 합니다.";
+    }
+
+    if (password !== confirmPassword) {
+      errors.confirmPassword = "비밀번호가 일치하지 않습니다.";
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setFieldErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          setError("이미 등록된 이메일입니다.");
+        } else {
+          setError(data.error || "회원가입에 실패했습니다.");
+        }
+        return;
+      }
+
+      // Store registration result
+      setRegistrationStatus(data.status as UserStatus);
+      setRegisteredEmail(email);
+      setRegistrationComplete(true);
+    } catch {
+      setError("오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // If registration is disabled, show a message
   if (!allowRegistration) {
@@ -102,63 +168,90 @@ export default function RegisterPage() {
     );
   }
 
-  useEffect(() => {
-    if (error && errorRef.current) {
-      errorRef.current.focus();
-    }
-  }, [error]);
+  // Show registration complete screen
+  if (registrationComplete) {
+    const isPending = registrationStatus === "pending";
 
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
+    return (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            className={`flex h-16 w-16 items-center justify-center rounded-full ${
+              isPending
+                ? "bg-amber-100 dark:bg-amber-900/50"
+                : "bg-green-100 dark:bg-green-900/50"
+            }`}
+          >
+            {isPending ? (
+              <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+            ) : (
+              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            )}
+          </motion.div>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isPending ? "가입 신청 완료" : "회원가입 완료"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isPending
+                ? "관리자 승인 후 이용하실 수 있습니다"
+                : "지금 바로 로그인할 수 있습니다"}
+            </p>
+          </div>
+        </motion.div>
 
-    if (password.length < 8) {
-      errors.password = "비밀번호는 8자 이상이어야 합니다.";
-    }
+        <motion.div
+          variants={itemVariants}
+          className="text-center text-muted-foreground text-sm leading-relaxed"
+        >
+          {isPending ? (
+            <p>
+              회원가입 신청이 완료되었습니다.<br />
+              관리자가 계정을 검토한 후 승인하면<br />
+              서비스를 이용하실 수 있습니다.
+            </p>
+          ) : (
+            <p>
+              회원가입이 완료되었습니다.<br />
+              아래 버튼을 클릭하여 로그인해 주세요.
+            </p>
+          )}
+          <p className="mt-4">
+            등록 이메일:{" "}
+            <span className="font-medium text-foreground">{registeredEmail}</span>
+          </p>
+        </motion.div>
 
-    if (password !== confirmPassword) {
-      errors.confirmPassword = "비밀번호가 일치하지 않습니다.";
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setFieldErrors({});
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 409) {
-          setError("이미 등록된 이메일입니다.");
-        } else {
-          setError(data.error || "회원가입에 실패했습니다.");
-        }
-        return;
-      }
-
-      router.push("/login?registered=true");
-    } catch {
-      setError("오류가 발생했습니다. 다시 시도해 주세요.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        <motion.div variants={itemVariants}>
+          {isPending ? (
+            <Button
+              variant="outline"
+              className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => router.push("/login")}
+            >
+              로그인 페이지로 이동
+            </Button>
+          ) : (
+            <Button
+              className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => router.push("/login")}
+            >
+              로그인하기
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </motion.div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

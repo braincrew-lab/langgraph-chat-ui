@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { SignJWT } from "jose";
+import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
+import { getAllSettings } from "@/lib/services/settings.service";
 
-// Server-side LangGraph URL: LANGGRAPH_API_URL (preferred) or NEXT_PUBLIC_API_URL (fallback)
-const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
+// Fallback: LANGGRAPH_API_URL (preferred) or NEXT_PUBLIC_API_URL
+const ENV_LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
 
 function getCorsHeaders() {
   return {
@@ -14,13 +17,6 @@ function getCorsHeaders() {
 }
 
 async function handleRequest(req: NextRequest, method: string) {
-  if (!LANGGRAPH_API_URL) {
-    return NextResponse.json(
-      { error: "LANGGRAPH_API_URL is not configured" },
-      { status: 500 }
-    );
-  }
-
   // Get user session
   const session = await auth();
   if (!session?.user) {
@@ -28,6 +24,24 @@ async function handleRequest(req: NextRequest, method: string) {
   }
 
   try {
+    // Get API URL from: Admin settings > Cookies > Environment variable
+    const cookieStore = await cookies();
+    const cookieApiUrl = cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value;
+    const globalSettings = await getAllSettings();
+    const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
+
+    // Priority: Admin default (if set) > Cookies > Environment variable
+    const apiUrl = adminDefaultApiUrl
+      ? adminDefaultApiUrl
+      : (cookieApiUrl || ENV_LANGGRAPH_API_URL);
+
+    if (!apiUrl) {
+      return NextResponse.json(
+        { error: "LangGraph API URL is not configured" },
+        { status: 500 }
+      );
+    }
+
     // Extract path from the catch-all route
     const path = req.nextUrl.pathname.replace(/^\/?api\//, "");
 
@@ -54,7 +68,7 @@ async function handleRequest(req: NextRequest, method: string) {
       .sign(new TextEncoder().encode(process.env.NEXTAUTH_SECRET!));
 
     console.log("[LangGraph Proxy] User:", session.user.email);
-    console.log("[LangGraph Proxy] JWT created for user");
+    console.log("[LangGraph Proxy] API URL:", apiUrl);
 
     // Build headers with Bearer token
     const headers: Record<string, string> = {
@@ -74,9 +88,8 @@ async function handleRequest(req: NextRequest, method: string) {
     }
 
     // Make request to LangGraph server
-    const targetUrl = `${LANGGRAPH_API_URL}/${path}${queryString}`;
+    const targetUrl = `${apiUrl}/${path}${queryString}`;
     console.log("[LangGraph Proxy] Target URL:", targetUrl);
-    console.log("[LangGraph Proxy] Method:", method);
 
     const res = await fetch(targetUrl, options);
     console.log("[LangGraph Proxy] Response status:", res.status);

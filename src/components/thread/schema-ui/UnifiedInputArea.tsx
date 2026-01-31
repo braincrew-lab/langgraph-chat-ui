@@ -146,11 +146,14 @@ export function UnifiedInputArea({
         className="grid grid-rows-[1fr_auto]"
       >
         {/* 공통: SchemaFieldsSection - 상단, 고급 입력 (optional fields) */}
-        {enableAdvancedInput && (
+        {enableAdvancedInput ? (
           <SchemaFieldsSection
             schemaUI={schemaUI}
             disabled={isLoading}
           />
+        ) : (
+          /* 고급 입력 비활성화 시 상단 여백 */
+          <div className="pt-4" />
         )}
 
         {/* 조건부 분기: InputSection */}

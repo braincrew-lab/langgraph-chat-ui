@@ -76,39 +76,41 @@ export function DesktopSidebar({
       {userIsAdmin && (
         <div className="px-3 mt-4">
           <p className="text-xs font-medium text-muted-foreground px-3 mb-2">관리자</p>
-          <Link href="/admin/users">
-            <div
-              className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/users" && "bg-accent"
-              )}
-            >
-              <Users className={ICON_SIZE_SM} />
-              <span className="text-sm font-medium">사용자 관리</span>
-            </div>
-          </Link>
-          <Link href="/admin/approvals">
-            <div
-              className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/approvals" && "bg-accent"
-              )}
-            >
-              <Shield className={ICON_SIZE_SM} />
-              <span className="text-sm font-medium">가입 승인</span>
-            </div>
-          </Link>
-          <Link href="/admin/settings">
-            <div
-              className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/settings" && "bg-accent"
-              )}
-            >
-              <Settings className={ICON_SIZE_SM} />
-              <span className="text-sm font-medium">설정</span>
-            </div>
-          </Link>
+          <nav className="space-y-2">
+            <Link href="/admin/users">
+              <div
+                className={cn(
+                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                  pathname === "/admin/users" && "bg-accent"
+                )}
+              >
+                <Users className={ICON_SIZE_SM} />
+                <span className="text-sm font-medium">사용자 관리</span>
+              </div>
+            </Link>
+            <Link href="/admin/approvals">
+              <div
+                className={cn(
+                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                  pathname === "/admin/approvals" && "bg-accent"
+                )}
+              >
+                <Shield className={ICON_SIZE_SM} />
+                <span className="text-sm font-medium">가입 승인</span>
+              </div>
+            </Link>
+            <Link href="/admin/settings">
+              <div
+                className={cn(
+                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                  pathname === "/admin/settings" && "bg-accent"
+                )}
+              >
+                <Settings className={ICON_SIZE_SM} />
+                <span className="text-sm font-medium">설정</span>
+              </div>
+            </Link>
+          </nav>
         </div>
       )}
 
@@ -124,7 +126,7 @@ export function DesktopSidebar({
         )}
       </div>
 
-      <div className="border-t border-border p-4 space-y-3">
+      <div className="border-t border-border p-4 space-y-3 bg-transparent">
         <UserMenu />
         <SettingsDialog />
       </div>

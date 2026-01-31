@@ -18,16 +18,18 @@ export default async function ChatPage() {
   const cookieApiKey = cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value;
 
   // Global settings for feature control
-  const connectionSelectionEnabled = globalSettings["features.enableConnectionSelection"];
   const graphSelectionEnabled = globalSettings["features.enableGraphSelection"];
   const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
   const adminDefaultGraphId = globalSettings["features.defaultGraphId"];
 
-  // Priority: Admin default (if selection disabled) > Cookies > Environment variables
-  const apiUrl = !connectionSelectionEnabled && adminDefaultApiUrl
+  // Priority: Admin default (if set) > Cookies > Environment variables
+  // 서버 전역값이 설정되어 있으면 항상 우선 적용
+  const apiUrl = adminDefaultApiUrl
     ? adminDefaultApiUrl
     : (cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "");
-  const assistantId = cookieAssistantId || "";
+  const assistantId = adminDefaultGraphId
+    ? adminDefaultGraphId
+    : (cookieAssistantId || "");
   const apiKey = cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
   // Fetch assistant data on the server (parallel fetching)
@@ -37,9 +39,15 @@ export default async function ChatPage() {
     apiKey || undefined
   );
 
+  // Debug logging
+  console.log("[page.tsx] apiUrl:", apiUrl);
+  console.log("[page.tsx] original assistantId:", assistantId);
+  console.log("[page.tsx] resolved assistantId:", initialAssistantData.assistantId);
+
   const initialConnection = {
     apiUrl,
-    assistantId,
+    // Use resolved UUID from server, fallback to original value
+    assistantId: initialAssistantData.assistantId || assistantId,
     apiKey,
   };
 

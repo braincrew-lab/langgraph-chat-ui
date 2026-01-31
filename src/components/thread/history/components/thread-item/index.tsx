@@ -11,7 +11,7 @@ interface ThreadItemProps {
   isActive: boolean;
   displayText: string;
   onSelect: () => void;
-  onDelete: (threadId: string) => void;
+  onDelete?: (threadId: string) => void;
   onUpdateTitle: (threadId: string, newTitle: string) => void;
 }
 
@@ -23,11 +23,13 @@ export function ThreadItem({
   onDelete,
   onUpdateTitle,
 }: ThreadItemProps) {
-  const handleDelete = () => {
-    if (confirm(UI_TEXT.deleteConfirm)) {
-      onDelete(thread.thread_id);
-    }
-  };
+  const handleDelete = onDelete
+    ? () => {
+        if (confirm(UI_TEXT.deleteConfirm)) {
+          onDelete(thread.thread_id);
+        }
+      }
+    : undefined;
 
   const {
     isEditing,

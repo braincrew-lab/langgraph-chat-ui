@@ -6,7 +6,10 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   const globalSettings = await getAllSettings();
 
   return (
-    <AuthLayoutClient allowRegistration={globalSettings["auth.allowRegistration"]}>
+    <AuthLayoutClient
+      allowRegistration={globalSettings["auth.allowRegistration"]}
+      registrationPolicy={globalSettings["auth.registrationPolicy"]}
+    >
       {children}
     </AuthLayoutClient>
   );

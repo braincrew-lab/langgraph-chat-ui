@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/auth/prisma";
 import {
-  getNewUserStatus,
   getInitialAdminEmail,
   isPublicMode,
 } from "@/lib/auth/mode";
 import { getSetting } from "@/lib/services/settings.service";
-import type { UserRole, UserStatus } from "@/types/auth-mode";
+import type { UserRole, UserStatus, RegistrationPolicy } from "@/types/auth-mode";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,13 +65,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get registration policy from admin settings
+    const registrationPolicy = await getSetting("auth.registrationPolicy") as RegistrationPolicy;
+
     // Determine user status based on registration policy
     const initialAdminEmail = getInitialAdminEmail();
     const isInitialAdmin =
       initialAdminEmail && email.toLowerCase() === initialAdminEmail.toLowerCase();
 
     let role: UserRole = "user";
-    let status: UserStatus = getNewUserStatus();
+    // Use admin setting to determine if approval is required
+    let status: UserStatus = registrationPolicy === "approval" ? "pending" : "active";
 
     // Initial admin gets admin role and active status
     if (isInitialAdmin) {

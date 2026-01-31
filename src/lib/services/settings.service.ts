@@ -209,6 +209,21 @@ export async function resetAllSettings(resetById?: string): Promise<void> {
 }
 
 /**
+ * Get server defaults (includes environment variables)
+ * Used for placeholder display and reset functionality in admin UI
+ */
+export function getServerDefaults(): GlobalSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    // Override with environment variables where applicable
+    "features.defaultConnectionApiUrl":
+      process.env.NEXT_PUBLIC_API_URL || DEFAULT_SETTINGS["features.defaultConnectionApiUrl"],
+    "features.defaultGraphId":
+      process.env.NEXT_PUBLIC_ASSISTANT_ID || DEFAULT_SETTINGS["features.defaultGraphId"],
+  };
+}
+
+/**
  * Get settings with metadata (for admin UI)
  */
 export async function getSettingsWithMeta(): Promise<

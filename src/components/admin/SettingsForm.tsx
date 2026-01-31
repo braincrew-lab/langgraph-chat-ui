@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/card";
 import {
   SETTING_DEFINITIONS,
-  DEFAULT_SETTINGS,
   SettingCategory,
   type GlobalSettings,
   type SettingMeta,
@@ -31,6 +30,7 @@ import {
 
 interface SettingsFormProps {
   initialSettings: GlobalSettings;
+  serverDefaults: GlobalSettings;
 }
 
 const CATEGORY_LABELS: Record<SettingCategory, string> = {
@@ -39,7 +39,7 @@ const CATEGORY_LABELS: Record<SettingCategory, string> = {
   features: "기능 설정",
 };
 
-export function SettingsForm({ initialSettings }: SettingsFormProps) {
+export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormProps) {
   const router = useRouter();
   const [settings, setSettings] = useState<GlobalSettings>(initialSettings);
   const [loading, setLoading] = useState(false);
@@ -77,12 +77,14 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
   };
 
   const handleReset = () => {
-    setSettings({ ...DEFAULT_SETTINGS });
+    // 서버 기본값 (환경 변수 포함)으로 초기화
+    setSettings({ ...serverDefaults });
     setSaved(false);
   };
 
   const renderField = (definition: SettingMeta) => {
     const value = settings[definition.key];
+    const defaultValue = serverDefaults[definition.key];
 
     switch (definition.type) {
       case "boolean":
@@ -139,6 +141,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               id={definition.key}
               type="text"
               value={value as string}
+              placeholder={defaultValue as string || undefined}
               onChange={(e) =>
                 handleChange(definition.key, e.target.value as GlobalSettings[typeof definition.key])
               }
