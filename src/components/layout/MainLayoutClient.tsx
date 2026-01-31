@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatConfig } from "@/lib/config";
 import { SettingsProvider } from "@/providers/Settings";
+import type { GlobalSettings } from "@/types/global-settings";
 import { ThreadProvider } from "@/providers/Thread";
 import type { ConnectionConfig } from "@/providers/Stream";
 import { useThreads } from "@/hooks/useThreads";
@@ -37,6 +38,7 @@ interface MainLayoutClientProps {
   children: React.ReactNode;
   initialConfig: ChatConfig;
   initialConnection: ConnectionConfig;
+  globalSettings: GlobalSettings;
 }
 
 interface MainLayoutContentProps {
@@ -301,6 +303,7 @@ export function MainLayoutClient({
   children,
   initialConfig,
   initialConnection,
+  globalSettings,
 }: MainLayoutClientProps) {
   // Use connection as key to force remount when connection changes
   const connectionKey = `${initialConnection.apiUrl}:${initialConnection.assistantId}`;
@@ -308,7 +311,7 @@ export function MainLayoutClient({
   return (
     <React.Suspense fallback={<div></div>}>
       <Toaster />
-      <SettingsProvider initialConfig={initialConfig}>
+      <SettingsProvider initialConfig={initialConfig} initialGlobalSettings={globalSettings}>
         <ThreadProvider key={connectionKey} connection={initialConnection}>
           <MainLayoutContent assistantId={initialConnection.assistantId}>
             {children}

@@ -49,6 +49,7 @@ interface ActionBarProps {
   assistantsLoading: boolean;
   onAssistantChange: (value: string) => void;
   onRefreshAssistants: () => void;
+  enableGraphSelection?: boolean;
 }
 
 export function ActionBar({
@@ -67,6 +68,7 @@ export function ActionBar({
   assistantsLoading,
   onAssistantChange,
   onRefreshAssistants,
+  enableGraphSelection = true,
 }: ActionBarProps) {
   return (
     <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-3">
@@ -116,22 +118,24 @@ export function ActionBar({
           </Tooltip>
         </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <AssistantSelector
-                assistants={assistants}
-                selectedAssistantId={selectedAssistantId}
-                isLoading={assistantsLoading}
-                onSelect={onAssistantChange}
-                onRefresh={onRefreshAssistants}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>그래프 선택</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {enableGraphSelection && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AssistantSelector
+                  assistants={assistants}
+                  selectedAssistantId={selectedAssistantId}
+                  isLoading={assistantsLoading}
+                  onSelect={onAssistantChange}
+                  onRefresh={onRefreshAssistants}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>그래프 선택</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Right: File upload (chat mode) + Submit button */}

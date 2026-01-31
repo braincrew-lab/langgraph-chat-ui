@@ -6,8 +6,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight } from "lucide-react";
+import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban } from "lucide-react";
 import { siteConfig } from "@/configs/site";
+import { useAuthContext } from "../AuthLayoutClient";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,6 +32,7 @@ const itemVariants = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { allowRegistration } = useAuthContext();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,6 +43,64 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const errorRef = useRef<HTMLDivElement>(null);
+
+  // If registration is disabled, show a message
+  if (!allowRegistration) {
+    return (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={siteConfig.branding.logoPath}
+              alt={`${siteConfig.branding.appName} 로고`}
+              width={siteConfig.branding.logoWidth * 2}
+              height={siteConfig.branding.logoHeight * 2}
+              className="flex-shrink-0"
+            />
+          </motion.div>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {siteConfig.branding.appName}
+            </h1>
+          </div>
+        </motion.div>
+
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col items-center gap-4 p-6 rounded-xl bg-muted/50 border border-border"
+        >
+          <Ban className="h-12 w-12 text-muted-foreground" />
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-semibold">회원가입이 비활성화되어 있습니다</h2>
+            <p className="text-sm text-muted-foreground">
+              현재 새로운 회원가입을 받지 않고 있습니다.<br />
+              관리자에게 문의해 주세요.
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="text-center text-sm">
+          <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
+          <Link
+            href="/login"
+            className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+          >
+            로그인
+          </Link>
+        </motion.div>
+      </motion.div>
+    );
+  }
 
   useEffect(() => {
     if (error && errorRef.current) {

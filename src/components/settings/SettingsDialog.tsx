@@ -22,7 +22,7 @@ import { ConnectionList } from "./ConnectionList";
 import { clearConnectionCookiesAction } from "@/app/actions";
 
 export function SettingsDialog() {
-  const { userSettings, updateUserSettings, resetUserSettings } = useSettings();
+  const { userSettings, updateUserSettings, resetUserSettings, globalSettings } = useSettings();
   const { threads, getThreads, setThreads, client } = useThreads();
   const router = useRouter();
   const [threadId, setThreadId] = useQueryState("threadId");
@@ -318,11 +318,13 @@ export function SettingsDialog() {
             </div>
           </div>
 
-          {/* Connections Section */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Connections</h3>
-            <ConnectionList />
-          </div>
+          {/* Connections Section - only show if connection selection is enabled */}
+          {globalSettings["features.enableConnectionSelection"] && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Connections</h3>
+              <ConnectionList />
+            </div>
+          )}
 
           {/* Delete All Conversations Section */}
           <div className="space-y-3">

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoaderCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react";
 import { siteConfig } from "@/configs/site";
+import { useAuthContext } from "../AuthLayoutClient";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,6 +36,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const registered = searchParams.get("registered") === "true";
+  const { allowRegistration } = useAuthContext();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -199,24 +201,28 @@ function LoginForm() {
         </motion.div>
       </form>
 
-      <motion.div variants={itemVariants} className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-card px-3 text-muted-foreground">또는</span>
-        </div>
-      </motion.div>
+      {allowRegistration && (
+        <>
+          <motion.div variants={itemVariants} className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-3 text-muted-foreground">또는</span>
+            </div>
+          </motion.div>
 
-      <motion.div variants={itemVariants} className="text-center text-sm">
-        <span className="text-muted-foreground">계정이 없으신가요? </span>
-        <Link
-          href="/register"
-          className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
-        >
-          회원가입
-        </Link>
-      </motion.div>
+          <motion.div variants={itemVariants} className="text-center text-sm">
+            <span className="text-muted-foreground">계정이 없으신가요? </span>
+            <Link
+              href="/register"
+              className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            >
+              회원가입
+            </Link>
+          </motion.div>
+        </>
+      )}
     </motion.div>
   );
 }

@@ -47,7 +47,9 @@ export const AssistantConfigProvider: React.FC<{
   assistantId: string;
   apiKey: string | null;
   initialData?: ServerAssistantData;
-}> = ({ children, apiUrl, assistantId: initialAssistantId, apiKey, initialData }) => {
+  enableGraphSelection?: boolean;
+  defaultGraphId?: string;
+}> = ({ children, apiUrl, assistantId: initialAssistantId, apiKey, initialData, enableGraphSelection = true, defaultGraphId = "" }) => {
   // Use initial data from SSR if available
   const [config, setConfig] = useState<AssistantConfigType | null>(
     () => initialData?.assistant?.config ?? null
@@ -259,7 +261,9 @@ export const AssistantConfigProvider: React.FC<{
     fetchAssistants();
   }, [fetchAssistants, initialData?.assistants]);
 
-  // Auto-select first assistant if no valid selection exists
+  // Auto-select assistant if no valid selection exists
+  // Priority: 1. Default graph ID (when graph selection is disabled)
+  //           2. First assistant in the list
   // This also triggers a page reload to sync the cookie with StreamProvider
   const autoSelectTriggeredRef = React.useRef(false);
   useEffect(() => {
@@ -271,17 +275,31 @@ export const AssistantConfigProvider: React.FC<{
     // 5. Haven't already triggered auto-select
     if (!assistantId && !isLoading && assistants.length > 0 && !autoSelectTriggeredRef.current) {
       autoSelectTriggeredRef.current = true;
-      const firstAssistant = assistants[0];
+
+      // Determine which assistant to select
+      let targetAssistantId: string;
+
+      // If graph selection is disabled and a default graph ID is configured, use it
+      if (!enableGraphSelection && defaultGraphId) {
+        // Try to find the assistant matching the default graph ID
+        const defaultAssistant = assistants.find(
+          a => a.assistant_id === defaultGraphId || a.graph_id === defaultGraphId
+        );
+        targetAssistantId = defaultAssistant?.assistant_id || assistants[0].assistant_id;
+      } else {
+        // Otherwise, use the first assistant
+        targetAssistantId = assistants[0].assistant_id;
+      }
 
       // Import dynamically to avoid server-side issues
       import("@/app/actions").then(({ updateAssistantIdAction }) => {
-        updateAssistantIdAction(firstAssistant.assistant_id).then(() => {
+        updateAssistantIdAction(targetAssistantId).then(() => {
           // Reload to sync cookie with all providers
           window.location.reload();
         });
       });
     }
-  }, [assistantId, isLoading, assistants]);
+  }, [assistantId, isLoading, assistants, enableGraphSelection, defaultGraphId]);
 
   const updateConfig = useCallback(async (
     newConfig: AssistantConfigType

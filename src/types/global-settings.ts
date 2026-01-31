@@ -24,6 +24,13 @@ export interface GlobalSettings {
   "features.showHistory": boolean; // 채팅 히스토리 표시
   "features.enableDeletion": boolean; // 스레드 삭제 허용
   "features.autoGenerateTitles": boolean; // 자동 제목 생성
+
+  // Feature control settings
+  "features.enableGraphSelection": boolean; // 그래프 선택 활성화 (비활성화 시 기본 그래프 사용)
+  "features.enableConnectionSelection": boolean; // 커넥션 선택 활성화 (비활성화 시 기본 커넥션 사용)
+  "features.enableAdvancedInput": boolean; // 고급 입력 활성화 (스키마 기반 선택적 필드)
+  "features.defaultGraphId": string; // 기본 그래프 ID (그래프 선택 비활성화 시 사용)
+  "features.defaultConnectionApiUrl": string; // 기본 커넥션 API URL (커넥션 선택 비활성화 시 사용)
 }
 
 export type SettingKey = keyof GlobalSettings;
@@ -71,6 +78,13 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "features.showHistory": true,
   "features.enableDeletion": true,
   "features.autoGenerateTitles": true,
+
+  // Feature control
+  "features.enableGraphSelection": true,
+  "features.enableConnectionSelection": true,
+  "features.enableAdvancedInput": true,
+  "features.defaultGraphId": "",
+  "features.defaultConnectionApiUrl": "",
 };
 
 /**
@@ -146,5 +160,47 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
     category: "features",
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.autoGenerateTitles"],
+  },
+
+  // Feature control
+  {
+    key: "features.enableGraphSelection",
+    label: "그래프 선택 활성화",
+    description: "사용자가 그래프(Assistant)를 선택할 수 있도록 허용. 비활성화 시 기본 그래프 사용",
+    category: "features",
+    type: "boolean",
+    defaultValue: DEFAULT_SETTINGS["features.enableGraphSelection"],
+  },
+  {
+    key: "features.enableConnectionSelection",
+    label: "커넥션 선택 활성화",
+    description: "사용자가 LangGraph 커넥션을 선택할 수 있도록 허용. 비활성화 시 기본 커넥션 사용",
+    category: "features",
+    type: "boolean",
+    defaultValue: DEFAULT_SETTINGS["features.enableConnectionSelection"],
+  },
+  {
+    key: "features.enableAdvancedInput",
+    label: "고급 입력 활성화",
+    description: "스키마 기반 선택적 필드 표시. 비활성화 시 기본 채팅 입력만 표시",
+    category: "features",
+    type: "boolean",
+    defaultValue: DEFAULT_SETTINGS["features.enableAdvancedInput"],
+  },
+  {
+    key: "features.defaultGraphId",
+    label: "기본 그래프 ID",
+    description: "그래프 선택 비활성화 시 사용할 기본 그래프 ID",
+    category: "features",
+    type: "string",
+    defaultValue: DEFAULT_SETTINGS["features.defaultGraphId"],
+  },
+  {
+    key: "features.defaultConnectionApiUrl",
+    label: "기본 커넥션 API URL",
+    description: "커넥션 선택 비활성화 시 사용할 기본 API URL",
+    category: "features",
+    type: "string",
+    defaultValue: DEFAULT_SETTINGS["features.defaultConnectionApiUrl"],
   },
 ];

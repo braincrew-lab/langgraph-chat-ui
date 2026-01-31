@@ -101,7 +101,7 @@ function ScrollToBottom(props: { className?: string }) {
 }
 
 export function ThreadContent() {
-  const { config, userSettings, updateUserSettings } = useSettings();
+  const { config, userSettings, updateUserSettings, globalSettings } = useSettings();
 
   const [threadId, setThreadId] = useQueryState("threadId");
 
@@ -642,6 +642,8 @@ export function ThreadContent() {
                       onAssistantChange={handleAssistantChange}
                       onRefreshAssistants={refetchAssistants}
                       isChatPage={!!threadId}
+                      enableGraphSelection={globalSettings["features.enableGraphSelection"]}
+                      enableAdvancedInput={globalSettings["features.enableAdvancedInput"]}
                     />
                   </div>
                 </div>

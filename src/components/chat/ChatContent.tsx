@@ -9,16 +9,22 @@ import type { ServerAssistantData } from "@/lib/assistant-api-server";
 interface ChatContentProps {
   initialAssistantData?: ServerAssistantData;
   initialConnection: ConnectionConfig;
+  enableGraphSelection?: boolean;
+  defaultGraphId?: string;
 }
 
 export function ChatContent({
   initialAssistantData,
   initialConnection,
+  enableGraphSelection = true,
+  defaultGraphId = "",
 }: ChatContentProps) {
   return (
     <StreamProvider
       initialAssistantData={initialAssistantData}
       connection={initialConnection}
+      enableGraphSelection={enableGraphSelection}
+      defaultGraphId={defaultGraphId}
     >
       <ArtifactProvider>
         <ThreadContent />

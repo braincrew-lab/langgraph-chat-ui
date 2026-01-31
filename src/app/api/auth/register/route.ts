@@ -6,6 +6,7 @@ import {
   getInitialAdminEmail,
   isPublicMode,
 } from "@/lib/auth/mode";
+import { getSetting } from "@/lib/services/settings.service";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
 
 export async function POST(req: NextRequest) {
@@ -14,6 +15,15 @@ export async function POST(req: NextRequest) {
     if (isPublicMode()) {
       return NextResponse.json(
         { error: "Registration is not available in public mode" },
+        { status: 403 }
+      );
+    }
+
+    // Check if registration is allowed via admin settings
+    const allowRegistration = await getSetting("auth.allowRegistration");
+    if (!allowRegistration) {
+      return NextResponse.json(
+        { error: "Registration is currently disabled" },
         { status: 403 }
       );
     }
