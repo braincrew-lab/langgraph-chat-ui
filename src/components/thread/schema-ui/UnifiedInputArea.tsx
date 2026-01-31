@@ -16,7 +16,9 @@
  * └─────────────────────────────────────────┘
  */
 
-import React, { FormEvent, ChangeEvent, RefObject } from "react";
+import React, { FormEvent, ChangeEvent, RefObject, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SchemaFieldsSection } from "./SchemaFieldsSection";
 import { SchemaField } from "./SchemaField";
@@ -99,15 +101,16 @@ export function UnifiedInputArea({
   const { isFormValid, parsedSchema, formState, setFieldValue, isLoading: schemaLoading } = schemaUI;
   const { requiredFields, rawSchema } = parsedSchema;
 
+  // Form collapse state during streaming
+  const [isFormCollapsed, setIsFormCollapsed] = useState(true);
+
   // Hidden while schema is loading (SSR should prevent this in most cases)
   if (schemaLoading) {
     return null;
   }
 
-  // Hidden during streaming in form mode
-  if (isFormMode && isLoading) {
-    return null;
-  }
+  // During streaming in form mode, show collapsible UI instead of hiding completely
+  const isStreamingInFormMode = isFormMode && isLoading;
 
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -141,36 +144,109 @@ export function UnifiedInputArea({
         {/* 조건부 분기: InputSection */}
         {isFormMode ? (
           /* Form mode: RequiredFields + Submit 버튼 */
-          <>
-            {requiredFields.length > 0 && rawSchema && (
-              <div className="space-y-3 px-4 py-3">
-                {requiredFields.map((field) => (
-                  <SchemaField
-                    key={field.name}
-                    field={field}
-                    rootSchema={rawSchema}
-                    value={formState[field.name]}
-                    onChange={(value) => setFieldValue(field.name, value)}
-                    disabled={isLoading}
-                  />
-                ))}
+          isStreamingInFormMode ? (
+            /* Collapsed form during streaming */
+            <>
+              <div className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setIsFormCollapsed(!isFormCollapsed)}
+                  className="flex w-full items-center justify-between gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    <span>실행 중...</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs">입력 폼</span>
+                    {isFormCollapsed ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" />
+                    )}
+                  </div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {!isFormCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 border-t border-border/50 mt-3">
+                        {/* Required fields only (고급 입력 is already shown at top) */}
+                        {requiredFields.length > 0 && rawSchema && (
+                          <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                            {requiredFields.map((field) => (
+                              <SchemaField
+                                key={field.name}
+                                field={field}
+                                rootSchema={rawSchema}
+                                value={formState[field.name]}
+                                onChange={(value) => setFieldValue(field.name, value)}
+                                disabled={true}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            )}
-            <ActionBar
-              isFormMode={true}
-              isLoading={isLoading}
-              disabled={!isFormValid || isLoading}
-              hideToolCalls={hideToolCalls}
-              onHideToolCallsChange={onHideToolCallsChange}
-              compactView={compactView}
-              onCompactViewChange={onCompactViewChange}
-              assistants={assistants}
-              selectedAssistantId={selectedAssistantId}
-              assistantsLoading={assistantsLoading}
-              onAssistantChange={onAssistantChange}
-              onRefreshAssistants={onRefreshAssistants}
-            />
-          </>
+              {/* ActionBar with Stop button during streaming */}
+              <ActionBar
+                isFormMode={true}
+                isLoading={isLoading}
+                disabled={true}
+                onStop={onStop}
+                hideToolCalls={hideToolCalls}
+                onHideToolCallsChange={onHideToolCallsChange}
+                compactView={compactView}
+                onCompactViewChange={onCompactViewChange}
+                assistants={assistants}
+                selectedAssistantId={selectedAssistantId}
+                assistantsLoading={assistantsLoading}
+                onAssistantChange={onAssistantChange}
+                onRefreshAssistants={onRefreshAssistants}
+              />
+            </>
+          ) : (
+            /* Full form when not streaming */
+            <>
+              {requiredFields.length > 0 && rawSchema && (
+                <div className="space-y-3 px-4 py-3 max-h-[300px] overflow-y-auto">
+                  {requiredFields.map((field) => (
+                    <SchemaField
+                      key={field.name}
+                      field={field}
+                      rootSchema={rawSchema}
+                      value={formState[field.name]}
+                      onChange={(value) => setFieldValue(field.name, value)}
+                      disabled={isLoading}
+                    />
+                  ))}
+                </div>
+              )}
+              <ActionBar
+                isFormMode={true}
+                isLoading={isLoading}
+                disabled={!isFormValid || isLoading}
+                hideToolCalls={hideToolCalls}
+                onHideToolCallsChange={onHideToolCallsChange}
+                compactView={compactView}
+                onCompactViewChange={onCompactViewChange}
+                assistants={assistants}
+                selectedAssistantId={selectedAssistantId}
+                assistantsLoading={assistantsLoading}
+                onAssistantChange={onAssistantChange}
+                onRefreshAssistants={onRefreshAssistants}
+              />
+            </>
+          )
         ) : (
           /* Chat mode: textarea + file upload + submit */
           <>

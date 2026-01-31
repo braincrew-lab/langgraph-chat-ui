@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -12,25 +12,52 @@ import {
 import { cn } from "@/lib/utils";
 import { type IntermediateLLMOutput } from "@/types/task-hierarchy";
 
+/**
+ * 노드명을 사용자 친화적인 텍스트로 변환
+ * - snake_case → "Snake Case"
+ * - camelCase → "Camel Case"
+ * - 특수 키워드 처리 (llm → "LLM", api → "API" 등)
+ */
+function humanizeNodeName(nodeName: string): string {
+  // 1. snake_case와 camelCase를 공백으로 분리
+  const words = nodeName
+    .replace(/_/g, " ")  // snake_case → spaces
+    .replace(/([a-z])([A-Z])/g, "$1 $2")  // camelCase → spaces
+    .toLowerCase()
+    .split(" ")
+    .filter(w => w.length > 0);
+
+  // 2. 각 단어 처리
+  const processed = words.map(word => {
+    // 특수 약어는 대문자로
+    const acronyms: Record<string, string> = {
+      llm: "LLM",
+      api: "API",
+      ai: "AI",
+      id: "ID",
+      url: "URL",
+      ui: "UI",
+      ux: "UX",
+    };
+    if (acronyms[word]) return acronyms[word];
+
+    // 일반 단어는 첫 글자만 대문자
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+
+  return processed.join(" ");
+}
+
 interface IntermediateLLMOutputItemProps {
   output: IntermediateLLMOutput;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 // 중간 노드 LLM 출력 아이템 (컴팩트 표시)
-function IntermediateLLMOutputItem({ output }: IntermediateLLMOutputItemProps) {
+function IntermediateLLMOutputItem({ output, isExpanded, onToggle }: IntermediateLLMOutputItemProps) {
   const isStreaming = output.status === "streaming";
   const hasOutput = output.fullOutput.length > 0;
-
-  // 스트리밍 중에는 자동 펼침, 완료 후에는 수동 토글 가능
-  const [manualOverride, setManualOverride] = useState<boolean | null>(null);
-  const isExpanded = manualOverride !== null ? manualOverride : isStreaming;
-
-  // 스트리밍 상태가 변경되면 수동 오버라이드 초기화
-  useEffect(() => {
-    if (isStreaming) {
-      setManualOverride(null); // 스트리밍 시작하면 자동 펼침 모드로
-    }
-  }, [isStreaming]);
 
   // 스트리밍 중 자동 스크롤을 위한 ref
   const contentRef = useRef<HTMLDivElement>(null);
@@ -41,12 +68,6 @@ function IntermediateLLMOutputItem({ output }: IntermediateLLMOutputItemProps) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [output.fullOutput, isStreaming, isExpanded]);
-
-  const handleToggle = () => {
-    if (hasOutput || isStreaming) {
-      setManualOverride(prev => prev === null ? !isStreaming : !prev);
-    }
-  };
 
   // 최종 노드는 별도 처리 (여기서는 렌더링하지 않음)
   if (output.isFinal) return null;
@@ -63,7 +84,7 @@ function IntermediateLLMOutputItem({ output }: IntermediateLLMOutputItemProps) {
           "bg-muted/20 rounded-r",
           canExpand && "cursor-pointer hover:bg-muted/40"
         )}
-        onClick={handleToggle}
+        onClick={canExpand ? onToggle : undefined}
       >
         {/* 확장/축소 아이콘 */}
         {canExpand ? (
@@ -79,7 +100,7 @@ function IntermediateLLMOutputItem({ output }: IntermediateLLMOutputItemProps) {
         {/* 노드 이름 및 상태 */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="font-medium text-foreground">
-            {output.nodeName}
+            {humanizeNodeName(output.nodeName)}
           </span>
           {isStreaming ? (
             <Loader2 className="h-3 w-3 text-blue-500 animate-spin flex-shrink-0" />
@@ -112,7 +133,7 @@ function IntermediateLLMOutputItem({ output }: IntermediateLLMOutputItemProps) {
           >
             <div
               ref={contentRef}
-              className="text-xs bg-muted/30 rounded p-2 max-h-[200px] overflow-y-auto"
+              className="text-xs bg-muted/30 rounded p-2 max-h-[300px] overflow-y-auto"
             >
               <div className="whitespace-pre-wrap break-words text-foreground/80">
                 {output.fullOutput || (isStreaming ? "Generating..." : "")}
@@ -139,9 +160,71 @@ export function IntermediateLLMOutputList({
   outputs,
 }: IntermediateLLMOutputListProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [manuallyToggledIds, setManuallyToggledIds] = useState<Set<string>>(new Set());
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const prevOutputsLengthRef = useRef(0);
 
-  // 최종 노드가 아닌 출력만 필터링
-  const intermediateOutputs = outputs.filter(o => !o.isFinal);
+  // 최종 노드가 아닌 출력만 필터링 (memoize로 안정적인 참조 유지)
+  const intermediateOutputs = useMemo(
+    () => outputs.filter(o => !o.isFinal),
+    [outputs]
+  );
+
+  // 스트리밍 중인 노드 ID들 (primitive string으로 변환하여 안정적인 dependency)
+  const streamingIdsString = useMemo(
+    () => intermediateOutputs
+      .filter(o => o.status === "streaming")
+      .map(o => o.nodeId)
+      .sort()
+      .join(","),
+    [intermediateOutputs]
+  );
+
+  // 펼쳐진 ID들: 스트리밍 중인 것은 자동 펼침 + 수동 토글된 것 유지
+  // useEffect 대신 렌더링 중에 파생 (rerender-derived-state-no-effect)
+  const expandedIds = useMemo(() => {
+    const expanded = new Set<string>();
+    // 스트리밍 중인 항목은 자동으로 펼침
+    if (streamingIdsString) {
+      for (const id of streamingIdsString.split(",")) {
+        if (id) expanded.add(id);
+      }
+    }
+    // 수동으로 토글된 항목 추가
+    for (const id of manuallyToggledIds) {
+      if (expanded.has(id)) {
+        expanded.delete(id); // 스트리밍 중인데 수동으로 접은 경우
+      } else {
+        expanded.add(id); // 스트리밍 아닌데 수동으로 펼친 경우
+      }
+    }
+    return expanded;
+  }, [streamingIdsString, manuallyToggledIds]);
+
+  // 하나라도 펼쳐져 있으면 자동 스크롤
+  const hasAnyExpanded = expandedIds.size > 0;
+
+  // 새 출력이 추가될 때만 자동 스크롤 (primitive dependency 사용)
+  const outputsLength = intermediateOutputs.length;
+  useEffect(() => {
+    if (outputsLength > prevOutputsLengthRef.current && hasAnyExpanded && !isCollapsed && listContainerRef.current) {
+      listContainerRef.current.scrollTop = listContainerRef.current.scrollHeight;
+    }
+    prevOutputsLengthRef.current = outputsLength;
+  }, [outputsLength, hasAnyExpanded, isCollapsed]);
+
+  // 토글 핸들러 - 수동 토글 상태만 관리
+  const handleToggle = useCallback((nodeId: string) => {
+    setManuallyToggledIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
 
   if (intermediateOutputs.length === 0) return null;
 
@@ -157,7 +240,7 @@ export function IntermediateLLMOutputList({
         <SectionChevron className="h-4 w-4 text-muted-foreground" />
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">
-          Intermediate outputs
+          Background activity
         </span>
         <span className="text-xs text-muted-foreground">
           ({intermediateOutputs.length})
@@ -172,10 +255,16 @@ export function IntermediateLLMOutputList({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="py-1 max-h-[400px] overflow-y-auto"
+            ref={listContainerRef}
+            className="py-1 max-h-[250px] overflow-y-auto"
           >
             {intermediateOutputs.map((output, idx) => (
-              <IntermediateLLMOutputItem key={`${output.nodeId}-${idx}`} output={output} />
+              <IntermediateLLMOutputItem
+                key={`${output.nodeId}-${idx}`}
+                output={output}
+                isExpanded={expandedIds.has(output.nodeId)}
+                onToggle={() => handleToggle(output.nodeId)}
+              />
             ))}
           </motion.div>
         )}

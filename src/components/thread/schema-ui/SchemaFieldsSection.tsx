@@ -74,7 +74,7 @@ export function SchemaFieldsSection({
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="overflow-hidden"
               >
-                <div className="space-y-2 pt-1 pl-3 border-l-2 border-muted">
+                <div className="space-y-2 pt-1 pl-3 border-l-2 border-muted max-h-[200px] overflow-y-auto">
                   {optionalFields.map((field) => (
                     <SchemaField
                       key={field.name}

@@ -597,7 +597,7 @@ export function Thread() {
             </div>
           )}
 
-          <StickToBottom className="relative mt-[68px] flex-1 overflow-hidden">
+          <StickToBottom resize="smooth" className="relative mt-[68px] flex-1 overflow-hidden">
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",

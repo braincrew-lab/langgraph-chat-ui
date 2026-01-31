@@ -166,22 +166,35 @@ export function ActionBar({
 
         {/* Submit button - style varies by mode */}
         {isFormMode ? (
-          <Button
-            type="submit"
-            disabled={disabled}
-          >
-            {isLoading ? (
-              <>
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                처리 중...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                실행
-              </>
-            )}
-          </Button>
+          isLoading && onStop ? (
+            // Form mode: Stop button during streaming
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onStop}
+            >
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              중지
+            </Button>
+          ) : (
+            // Form mode: Submit button
+            <Button
+              type="submit"
+              disabled={disabled}
+            >
+              {isLoading ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  처리 중...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  실행
+                </>
+              )}
+            </Button>
+          )
         ) : isLoading ? (
           <Button
             key="stop"
