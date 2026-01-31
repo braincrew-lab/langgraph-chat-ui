@@ -2,7 +2,7 @@
 
 # LangGraph Chat UI
 
-![TeddyNote Chat](assets/chat-interface.png)
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/275e8a42-a946-43f9-8af4-0f6e949504df" />
 
 **LangGraph 에이전트를 위한 프로덕션 레디 채팅 인터페이스**
 
