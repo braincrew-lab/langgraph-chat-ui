@@ -305,39 +305,46 @@ export function ThreadContent() {
       return;
     setFirstTokenReceived(false);
 
-    const newHumanMessage: Message = {
-      id: uuidv4(),
-      type: "human",
-      content: [
-        ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
-        ...contentBlocks,
-      ] as Message["content"],
-    };
-
-    const toolMessages = ensureToolCallsHaveResponses(stream.messages);
-
     const schemaPayload = getSubmitPayload();
 
     stream.clearNodeUpdates();
 
-    stream.submit(
-      { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
-      {
-        ...STREAM_OPTIONS,
-        optimisticValues: (prev) => ({
-          ...prev,
-          messages: [
-            ...(prev.messages ?? []),
-            ...toolMessages,
-            newHumanMessage,
-          ],
-        }),
-      },
-    );
+    // Only include messages if the schema has a messages field
+    if (parsedSchema.hasMessages) {
+      const newHumanMessage: Message = {
+        id: uuidv4(),
+        type: "human",
+        content: [
+          ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
+          ...contentBlocks,
+        ] as Message["content"],
+      };
+
+      const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+
+      stream.submit(
+        { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
+        {
+          ...STREAM_OPTIONS,
+          optimisticValues: (prev) => ({
+            ...prev,
+            messages: [
+              ...(prev.messages ?? []),
+              ...toolMessages,
+              newHumanMessage,
+            ],
+          }),
+        },
+      );
+    } else {
+      // For graphs without messages field, just send the schema payload with input as a field
+      // If the schema has a specific input field, it should be in schemaPayload
+      stream.submit(schemaPayload, STREAM_OPTIONS);
+    }
 
     setInput("");
     setContentBlocks([]);
-  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks, getSubmitPayload]);
+  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks, getSubmitPayload, parsedSchema.hasMessages]);
 
   const handleRegenerate = useCallback((
     parentCheckpoint: Checkpoint | null | undefined,
