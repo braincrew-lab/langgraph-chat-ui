@@ -1,6 +1,8 @@
 /**
  * Server-side assistant API functions
  * These functions can be used in Server Components and Server Actions
+ *
+ * Note: Server-side calls use apiKey for auth. JWT auth is handled via client-side proxy.
  */
 
 import { Client } from "@langchain/langgraph-sdk";

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useStreamContext } from "@/hooks/useStreamContext";
 import { constructOpenInStudioURL } from "../utils";
 import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
+import { useQueryState } from "nuqs";
 
 interface ThreadActionsViewProps {
   interrupt: HumanInterrupt;

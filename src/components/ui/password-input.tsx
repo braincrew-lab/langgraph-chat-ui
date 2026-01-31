@@ -3,14 +3,14 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { Input } from "./input";
+import { Input, type InputProps } from "./input";
 import { Button } from "./button";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 export const PasswordInput = React.forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input">
->(({ className, ...props }, ref) => {
+  InputProps
+>(({ className, size, ...props }, ref) => {
   const [showPassword, setShowPassword] = React.useState(false);
 
   return (
@@ -18,6 +18,7 @@ export const PasswordInput = React.forwardRef<
       <Input
         type={showPassword ? "text" : "password"}
         className={cn("hide-password-toggle pr-10", className)}
+        size={size}
         ref={ref}
         {...props}
       />

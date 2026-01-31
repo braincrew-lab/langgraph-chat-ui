@@ -5,6 +5,7 @@ import React, {
   ReactNode,
 } from "react";
 import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config";
+import { GlobalSettings, DEFAULT_SETTINGS } from "@/types/global-settings";
 
 // User settings that can be customized in the UI
 export interface UserSettings {
@@ -22,6 +23,7 @@ export interface SettingsContextType {
   userSettings: UserSettings;
   updateUserSettings: (settings: Partial<UserSettings>) => void;
   resetUserSettings: () => void;
+  globalSettings: GlobalSettings;
 }
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -55,14 +57,19 @@ function saveUserSettings(settings: UserSettings) {
 interface SettingsProviderProps {
   children: ReactNode;
   initialConfig?: ChatConfig;
+  initialGlobalSettings?: GlobalSettings;
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   children,
   initialConfig,
+  initialGlobalSettings,
 }) => {
   const initial = initialConfig ?? defaultConfig;
   const [config, setConfig] = useState<ChatConfig>(initial);
+  const [globalSettings] = useState<GlobalSettings>(
+    initialGlobalSettings ?? DEFAULT_SETTINGS
+  );
   const [userSettings, setUserSettings] = useState<UserSettings>({
     fontFamily: initial.theme.fontFamily,
     fontSize: initial.theme.fontSize,
@@ -149,7 +156,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
   return (
     <SettingsContext.Provider
-      value={{ config, userSettings, updateUserSettings, resetUserSettings }}
+      value={{ config, userSettings, updateUserSettings, resetUserSettings, globalSettings }}
     >
       {children}
     </SettingsContext.Provider>

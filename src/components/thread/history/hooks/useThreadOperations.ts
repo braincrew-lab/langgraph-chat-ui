@@ -1,4 +1,3 @@
-import { useStreamContext } from "@/hooks/useStreamContext";
 import { useThreads } from "@/hooks/useThreads";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
@@ -9,8 +8,7 @@ import { UI_TEXT } from "../constants";
  * Centralizes delete and update logic with error handling
  */
 export function useThreadOperations() {
-  const { client } = useStreamContext();
-  const { getThreads, setThreads } = useThreads();
+  const { client, getThreads, setThreads } = useThreads();
   const [threadId, setThreadId] = useQueryState("threadId");
 
   const deleteThread = async (threadIdToDelete: string) => {

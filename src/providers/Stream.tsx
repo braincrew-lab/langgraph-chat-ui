@@ -101,12 +101,16 @@ const StreamSession = ({
   apiUrl,
   assistantId,
   initialAssistantData,
+  enableGraphSelection,
+  defaultGraphId,
 }: {
   children: ReactNode;
   apiKey: string | null;
   apiUrl: string;
   assistantId: string;
   initialAssistantData?: ServerAssistantData;
+  enableGraphSelection?: boolean;
+  defaultGraphId?: string;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads } = useThreads();
@@ -302,6 +306,8 @@ const StreamSession = ({
         assistantId={assistantId}
         apiKey={apiKey}
         initialData={initialAssistantData}
+        enableGraphSelection={enableGraphSelection}
+        defaultGraphId={defaultGraphId}
       >
         {children}
       </AssistantConfigProvider>
@@ -313,10 +319,14 @@ export const StreamProvider: React.FC<{
   children: ReactNode;
   initialAssistantData?: ServerAssistantData;
   connection: ConnectionConfig;
+  enableGraphSelection?: boolean;
+  defaultGraphId?: string;
 }> = ({
   children,
   initialAssistantData,
   connection,
+  enableGraphSelection = true,
+  defaultGraphId = "",
 }) => {
   // Connection values come from server (already resolved: Cookies > Env vars)
   const resolvedApiUrl = useMemo(
@@ -332,6 +342,8 @@ export const StreamProvider: React.FC<{
       apiUrl={resolvedApiUrl}
       assistantId={finalAssistantId}
       initialAssistantData={initialAssistantData}
+      enableGraphSelection={enableGraphSelection}
+      defaultGraphId={defaultGraphId}
     >
       {children}
     </StreamSession>

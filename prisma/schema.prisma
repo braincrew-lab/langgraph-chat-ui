@@ -1,0 +1,106 @@
+// Database provider
+// For SQLite (development): DATABASE_URL="file:./prisma/dev.db"
+// For PostgreSQL (production): DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+// Note: To switch providers, change "sqlite" to "postgresql" and run:
+//   pnpm prisma migrate dev --name init
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?
+  name          String?
+  role          String    @default("user") // "user" | "admin" | "super_admin"
+  status        String    @default("active") // "pending" | "active" | "suspended"
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("UserApprovals", fields: [approvedById], references: [id])
+  approvedUsers User[]    @relation("UserApprovals")
+  accounts      Account[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  settingUpdates GlobalSetting[] @relation("SettingUpdater")
+  apiTokens     ApiToken[]
+}
+
+model GlobalSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON stringified value
+  category  String   // "branding" | "auth" | "ui" | "features"
+  updatedAt DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?  @relation("SettingUpdater", fields: [updatedById], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // "user.approve", "user.suspend", "setting.update", etc.
+  target    String?  // Target entity ID
+  details   String?  // JSON stringified details
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String    // Token name/description
+  token       String    @unique // Hashed token value
+  prefix      String    // First 8 chars for identification (e.g., "abc12345...")
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime? // null = never expires
+  createdAt   DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+}

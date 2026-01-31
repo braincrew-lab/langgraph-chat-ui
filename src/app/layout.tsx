@@ -3,6 +3,7 @@ import "./globals.css";
 import React from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { siteConfig } from "@/configs/site";
+import { AuthProvider } from "@/providers/AuthProvider";
 
 const faviconPath = siteConfig.meta.favicon || siteConfig.branding.logoPath;
 
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <NuqsAdapter>{children}</NuqsAdapter>
+        <AuthProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </AuthProvider>
       </body>
     </html>
   );

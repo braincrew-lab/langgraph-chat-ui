@@ -101,24 +101,36 @@ export function resolveCompositeSchema(
 
 /**
  * Detect UI mode based on input_schema
- * - 'chat' if 'messages' field exists
- * - 'form' otherwise
+ * - 'chat' if 'messages' field exists (default when schema is missing/ambiguous)
+ * - 'form' only when schema explicitly has properties without 'messages'
  */
 export function detectUIMode(inputSchema: JSONSchema | null): UIMode {
+  // 스키마가 없거나 properties가 없으면 기본 chat 모드
   if (!inputSchema || !inputSchema.properties) {
     return "chat";
   }
 
+  // properties가 있는 경우에만 messages 필드 확인
   return "messages" in inputSchema.properties ? "chat" : "form";
 }
 
 /**
  * Check if the schema has a 'messages' field
+ * Returns true (default chat mode) if schema is missing or ambiguous
+ * Only returns false when schema explicitly has properties without 'messages'
  */
 export function hasMessagesField(inputSchema: JSONSchema | null): boolean {
-  if (!inputSchema || !inputSchema.properties) {
-    return false;
+  // 스키마가 없으면 기본 chat 모드 (messages 포함)
+  if (!inputSchema) {
+    return true;
   }
+
+  // properties가 정의되지 않았으면 기본 chat 모드
+  if (!inputSchema.properties) {
+    return true;
+  }
+
+  // properties가 있는 경우에만 messages 필드 존재 여부 확인
   return "messages" in inputSchema.properties;
 }
 

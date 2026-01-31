@@ -10,7 +10,7 @@ import { UI_TEXT, BUTTON_SIZE_SM } from "../../constants";
 
 interface ThreadItemMenuProps {
   onRename: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
 }
 
 export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
@@ -60,17 +60,19 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
               <Edit2 className="h-4 w-4" />
               {UI_TEXT.rename}
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-                setIsMenuOpen(false);
-              }}
-              className="text-red-600 focus:text-red-600"
-            >
-              <Trash2 className="h-4 w-4" />
-              {UI_TEXT.delete}
-            </DropdownMenuItem>
+            {onDelete && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                  setIsMenuOpen(false);
+                }}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+                {UI_TEXT.delete}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         )}
       </DropdownMenu>

@@ -70,6 +70,10 @@ interface UnifiedInputAreaProps {
 
   // Chat page mode - enables form collapse even when not streaming
   isChatPage?: boolean;
+
+  // Global settings controls
+  enableGraphSelection?: boolean;
+  enableAdvancedInput?: boolean;
 }
 
 export function UnifiedInputArea({
@@ -101,6 +105,8 @@ export function UnifiedInputArea({
   onAssistantChange,
   onRefreshAssistants,
   isChatPage = false,
+  enableGraphSelection = true,
+  enableAdvancedInput = true,
 }: UnifiedInputAreaProps) {
   const { isFormValid, parsedSchema, formState, setFieldValue, isLoading: schemaLoading } = schemaUI;
   const { requiredFields, rawSchema } = parsedSchema;
@@ -140,10 +146,15 @@ export function UnifiedInputArea({
         className="grid grid-rows-[1fr_auto]"
       >
         {/* 공통: SchemaFieldsSection - 상단, 고급 입력 (optional fields) */}
-        <SchemaFieldsSection
-          schemaUI={schemaUI}
-          disabled={isLoading}
-        />
+        {enableAdvancedInput ? (
+          <SchemaFieldsSection
+            schemaUI={schemaUI}
+            disabled={isLoading}
+          />
+        ) : (
+          /* 고급 입력 비활성화 시 상단 여백 */
+          <div className="pt-4" />
+        )}
 
         {/* 조건부 분기: InputSection */}
         {isFormMode ? (
@@ -222,6 +233,7 @@ export function UnifiedInputArea({
                 assistantsLoading={assistantsLoading}
                 onAssistantChange={onAssistantChange}
                 onRefreshAssistants={onRefreshAssistants}
+                enableGraphSelection={enableGraphSelection}
               />
             </>
           ) : (
@@ -254,6 +266,7 @@ export function UnifiedInputArea({
                 assistantsLoading={assistantsLoading}
                 onAssistantChange={onAssistantChange}
                 onRefreshAssistants={onRefreshAssistants}
+                enableGraphSelection={enableGraphSelection}
               />
             </>
           )
@@ -308,6 +321,7 @@ export function UnifiedInputArea({
               assistantsLoading={assistantsLoading}
               onAssistantChange={onAssistantChange}
               onRefreshAssistants={onRefreshAssistants}
+              enableGraphSelection={enableGraphSelection}
             />
           </>
         )}
