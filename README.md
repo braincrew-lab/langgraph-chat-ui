@@ -2,7 +2,7 @@
 
 # 🦜💬 LangGraph Chat UI
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/275e8a42-a946-43f9-8af4-0f6e949504df" />
+![LangGraph Chat UI](./assets/chat-interface.png)
 
 **LangGraph 에이전트를 위한 프로덕션 레디 채팅 인터페이스**
 
@@ -225,34 +225,7 @@ export const siteConfig = {
 
 Next.js에서 DB 기반 사용자 인증을 처리하고, LangGraph 서버는 JWT 검증만 수행합니다.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as 클라이언트
-    participant NextJS as Next.js 서버
-    participant DB as PostgreSQL/SQLite
-    participant LangGraph as LangGraph 서버
-
-    rect rgb(240, 248, 255)
-        Note over Client,DB: 로그인 플로우 (Next.js가 인증 담당)
-        Client->>NextJS: 로그인 요청 (email, password)
-        NextJS->>DB: 사용자 조회 & 비밀번호 검증
-        DB-->>NextJS: 사용자 정보
-        NextJS->>NextJS: JWT 토큰 생성 (AUTH_SECRET)
-        NextJS-->>Client: 세션 + JWT 토큰
-    end
-
-    rect rgb(255, 248, 240)
-        Note over Client,LangGraph: 채팅 플로우 (LangGraph는 검증만)
-        Client->>NextJS: 채팅 요청 + 세션
-        NextJS->>NextJS: 세션에서 JWT 추출
-        NextJS->>LangGraph: API 요청 + JWT (Authorization: Bearer)
-        LangGraph->>LangGraph: JWT 서명 검증 (JWT_SECRET_KEY)
-        Note right of LangGraph: DB 접근 없음!
-        LangGraph-->>NextJS: 스트리밍 응답
-        NextJS-->>Client: 스트리밍 응답
-    end
-```
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/e8eab9cb-e0b5-4a14-95ad-a3ab2844f3ac" />
 
 ### 핵심 원칙
 
@@ -456,9 +429,15 @@ SOFTWARE.
 
 ---
 
+<img width="1236" height="314" alt="image" src="https://github.com/user-attachments/assets/b92e458c-d51c-41e8-ac7e-47d7d90947f1" />  
+
+<br/>
+
 <div align="center">
-  
-Made with ❤️ by [TeddyNote Lab](https://github.com/teddynote-lab)  
-<sub>Based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
+
+  <br/>
+
+  Made with ❤️ by [TeddyNote Lab](https://github.com/teddynote-lab)  
+  <sub>Based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
 
 </div>
