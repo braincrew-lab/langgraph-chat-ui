@@ -1,192 +1,365 @@
+<div align="center">
+
 # LangGraph Chat UI
 
 ![TeddyNote Chat](assets/chat-interface.png)
 
-LangGraph 에이전트를 위한 Next.js 기반 채팅 인터페이스입니다. 다중 Connection 관리 기능과 설정 커스터마이징을 제공합니다.
+**LangGraph 에이전트를 위한 프로덕션 레디 채팅 인터페이스**
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+
+[데모 보기](https://agentchat.vercel.app) · [문서](docs/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
+
+</div>
+
+---
+
+## 목차
+
+- [소개](#소개)
+- [주요 기능](#주요-기능)
+- [빠른 시작](#빠른-시작)
+- [설정](#설정)
+- [인증 시스템](#인증-시스템)
+- [관리자 대시보드](#관리자-대시보드)
+- [배포](#배포)
+- [문서](#문서)
+- [기여하기](#기여하기)
+- [라이선스](#라이선스)
+
+---
+
+## 소개
+
+LangGraph Chat UI는 [LangGraph](https://github.com/langchain-ai/langgraph) 에이전트와 상호작용하기 위한 Next.js 기반 웹 애플리케이션입니다. 단순한 채팅 인터페이스를 넘어 사용자 인증, 관리자 대시보드, 다중 Connection 관리 등 프로덕션 환경에 필요한 기능을 제공합니다.
+
+### 왜 LangGraph Chat UI인가?
+
+- **프로덕션 레디**: NextAuth 기반 인증, 사용자 관리, 관리자 대시보드 내장
+- **유연한 설정**: 환경 변수부터 관리자 UI까지 다양한 수준의 설정 제어
+- **다중 서버 지원**: 여러 LangGraph 서버를 하나의 UI에서 관리
+- **현대적인 스택**: Next.js 15, React 19, Tailwind CSS 4, TypeScript
+
+---
 
 ## 주요 기능
 
-- 다중 Connection 및 다중 그래프 지원
-- LangGraph thread 기반 대화 저장
-- Tool Calls 시각화
-- 실시간 스트리밍 응답
-- 가이드 문서 커스터마이징
-- 앱 설정 커스터마이징
-- 테마 설정 (Dark/Light/Auto)
-- [ ] OAuth 기반 인증 기능
-- [ ] Middleware 로그 뷰어 기능
-- [ ] Docker 이미지 지원
+### 채팅 인터페이스
 
-## 요구사항
+| 기능 | 설명 |
+|------|------|
+| 실시간 스트리밍 | SSE 기반 실시간 응답 스트리밍 |
+| 다중 Connection | 여러 LangGraph 서버 연결 관리 |
+| 다중 그래프 | 하나의 서버에서 여러 그래프 선택 |
+| Tool Calls 시각화 | 에이전트의 도구 호출 과정 표시 |
+| 스레드 관리 | 대화 기록 저장, 이름 변경, 삭제 |
+| Artifact 렌더링 | 코드, 문서, 시각화 사이드 패널 |
+| 파일 업로드 | 이미지 및 파일 첨부 지원 |
+| LaTeX 수식 | KaTeX 기반 수학 수식 렌더링 |
 
-- Node.js 18.x 이상
-- pnpm 8.x 이상 (패키지 매니저)
-- LangGraph 백엔드 서버 (`langgraph dev`)
+### 인증 및 사용자 관리
 
-## 사용법
+| 기능 | 설명 |
+|------|------|
+| NextAuth 통합 | Credentials 기반 로컬 인증 |
+| 회원가입 정책 | 자유 가입 / 관리자 승인 선택 |
+| 사용자 상태 | 활성 / 대기 / 정지 상태 관리 |
+| 역할 기반 접근 | 관리자(admin) / 일반 사용자(user) |
 
-### 1. 저장소 복제
+### 관리자 대시보드
+
+| 기능 | 설명 |
+|------|------|
+| 사용자 관리 | 목록 조회, 역할 변경, 상태 변경, 삭제 |
+| 가입 승인 | 대기 중인 가입 요청 승인/거부 |
+| 전역 설정 | 기능 활성화, 기본 Connection 설정 |
+| 기능 제어 | 개별 기능별 활성화/비활성화 |
+
+### 커스터마이징
+
+| 기능 | 설명 |
+|------|------|
+| 브랜딩 | 로고, 앱 이름, 설명 변경 |
+| 테마 | 다크/라이트/자동 테마 |
+| 대화 시작 질문 | 채팅 시작 예시 질문 커스터마이징 |
+| 사용자 가이드 | 마크다운 기반 도움말 페이지 |
+
+---
+
+## 빠른 시작
+
+### 요구사항
+
+- **Node.js** 18.x 이상
+- **pnpm** 8.x 이상
+- **LangGraph 서버** 실행 중 (`langgraph dev`)
+
+### 설치
 
 ```bash
-git clone git@github.com:teddynote-lab/langgraph-chat-ui.git
+# 1. 저장소 복제
+git clone https://github.com/teddynote-lab/langgraph-chat-ui.git
 cd langgraph-chat-ui
-```
 
-### 2. 의존성 설치
-
-```bash
+# 2. 의존성 설치
 pnpm install
-```
 
-### 3. 환경 변수 설정
-
-```bash
-cd ../langgraph-chat-ui
+# 3. 환경 변수 설정
 cp .env.example .env
 ```
 
+### 환경 변수
+
 ```env
-# 필수: LangGraph API 엔드포인트 (로컬 개발용)
+# 필수: LangGraph API 엔드포인트
 NEXT_PUBLIC_API_URL=http://localhost:2024
 
-# 선택: Assistant/Graph ID
+# 선택: 기본 Graph ID
 NEXT_PUBLIC_ASSISTANT_ID=agent
 
-# 선택: 프로덕션 배포용
-LANGGRAPH_API_URL=https://your-deployment.langgraph.app
-LANGSMITH_API_KEY=lsv2_...
+# 인증: NextAuth 시크릿 (openssl rand -base64 32)
+AUTH_SECRET=your-secret-key
+
+# 데이터베이스: SQLite (개발용)
+DATABASE_URL="file:./dev.db"
 ```
 
-### 4. 빌드 및 실행
+### 실행
 
 ```bash
-pnpm run build
-pnpm run start
+# 데이터베이스 마이그레이션
+pnpm prisma migrate dev
+
+# 개발 서버 실행
+pnpm dev
 ```
 
-앱이 `http://localhost:3000`에서 실행됩니다.
+브라우저에서 `http://localhost:3000`으로 접속합니다.
+
+### 첫 번째 관리자 계정
+
+최초 회원가입한 사용자는 자동으로 관리자 권한을 부여받습니다.
+
+---
 
 ## 설정
 
 ### 앱 설정 파일
 
-설정은 `src/configs/` 디렉토리의 TypeScript 파일로 관리됩니다.
+설정은 `src/configs/` 디렉토리에서 관리됩니다.
 
 | 파일 | 설명 |
 |------|------|
-| `src/configs/site.ts` | 전체 설정 |
-| `src/configs/chat-openers.ts` | 대화 시작 예시 질문 |
+| `site.ts` | 앱 전체 설정 (브랜딩, 테마, UI 동작) |
+| `chat-openers.ts` | 대화 시작 예시 질문 |
 
-### 설정 항목
-
-`src/configs/site.ts`:
+### 주요 설정 항목
 
 ```typescript
+// src/configs/site.ts
 export const siteConfig = {
-  // 메타 정보 (브라우저 탭)
   meta: {
-    title: "My Chat",              // 페이지 타이틀
-    description: "AI 어시스턴트",   // 메타 설명
-    favicon: "",                   // 파비콘 경로 (빈값이면 logoPath 사용)
+    title: "My Chat",
+    description: "AI 어시스턴트",
   },
-  // 브랜딩
   branding: {
-    appName: "My Chat",            // 앱 이름
-    logoPath: "/logo.png",         // 로고 이미지 경로
-    logoWidth: 28,                 // 로고 너비
-    logoHeight: 28,                // 로고 높이
-    description: "무엇이든 물어보세요.", // 랜딩 페이지 설명
-    fullDescription: "/full-description.md", // 상세 설명 마크다운 경로
+    appName: "My Chat",
+    logoPath: "/logo.png",
+    description: "무엇이든 물어보세요.",
   },
-  // 입력창
   buttons: {
-    enableFileUpload: true,        // 파일 업로드 활성화
-    chatInputPlaceholder: "메시지를 입력하세요.", // 입력창 placeholder
+    enableFileUpload: true,
+    chatInputPlaceholder: "메시지를 입력하세요.",
   },
-  // 대화 기록
   threads: {
-    showHistory: true,             // 대화 기록 사이드바 표시
-    enableDeletion: true,          // 대화 삭제 허용
-    enableTitleEdit: true,         // 대화 제목 편집 허용
-    autoGenerateTitles: true,      // 대화 제목 자동 생성
-    sidebarOpenByDefault: true,    // 사이드바 기본 열림
+    showHistory: true,
+    enableDeletion: true,
+    autoGenerateTitles: true,
   },
-  // 테마
   theme: {
-    fontFamily: "sans",            // sans, serif, mono
-    fontSize: "medium",            // small, medium, large
-    colorScheme: "light",          // light, dark, auto
-  },
-  // UI 동작
-  ui: {
-    autoCollapseToolCalls: false,  // Tool Calls 자동 접기
-    chatWidth: "default",          // default, wide
+    colorScheme: "auto", // light, dark, auto
   },
 };
 ```
 
-`src/configs/chat-openers.ts`:
-
-```typescript
-export const chatOpeners = [
-  "오늘의 날씨는 어때?",
-  "Python 코딩 도움이 필요해",
-  // ...
-];
-```
-
 ### Connection 관리
 
-앱 실행 후 설정 Dialog에서 여러 서버 연결을 관리할 수 있습니다.
-
-- 기본값: `.env`에 설정된 기본 Connection (서버 사이드 설정)
-- 새 Connection 추가 및 URL 자동 검증 (클라이언트 사이드에 저장)
-- Connection 간 빠른 전환 가능
-
-### Connection 추가 시 필드
+앱 실행 후 설정에서 여러 LangGraph 서버를 관리할 수 있습니다.
 
 | 필드 | 필수 | 설명 |
 |------|------|------|
 | API URL | ✅ | LangGraph 서버 URL |
-| Connection 이름 | ❌ | Connection 이름 |
-| Assistant ID | ❌ | Graph 이름 (빈값이면 목록에서 선택 가능) |
+| Connection 이름 | ❌ | 구분을 위한 이름 |
+| Assistant ID | ❌ | Graph ID (미입력시 목록 선택) |
 | API 키 | ❌ | LangSmith API 키 |
 
+---
 
-## 사용자 가이드
+## 인증 시스템
 
-전체 사용자 가이드는 `public/full-description.md`에 위치합니다. 이 마크다운 파일은 사용자가 랜딩 페이지에서 "자세한 설명 보기" 버튼을 클릭할 때 표시됩니다.
+### 인증 방식
 
-### 가이드 업데이트 방법
+현재 Credentials Provider 기반 로컬 인증을 지원합니다.
 
-1. `public/full-description.md` 파일 편집
-2. 표준 마크다운 문법 사용
-3. 파일 저장시 자동으로 앱에 반영
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Client    │────▶│  NextAuth   │────▶│   Prisma    │
+│             │     │ (인증 처리) │     │ (사용자 DB) │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
 
+### 회원가입 정책
 
-## 고급 기능
+관리자 대시보드에서 설정 가능:
 
-### Artifact 렌더링
+| 정책 | 동작 |
+|------|------|
+| `open` | 자유 가입 (기본값) |
+| `approval` | 관리자 승인 후 활성화 |
 
-채팅 인터페이스는 사이드 패널에서 Artifact (코드, 문서, 시각화)를 렌더링할 수 있습니다. Artifact는 LangGraph 서버 응답 메타데이터를 통해 관리됩니다.
+### 사용자 상태
 
-### 도구 호출 가시성
+| 상태 | 설명 |
+|------|------|
+| `active` | 정상 사용 가능 |
+| `pending` | 승인 대기 중 (로그인 불가) |
+| `suspended` | 정지됨 (로그인 불가) |
 
-사용자는 채팅 입력창의 렌치 아이콘을 사용하여 도구 호출의 가시성을 전환할 수 있습니다. 숨김 상태에서는 최종 응답만 표시되어 깔끔한 인터페이스를 제공합니다.
+### LangGraph 서버 인증 연동
 
-### 자동 접기 동작
+LangGraph Platform에 JWT 기반 인증을 연동하는 방법은 **[LangGraph 인증 시스템 가이드](docs/LANGGRAPH_AUTH_GUIDE.md)**를 참고하세요.
 
-설정에서 `autoCollapseToolCalls`가 활성화되면 AI 응답이 완료된 후 도구 호출 세부사항이 자동으로 접혀 대화 기록을 깔끔하게 유지합니다.
+---
 
-### 대화 관리
+## 관리자 대시보드
 
-- 대화는 생성된 제목과 함께 자동으로 저장됩니다
-- 사용자는 대화 이름을 변경하거나 삭제할 수 있습니다
-- 사이드바에서 대화 기록에 빠르게 접근할 수 있습니다
-- 스레드 상태는 브라우저 세션 간에 유지됩니다
+`/admin` 경로에서 관리자 기능에 접근할 수 있습니다.
+
+### 사용자 관리
+
+- 전체 사용자 목록 조회
+- 역할 변경 (관리자 ↔ 일반 사용자)
+- 상태 변경 (활성화 / 정지)
+- 사용자 삭제
+
+### 가입 승인
+
+회원가입 정책이 `approval`일 때:
+- 대기 중인 가입 요청 목록
+- 승인 또는 거부 처리
+
+### 전역 설정
+
+| 설정 | 설명 |
+|------|------|
+| 회원가입 정책 | open / approval |
+| 기능 활성화 | 각 기능별 on/off |
+| 기본 Connection | 서버 전역 기본값 설정 |
+| Connection 선택 | 사용자의 Connection 변경 허용 여부 |
+
+---
+
+## 배포
+
+### 배포 옵션
+
+| 옵션 | LangSmith 필요 | 인프라 | 권장 용도 |
+|------|----------------|--------|----------|
+| LangGraph Platform | O (무료 가능) | Redis + PostgreSQL | 공식 지원, 빠른 설정 |
+| FastAPI Standalone | X | 선택적 | 완전 독립, 커스텀 |
+
+자세한 내용은 **[LangGraph 서버 배포 가이드](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md)**를 참고하세요.
+
+### Docker 배포 (예정)
+
+```bash
+# Docker 이미지 빌드
+docker build -t langgraph-chat-ui .
+
+# 실행
+docker run -p 3000:3000 \
+  -e DATABASE_URL="..." \
+  -e AUTH_SECRET="..." \
+  langgraph-chat-ui
+```
+
+### Vercel 배포
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/teddynote-lab/langgraph-chat-ui)
+
+1. Vercel에서 저장소 연결
+2. 환경 변수 설정
+3. PostgreSQL 데이터베이스 연결 (Vercel Postgres 권장)
+
+---
+
+## 문서
+
+### 가이드 문서
+
+| 문서 | 설명 |
+|------|------|
+| [LangGraph 인증 시스템 가이드](docs/LANGGRAPH_AUTH_GUIDE.md) | JWT 검증, Supabase 연동, 리소스 접근 제어 |
+| [LangGraph 서버 배포 가이드](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose 설정 |
+
+### 사용자 가이드
+
+사용자 가이드는 `public/full-description.md`에서 편집할 수 있습니다. 마크다운 문법을 사용하여 앱 내 도움말 페이지를 커스터마이징하세요.
+
+---
+
+## 기술 스택
+
+| 영역 | 기술 |
+|------|------|
+| 프레임워크 | Next.js 15 (App Router) |
+| UI 라이브러리 | React 19, Radix UI, Framer Motion |
+| 스타일링 | Tailwind CSS 4 |
+| 언어 | TypeScript 5.7 |
+| 인증 | NextAuth.js 5 (Auth.js) |
+| 데이터베이스 | Prisma ORM (SQLite / PostgreSQL) |
+| LangGraph | @langchain/langgraph-sdk |
+| 마크다운 | react-markdown, KaTeX, remark-gfm |
+
+---
+
+## 기여하기
+
+기여는 언제나 환영합니다! 다음 단계를 따라주세요:
+
+1. 이 저장소를 Fork 합니다
+2. 새 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
+3. 변경사항을 커밋합니다 (`git commit -m 'Add amazing feature'`)
+4. 브랜치에 Push 합니다 (`git push origin feature/amazing-feature`)
+5. Pull Request를 생성합니다
+
+### 개발 환경 설정
+
+```bash
+# 의존성 설치
+pnpm install
+
+# 개발 서버 실행
+pnpm dev
+
+# 린트 검사
+pnpm lint
+
+# 포맷팅
+pnpm format
+```
+
+---
 
 ## 라이선스
 
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+
+```
 MIT License
 
 Copyright (c) 2025 TeddyNote
@@ -208,10 +381,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+---
 
 ## 참고 자료
 
-- YouTube 채널: [테디노트](https://youtube.com/c/teddynote)
-- LangChain 문서: [LangChain Documentation](https://docs.langchain.com/)
-- Next.js 문서: [nextjs.org/docs](https://nextjs.org/docs)
+- [LangGraph 공식 문서](https://docs.langchain.com/langgraph)
+- [Next.js 문서](https://nextjs.org/docs)
+- [NextAuth.js 문서](https://authjs.dev/)
+- [테디노트 YouTube](https://youtube.com/c/teddynote)
 
+---
+
+<div align="center">
+
+Made with ❤️ by [TeddyNote](https://github.com/teddynote-lab)
+
+</div>
