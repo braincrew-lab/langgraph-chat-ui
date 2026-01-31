@@ -16,11 +16,28 @@ LangGraph 에이전트 서버를 프로덕션 환경에 배포하는 두 가지 
 | 항목 | Docker 기반 | LangSmith 기반 |
 |------|------------|----------------|
 | **인프라 관리** | 직접 관리 | 완전 관리형 |
-| **비용** | 인프라 비용만 | LangSmith 요금 + 인프라 |
+| **비용** | 인프라 비용만 | LangSmith 요금 |
 | **LangSmith 필수** | ❌ 불필요 | ✅ 필수 |
 | **커스터마이징** | 완전한 제어 | 플랫폼 제한 |
 | **모니터링** | 직접 구축 | LangSmith 내장 |
 | **권장 환경** | Air-gapped, 완전 독립 | 빠른 구축, 관리형 선호 |
+
+### 배포 결정 흐름
+
+```mermaid
+flowchart TD
+    A[LangGraph 배포] --> B{LangSmith<br/>사용 가능?}
+    B -->|Yes| C{관리형<br/>선호?}
+    B -->|No| D[Docker 기반]
+    C -->|Yes| E[LangGraph Cloud]
+    C -->|No| F{모니터링<br/>필요?}
+    F -->|Yes| G[Docker + LangSmith]
+    F -->|No| D
+
+    style D fill:#e1f5fe
+    style E fill:#fff3e0
+    style G fill:#fff3e0
+```
 
 ---
 
@@ -30,23 +47,30 @@ LangSmith 없이 Docker Compose로 완전 독립적인 환경을 구축합니다
 
 ### 아키텍처
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     Docker Compose                            │
-│  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐  │
-│  │ PostgreSQL │  │   Redis    │  │    LangGraph API       │  │
-│  │  (상태)    │  │  (Pub/Sub) │  │    (에이전트 실행)     │  │
-│  └────────────┘  └────────────┘  └────────────────────────┘  │
-│        ▲              ▲                    ▲                  │
-│        └──────────────┴────────────────────┘                  │
-│                      연결                                      │
-└──────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-                    ┌────────────┐
-                    │  Next.js   │
-                    │  Frontend  │
-                    └────────────┘
+```mermaid
+flowchart TB
+    subgraph Docker["Docker Compose"]
+        subgraph Infra["인프라"]
+            PG[(PostgreSQL)]
+            RD[(Redis)]
+        end
+
+        subgraph App["애플리케이션"]
+            API[LangGraph API]
+        end
+
+        API --> PG
+        API --> RD
+    end
+
+    subgraph External["외부"]
+        NextJS[Next.js Frontend]
+        LLM[OpenAI API]
+    end
+
+    NextJS -->|JWT + 요청| API
+    API -->|LLM 호출| LLM
+    API -->|스트리밍 응답| NextJS
 ```
 
 ### 1. 프로젝트 구조
@@ -60,7 +84,6 @@ langgraph-server/
 │       └── auth.py           # JWT 검증 핸들러
 ├── langgraph.json            # LangGraph 설정
 ├── pyproject.toml            # Python 의존성
-├── Dockerfile
 ├── docker-compose.yml
 └── .env
 ```
@@ -112,7 +135,6 @@ langgraph build -t my-agent:latest
 
 ```yaml
 services:
-  # PostgreSQL - 상태 저장
   postgres:
     image: postgres:16-alpine
     environment:
@@ -128,7 +150,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis - Pub/Sub, 스트리밍
   redis:
     image: redis:7-alpine
     volumes:
@@ -140,20 +161,14 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # LangGraph API 서버
   langgraph-api:
     image: my-agent:latest
     ports:
       - "2024:8000"
     environment:
-      # 인프라 연결
       DATABASE_URI: postgres://langgraph:${POSTGRES_PASSWORD:-langgraph}@postgres:5432/langgraph
       REDIS_URI: redis://redis:6379
-
-      # LLM API 키
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # JWT 인증 (Next.js AUTH_SECRET과 동일)
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     depends_on:
       postgres:
@@ -173,7 +188,7 @@ volumes:
 # LLM
 OPENAI_API_KEY=sk-...
 
-# JWT 인증 (Next.js AUTH_SECRET과 동일해야 함)
+# JWT 인증 (Next.js AUTH_SECRET과 동일)
 JWT_SECRET_KEY=your-secret-key-min-32-chars
 
 # PostgreSQL
@@ -197,6 +212,32 @@ docker compose down
 ```
 
 ### 8. 클라우드 배포
+
+#### 배포 흐름
+
+```mermaid
+flowchart LR
+    subgraph Local["로컬"]
+        Build[langgraph build]
+        Tag[docker tag]
+    end
+
+    subgraph Registry["컨테이너 레지스트리"]
+        ECR[AWS ECR]
+        GCR[GCP Artifact Registry]
+    end
+
+    subgraph Cloud["클라우드"]
+        ECS[AWS ECS]
+        CloudRun[GCP Cloud Run]
+    end
+
+    Build --> Tag
+    Tag --> ECR
+    Tag --> GCR
+    ECR --> ECS
+    GCR --> CloudRun
+```
 
 #### AWS ECS
 
@@ -239,23 +280,44 @@ LangSmith Platform을 사용한 관리형 배포입니다.
 
 ### 아키텍처
 
+```mermaid
+flowchart TB
+    subgraph LangSmith["LangSmith Platform"]
+        subgraph Cloud["LangGraph Cloud"]
+            API[LangGraph API]
+            Scale[자동 스케일링]
+            Monitor[모니터링]
+        end
+    end
+
+    subgraph External["외부"]
+        NextJS[Next.js Frontend]
+        GitHub[GitHub Repository]
+    end
+
+    GitHub -->|자동 배포| Cloud
+    NextJS -->|API 호출| API
+    API -->|트레이싱| Monitor
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    LangSmith Platform                        │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              LangGraph Cloud (관리형)                 │   │
-│  │  - 자동 스케일링                                      │   │
-│  │  - 모니터링 & 트레이싱                                │   │
-│  │  - 인프라 관리 불필요                                 │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                           │ API 호출
-                           ▼
-                    ┌────────────┐
-                    │  Next.js   │
-                    │  Frontend  │
-                    └────────────┘
+
+### 배포 방법 비교
+
+```mermaid
+flowchart TD
+    A[LangSmith 기반] --> B[완전 관리형]
+    A --> C[Self-Hosted + 모니터링]
+
+    B --> B1[LangGraph Cloud]
+    B1 --> B2[GitHub 연동]
+    B1 --> B3[자동 스케일링]
+    B1 --> B4[인프라 관리 불필요]
+
+    C --> C1[Docker Compose]
+    C1 --> C2[LANGSMITH_API_KEY 추가]
+    C1 --> C3[트레이싱 활성화]
+
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
 ```
 
 ### 1. LangSmith 계정 설정
@@ -264,36 +326,27 @@ LangSmith Platform을 사용한 관리형 배포입니다.
 2. **Settings** → **API Keys** → 키 생성
 3. API 키 저장
 
-### 2. 프로젝트 구조
-
-```
-langgraph-server/
-├── src/
-│   └── agent/
-│       └── graph.py
-├── langgraph.json
-├── pyproject.toml
-└── .env
-```
-
-### 3. langgraph.json
-
-```json
-{
-  "dependencies": ["."],
-  "graphs": {
-    "agent": "./src/agent/graph.py:graph"
-  },
-  "auth": {
-    "path": "src/security/auth.py:auth"
-  },
-  "env": ".env"
-}
-```
-
-### 4. 배포 방법 A: LangGraph Cloud (완전 관리형)
+### 2. LangGraph Cloud (완전 관리형)
 
 GitHub 저장소를 연결하여 자동 배포합니다.
+
+#### 배포 단계
+
+```mermaid
+sequenceDiagram
+    participant Dev as 개발자
+    participant GitHub as GitHub
+    participant LangSmith as LangSmith
+    participant Cloud as LangGraph Cloud
+
+    Dev->>GitHub: 코드 푸시
+    GitHub->>LangSmith: Webhook
+    LangSmith->>Cloud: 자동 빌드 & 배포
+    Cloud-->>LangSmith: 배포 완료
+    LangSmith-->>Dev: 알림 (URL 제공)
+```
+
+#### 설정 방법
 
 1. [smith.langchain.com](https://smith.langchain.com) → **Deployments**
 2. **New Deployment** → GitHub 저장소 연결
@@ -302,14 +355,14 @@ GitHub 저장소를 연결하여 자동 배포합니다.
    - `JWT_SECRET_KEY`
 4. 배포 시작
 
-배포 완료 후 API URL 제공:
+배포 완료 후:
 ```
 https://your-deployment-id.langgraph.app
 ```
 
-### 5. 배포 방법 B: Self-Hosted with LangSmith
+### 3. Self-Hosted + LangSmith 모니터링
 
-Docker로 직접 호스팅하되 LangSmith 모니터링을 사용합니다.
+Docker로 직접 호스팅하면서 LangSmith 트레이싱을 사용합니다.
 
 #### docker-compose.yml
 
@@ -344,17 +397,10 @@ services:
     ports:
       - "2024:8000"
     environment:
-      # 인프라
       DATABASE_URI: postgres://langgraph:${POSTGRES_PASSWORD:-langgraph}@postgres:5432/langgraph
       REDIS_URI: redis://redis:6379
-
-      # LangSmith (필수)
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
-
-      # LLM
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}  # 추가
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # JWT 인증
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     depends_on:
       postgres:
@@ -370,7 +416,7 @@ volumes:
 #### 환경 변수
 
 ```env
-# LangSmith (필수)
+# LangSmith
 LANGSMITH_API_KEY=lsv2_pt_xxxxx
 
 # LLM
@@ -383,7 +429,7 @@ JWT_SECRET_KEY=your-secret-key-min-32-chars
 POSTGRES_PASSWORD=secure-password
 ```
 
-### 6. LangSmith 기능
+### 4. LangSmith 기능
 
 | 기능 | 설명 |
 |------|------|
@@ -398,6 +444,21 @@ POSTGRES_PASSWORD=secure-password
 ## 프로덕션 체크리스트
 
 ### 보안
+
+```mermaid
+flowchart LR
+    subgraph Security["보안 체크리스트"]
+        A[JWT_SECRET_KEY 32자+]
+        B[HTTPS 적용]
+        C[CORS 설정]
+        D[Rate Limiting]
+    end
+
+    A --> E[✅ 완료]
+    B --> E
+    C --> E
+    D --> E
+```
 
 - [ ] `JWT_SECRET_KEY`를 32자 이상 랜덤 값으로 설정
 - [ ] HTTPS 적용 (nginx, traefik, 또는 클라우드 로드밸런서)
@@ -418,18 +479,37 @@ POSTGRES_PASSWORD=secure-password
 - [ ] 에러 트래킹 (Sentry)
 - [ ] 메트릭 수집 (Prometheus, Datadog)
 
-### 환경 변수 관리
-
-```bash
-# 프로덕션에서는 시크릿 매니저 사용
-# AWS: Secrets Manager
-# GCP: Secret Manager
-# K8s: External Secrets Operator
-```
-
 ---
 
 ## Next.js 연동 설정
+
+### 전체 아키텍처
+
+```mermaid
+flowchart TB
+    subgraph Client["클라이언트"]
+        Browser[브라우저]
+    end
+
+    subgraph NextJS["Next.js"]
+        Auth[NextAuth]
+        API[API Passthrough]
+        DB[(SQLite)]
+    end
+
+    subgraph LangGraph["LangGraph"]
+        JWT[JWT 검증]
+        Agent[Agent]
+    end
+
+    Browser -->|로그인| Auth
+    Auth --> DB
+    Browser -->|채팅| API
+    API -->|Bearer Token| JWT
+    JWT --> Agent
+    Agent -->|SSE| API
+    API -->|SSE| Browser
+```
 
 ### 환경 변수
 
@@ -444,7 +524,7 @@ LANGGRAPH_API_URL=http://localhost:2024  # 개발
 AUTH_SECRET=your-secret-key-min-32-chars
 ```
 
-### API Passthrough 설정
+### API Passthrough
 
 `src/app/api/[..._path]/route.ts`:
 
@@ -475,10 +555,10 @@ export const DELETE = handler;
 
 | 항목 | Docker 기반 | LangSmith Cloud |
 |------|------------|-----------------|
-| **인프라** | 직접 관리 (EC2, RDS, ElastiCache) | 포함 |
-| **LangSmith** | 불필요 (선택적) | 필수 ($0~$400+/월) |
+| **인프라** | 직접 관리 | 포함 |
+| **LangSmith** | 불필요 | 필수 ($0~$400+/월) |
 | **운영** | 직접 운영 | 관리형 |
-| **월 예상 비용** | $50~200+ (인프라) | $0~400+ (플랜) |
+| **월 예상 비용** | $50~200+ | $0~400+ |
 
 ---
 

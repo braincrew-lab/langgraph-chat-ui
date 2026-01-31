@@ -201,16 +201,57 @@ export const siteConfig = {
 
 ## 인증 시스템
 
-### 인증 방식
+### 아키텍처
 
-현재 Credentials Provider 기반 로컬 인증을 지원합니다.
+Next.js에서 DB 기반 사용자 인증을 처리하고, LangGraph 서버는 JWT 검증만 수행합니다.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
+    participant DB as PostgreSQL/SQLite
+    participant LangGraph as LangGraph 서버
+
+    rect rgb(240, 248, 255)
+        Note over Client,DB: 로그인 플로우 (Next.js가 인증 담당)
+        Client->>NextJS: 로그인 요청 (email, password)
+        NextJS->>DB: 사용자 조회 & 비밀번호 검증
+        DB-->>NextJS: 사용자 정보
+        NextJS->>NextJS: JWT 토큰 생성 (AUTH_SECRET)
+        NextJS-->>Client: 세션 + JWT 토큰
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Client,LangGraph: 채팅 플로우 (LangGraph는 검증만)
+        Client->>NextJS: 채팅 요청 + 세션
+        NextJS->>NextJS: 세션에서 JWT 추출
+        NextJS->>LangGraph: API 요청 + JWT (Authorization: Bearer)
+        LangGraph->>LangGraph: JWT 서명 검증 (JWT_SECRET_KEY)
+        Note right of LangGraph: DB 접근 없음!
+        LangGraph-->>NextJS: 스트리밍 응답
+        NextJS-->>Client: 스트리밍 응답
+    end
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Client    │────▶│  NextAuth   │────▶│   Prisma    │
-│             │     │ (인증 처리) │     │ (사용자 DB) │
-└─────────────┘     └─────────────┘     └─────────────┘
-```
+
+### 핵심 원칙
+
+| 구성 요소 | 역할 | DB 접근 |
+|----------|------|---------|
+| **Next.js** | 사용자 인증, DB 관리, JWT 발급 | ✅ 필요 |
+| **LangGraph** | JWT 검증, 에이전트 실행 | ❌ 불필요 |
+
+> **중요**: `AUTH_SECRET` (Next.js)과 `JWT_SECRET_KEY` (LangGraph)는 동일한 값이어야 합니다.
+
+### 지원 데이터베이스
+
+| DB | 지원 상태 | 용도 |
+|----|----------|------|
+| **SQLite** | ✅ 현재 지원 | 개발, 소규모 배포 |
+| **PostgreSQL** | 🔜 추후 지원 예정 | 프로덕션 확장 |
+| **MySQL** | 🔜 추후 지원 예정 | 프로덕션 확장 |
+
+> Prisma ORM을 사용하므로 추후 다른 RDB로 쉽게 확장할 수 있습니다.
 
 ### 회원가입 정책
 
