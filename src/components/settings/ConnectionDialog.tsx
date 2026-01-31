@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQueryState } from "nuqs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { ArrowRight } from "lucide-react";
 import { getApiKey } from "@/lib/api-key";
+import { useStreamContext } from "@/hooks/useStreamContext";
+import { updateConnectionAction } from "@/app/actions";
 
 // Default values for the form
 const DEFAULT_API_URL = "http://localhost:2024";
@@ -25,8 +26,7 @@ interface ConnectionDialogProps {
 }
 
 export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps) {
-  const [apiUrl, setApiUrl] = useQueryState("apiUrl");
-  const [assistantId, setAssistantId] = useQueryState("assistantId");
+  const { apiUrl: currentApiUrl, assistantId: currentAssistantId } = useStreamContext();
   const [apiKey, _setApiKey] = useState(() => getApiKey() || "");
 
   const setApiKey = (key: string) => {
@@ -34,7 +34,7 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps) 
     _setApiKey(key);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = e.target as HTMLFormElement;
@@ -43,15 +43,20 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps) 
     const newAssistantId = formData.get("assistantId") as string;
     const newApiKey = formData.get("apiKey") as string;
 
-    setApiUrl(newApiUrl);
+    // Update connection via server action
+    await updateConnectionAction({
+      apiUrl: newApiUrl,
+      assistantId: newAssistantId || undefined,
+      apiKey: newApiKey || undefined,
+    });
+
     setApiKey(newApiKey);
-    setAssistantId(newAssistantId);
 
     form.reset();
     onOpenChange(false);
 
     // Reload the page to apply new connection settings
-    window.location.reload();
+    window.location.href = window.location.pathname;
   };
 
   return (
@@ -77,7 +82,7 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps) 
               id="apiUrl"
               name="apiUrl"
               className="bg-background"
-              defaultValue={apiUrl || DEFAULT_API_URL}
+              defaultValue={currentApiUrl || DEFAULT_API_URL}
               required
             />
           </div>
@@ -95,7 +100,7 @@ export function ConnectionDialog({ open, onOpenChange }: ConnectionDialogProps) 
               id="assistantId"
               name="assistantId"
               className="bg-background"
-              defaultValue={assistantId || ""}
+              defaultValue={currentAssistantId || ""}
               required
             />
           </div>

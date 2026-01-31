@@ -25,11 +25,13 @@ export const siteConfig = {
   },
   theme: {
     fontFamily: "sans" as const,
-    fontSize: "large" as const,
+    fontSize: "medium" as const,
     colorScheme: "light" as const,
   },
   ui: {
     autoCollapseToolCalls: false,
     chatWidth: "default" as const,
+    chatHistoryOpen: false,
+    tracingPanelOpen: false,
   },
 } as const;

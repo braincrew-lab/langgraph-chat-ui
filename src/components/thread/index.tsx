@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { ReactNode, useEffect, useRef, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
@@ -58,6 +59,7 @@ import {
   FormSubmissionMessage,
 } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
+import { updateAssistantIdAction } from "@/app/actions";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -125,14 +127,24 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
-  const { config, userSettings } = useSettings();
+  const { config, userSettings, updateUserSettings } = useSettings();
+  const router = useRouter();
 
   const [threadId, setThreadId] = useQueryState("threadId");
-  const [assistantQueryId, setAssistantQueryId] = useQueryState("assistantId");
-  const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
-    "chatHistoryOpen",
-    parseAsBoolean.withDefault(config.threads.sidebarOpenByDefault),
-  );
+
+  // Sidebar states from settings (persisted)
+  const chatHistoryOpen = userSettings.chatHistoryOpen;
+  const setChatHistoryOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    const newValue = typeof value === "function" ? value(chatHistoryOpen) : value;
+    updateUserSettings({ chatHistoryOpen: newValue });
+  }, [chatHistoryOpen, updateUserSettings]);
+
+  const sidebarOpen = userSettings.tracingPanelOpen;
+  const setSidebarOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    const newValue = typeof value === "function" ? value(sidebarOpen) : value;
+    updateUserSettings({ tracingPanelOpen: newValue });
+  }, [sidebarOpen, updateUserSettings]);
+
   const [hideToolCalls, setHideToolCalls] = useQueryState(
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
@@ -141,11 +153,6 @@ export function Thread() {
   const [compactView, setCompactView] = useQueryState(
     "compactView",
     parseAsBoolean.withDefault(true),
-  );
-  // LangSmith Tracing 사이드바 열기/닫기 상태 (URL 쿼리 파라미터)
-  const [sidebarOpen, setSidebarOpen] = useQueryState(
-    "tracing",
-    parseAsBoolean.withDefault(false),
   );
   const [input, setInput] = useState("");
   const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
@@ -179,6 +186,7 @@ export function Thread() {
   const nodeUpdates = stream.nodeUpdates;
   const updateNodeCompletedOutput = stream.updateNodeCompletedOutput;
   const {
+    assistantId: currentAssistantId,
     assistants,
     assistantsLoading,
     refetchAssistants,
@@ -262,16 +270,17 @@ export function Thread() {
   const lastError = useRef<string | undefined>(undefined);
 
   const assistantSelectValue = useMemo(
-    () => assistantQueryId?.trim() || "none",
-    [assistantQueryId]
+    () => currentAssistantId?.trim() || "none",
+    [currentAssistantId]
   );
 
-  const isAssistantSelected = Boolean(assistantQueryId?.trim());
+  const isAssistantSelected = Boolean(currentAssistantId?.trim());
 
-  const handleAssistantChange = useCallback((value: string) => {
+  const handleAssistantChange = useCallback(async (value: string) => {
     if (value === "none") {
-      if (assistantQueryId) {
-        void setAssistantQueryId(null);
+      if (currentAssistantId) {
+        await updateAssistantIdAction(null);
+        router.refresh();
       }
       setThreadId(null);
       setInput("");
@@ -281,11 +290,12 @@ export function Thread() {
     }
 
     const trimmedValue = value.trim();
-    if (!trimmedValue || trimmedValue === assistantQueryId?.trim()) {
+    if (!trimmedValue || trimmedValue === currentAssistantId?.trim()) {
       return;
     }
 
-    void setAssistantQueryId(trimmedValue);
+    // Update cookie via server action and refresh
+    await updateAssistantIdAction(trimmedValue);
     setThreadId(null);
     setInput("");
     setContentBlocks([]);
@@ -293,7 +303,8 @@ export function Thread() {
     toast.success("그래프가 변경되었습니다.", {
       description: `선택한 assistant ID: ${value}`,
     });
-  }, [assistantQueryId, setAssistantQueryId, setThreadId, setContentBlocks]);
+    router.refresh();
+  }, [currentAssistantId, router, setThreadId, setContentBlocks]);
 
   useEffect(() => {
     if (!stream.error) {
@@ -431,8 +442,8 @@ export function Thread() {
           <motion.div
             className="absolute z-20 h-full overflow-hidden border-r border-border bg-sidebar"
             style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
+            initial={false}
             animate={{ x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }}
-            initial={{ x: -UI.CHAT_SIDEBAR_WIDTH }}
             transition={
               isLargeScreen
                 ? { type: "spring", stiffness: 300, damping: 30 }
@@ -444,7 +455,11 @@ export function Thread() {
               style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
             >
               <div className="flex-1 overflow-hidden">
-                <ThreadHistory onShowGuide={() => setFullDescriptionOpen(true)} />
+                <ThreadHistory
+                  onShowGuide={() => setFullDescriptionOpen(true)}
+                  chatHistoryOpen={chatHistoryOpen}
+                  onChatHistoryOpenChange={setChatHistoryOpen}
+                />
               </div>
             </div>
           </motion.div>
@@ -457,13 +472,13 @@ export function Thread() {
           gridTemplateColumns: sidebarOpen ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px` : '1fr 0fr',
         }}
       >
-        <motion.div
+        <div
           className={cn(
-            "relative flex min-w-0 flex-1 flex-col overflow-hidden",
+            "relative flex min-w-0 flex-1 flex-col overflow-hidden transition-all",
             !chatStarted && "grid-rows-[1fr]",
+            isLargeScreen ? "duration-300" : "duration-0",
           )}
-          layout={isLargeScreen}
-          animate={{
+          style={{
             marginLeft: config.threads.showHistory && chatHistoryOpen ? (isLargeScreen ? 300 : 0) : 0,
             width: config.threads.showHistory && chatHistoryOpen
               ? isLargeScreen
@@ -471,11 +486,6 @@ export function Thread() {
                 : "100%"
               : "100%",
           }}
-          transition={
-            isLargeScreen
-              ? { type: "spring", stiffness: 300, damping: 30 }
-              : { duration: 0 }
-          }
         >
           {!chatStarted && (
             <div className="absolute top-0 left-0 z-10 flex w-full items-center justify-between gap-3 p-4">
@@ -863,13 +873,14 @@ export function Thread() {
                       assistantsLoading={assistantsLoading}
                       onAssistantChange={handleAssistantChange}
                       onRefreshAssistants={refetchAssistants}
+                      isChatPage={!!threadId}
                     />
                   </div>
                 </div>
               }
             />
           </StickToBottom>
-        </motion.div>
+        </div>
 
         {/* LangSmith Tracing 사이드바 */}
         {sidebarOpen && (

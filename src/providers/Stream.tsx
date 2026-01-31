@@ -17,14 +17,19 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { useQueryState } from "nuqs";
-import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "@/hooks/useThreads";
 import { toast } from "sonner";
 import { AssistantConfigProvider } from "./AssistantConfig";
 import { normalizeApiUrl } from "./client";
 import { TIMING } from "@/lib/constants";
 import type { ServerAssistantData } from "@/lib/assistant-api-server";
-import { saveActiveConnectionToCookies } from "@/lib/connection-cookies";
+
+// Connection configuration from server
+export interface ConnectionConfig {
+  apiUrl: string;
+  assistantId: string;
+  apiKey: string;
+}
 
 export type StateType = {
   messages?: Message[];
@@ -307,62 +312,23 @@ const StreamSession = ({
 export const StreamProvider: React.FC<{
   children: ReactNode;
   initialAssistantData?: ServerAssistantData;
+  connection: ConnectionConfig;
 }> = ({
   children,
   initialAssistantData,
+  connection,
 }) => {
-  // Get environment variables
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const envAssistantId: string | undefined = process.env.NEXT_PUBLIC_ASSISTANT_ID;
-  const envApiKey: string | undefined = process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY;
-
-  // Use URL params with env var fallbacks
-  const [apiUrl] = useQueryState("apiUrl", {
-    defaultValue: envApiUrl || "",
-  });
-  const [assistantId] = useQueryState("assistantId", {
-    defaultValue: envAssistantId || "",
-  });
-
-  // For API key, use localStorage with env var fallback
-  const apiKey = useMemo(() => {
-    if (typeof window === "undefined") return envApiKey || "";
-    const storedKey = getApiKey();
-    // If no stored key but env var exists, use and save the env var
-    if (!storedKey && envApiKey) {
-      window.localStorage.setItem("lg:chat:apiKey", envApiKey);
-      return envApiKey;
-    }
-    return storedKey || envApiKey || "";
-  }, [envApiKey]);
-
-  // Determine final values to use, prioritizing URL params then env vars
-  const finalApiUrl = apiUrl || envApiUrl;
-  const finalAssistantId = assistantId?.trim() || envAssistantId || "";
+  // Connection values come from server (already resolved: Cookies > Env vars)
   const resolvedApiUrl = useMemo(
-    () => normalizeApiUrl(finalApiUrl),
-    [finalApiUrl]
+    () => normalizeApiUrl(connection.apiUrl),
+    [connection.apiUrl]
   );
 
-  // Sync connection to cookies for SSR (only on client, and only when values are set)
-  const hasSyncedRef = useRef(false);
-  useEffect(() => {
-    // Only sync once on mount, and only if we have meaningful values
-    if (hasSyncedRef.current) return;
-    if (!resolvedApiUrl) return;
-
-    hasSyncedRef.current = true;
-    saveActiveConnectionToCookies({
-      id: "current",
-      apiUrl: resolvedApiUrl,
-      assistantId: finalAssistantId || undefined,
-      apiKey: apiKey || undefined,
-    });
-  }, [resolvedApiUrl, finalAssistantId, apiKey]);
+  const finalAssistantId = connection.assistantId?.trim() || "";
 
   return (
     <StreamSession
-      apiKey={apiKey}
+      apiKey={connection.apiKey}
       apiUrl={resolvedApiUrl}
       assistantId={finalAssistantId}
       initialAssistantData={initialAssistantData}
