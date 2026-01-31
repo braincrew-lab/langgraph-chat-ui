@@ -280,12 +280,8 @@ export function Thread() {
     if (value === "none") {
       if (currentAssistantId) {
         await updateAssistantIdAction(null);
-        router.refresh();
+        window.location.reload();
       }
-      setThreadId(null);
-      setInput("");
-      setContentBlocks([]);
-      setFirstTokenReceived(false);
       return;
     }
 
@@ -294,16 +290,13 @@ export function Thread() {
       return;
     }
 
-    // Update cookie via server action and refresh
+    // Update cookie via server action and do full page reload
     await updateAssistantIdAction(trimmedValue);
-    setThreadId(null);
-    setInput("");
-    setContentBlocks([]);
-    setFirstTokenReceived(false);
     toast.success("그래프가 변경되었습니다.", {
       description: `선택한 assistant ID: ${value}`,
     });
-    router.refresh();
+    // Full page reload to ensure cookie is properly read
+    window.location.reload();
   }, [currentAssistantId, router, setThreadId, setContentBlocks]);
 
   useEffect(() => {

@@ -190,10 +190,59 @@ export const AssistantConfigProvider: React.FC<{
     } catch (err) {
       console.error("Error fetching assistant config:", err);
       setError("Unable to load assistant configuration");
+      setAssistantId(null);
+      setConfig(null);
+      setSchemas(null);
     } finally {
       setIsLoading(false);
     }
   }, [apiUrl, initialAssistantId, apiKey]);
+
+  // Sync state when initialData changes (e.g., after router.refresh() with new SSR data)
+  useEffect(() => {
+    if (initialData) {
+      // Update state from new SSR data
+      if (initialData.assistantId) {
+        setAssistantId(initialData.assistantId);
+      }
+      if (initialData.assistant?.config) {
+        setConfig(initialData.assistant.config);
+      }
+      if (initialData.schemas) {
+        setSchemas(initialData.schemas);
+        setIsLoading(false);
+      }
+      if (initialData.assistants) {
+        setAssistants(initialData.assistants);
+      }
+    }
+  }, [initialData]);
+
+  // Sync state when initialAssistantId prop changes (e.g., after router.refresh())
+  // This is needed because useState only uses initialData for initial render
+  const prevInitialAssistantIdRef = React.useRef(initialAssistantId);
+  useEffect(() => {
+    const prevId = prevInitialAssistantIdRef.current;
+    const newId = initialAssistantId?.trim() || "";
+
+    // Only trigger if the prop actually changed (not on initial mount)
+    if (prevId !== initialAssistantId) {
+      prevInitialAssistantIdRef.current = initialAssistantId;
+
+      if (newId) {
+        // New assistant selected - refetch config
+        fetchConfig();
+      } else {
+        // No assistant selected - clear state
+        setAssistantId(null);
+        setConfig(null);
+        setSchemas(null);
+        setGraphStructure(null);
+        setFinalNodeNames([]);
+        setIsLoading(false);
+      }
+    }
+  }, [initialAssistantId, fetchConfig]);
 
   // Skip initial fetch if we have SSR data
   useEffect(() => {
@@ -209,6 +258,30 @@ export const AssistantConfigProvider: React.FC<{
     }
     fetchAssistants();
   }, [fetchAssistants, initialData?.assistants]);
+
+  // Auto-select first assistant if no valid selection exists
+  // This also triggers a page reload to sync the cookie with StreamProvider
+  const autoSelectTriggeredRef = React.useRef(false);
+  useEffect(() => {
+    // Only auto-select if:
+    // 1. No current assistantId (invalid or missing)
+    // 2. Assistants list is loaded
+    // 3. At least one assistant exists
+    // 4. Not currently loading
+    // 5. Haven't already triggered auto-select
+    if (!assistantId && !isLoading && assistants.length > 0 && !autoSelectTriggeredRef.current) {
+      autoSelectTriggeredRef.current = true;
+      const firstAssistant = assistants[0];
+
+      // Import dynamically to avoid server-side issues
+      import("@/app/actions").then(({ updateAssistantIdAction }) => {
+        updateAssistantIdAction(firstAssistant.assistant_id).then(() => {
+          // Reload to sync cookie with all providers
+          window.location.reload();
+        });
+      });
+    }
+  }, [assistantId, isLoading, assistants]);
 
   const updateConfig = useCallback(async (
     newConfig: AssistantConfigType

@@ -1,0 +1,294 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight } from "lucide-react";
+import { siteConfig } from "@/configs/site";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const }
+  },
+};
+
+export default function RegisterPage() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.focus();
+    }
+  }, [error]);
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (password.length < 8) {
+      errors.password = "비밀번호는 8자 이상이어야 합니다.";
+    }
+
+    if (password !== confirmPassword) {
+      errors.confirmPassword = "비밀번호가 일치하지 않습니다.";
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setFieldErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          setError("이미 등록된 이메일입니다.");
+        } else {
+          setError(data.error || "회원가입에 실패했습니다.");
+        }
+        return;
+      }
+
+      router.push("/login?registered=true");
+    } catch {
+      setError("오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
+      {/* Branding */}
+      <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={siteConfig.branding.logoPath}
+            alt={`${siteConfig.branding.appName} 로고`}
+            width={siteConfig.branding.logoWidth * 2}
+            height={siteConfig.branding.logoHeight * 2}
+            className="flex-shrink-0"
+          />
+        </motion.div>
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {siteConfig.branding.appName}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            새 계정을 만들어 시작하세요
+          </p>
+        </div>
+      </motion.div>
+
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {/* General error message */}
+        {error && (
+          <motion.div
+            ref={errorRef}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-xl"
+            role="alert"
+            aria-live="assertive"
+            tabIndex={-1}
+          >
+            {error}
+          </motion.div>
+        )}
+
+        <motion.div variants={itemVariants} className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            이름 <span className="text-muted-foreground font-normal">(선택)</span>
+          </label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder="홍길동"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isLoading}
+            size="lg"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            이메일
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={isLoading}
+            spellCheck={false}
+            size="lg"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            비밀번호
+          </label>
+          <Input
+            id="password"
+            name="new-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="8자 이상 입력"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={isLoading}
+            aria-invalid={!!fieldErrors.password}
+            aria-describedby={fieldErrors.password ? "password-error" : undefined}
+            size="lg"
+          />
+          {fieldErrors.password && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              id="password-error"
+              className="text-xs text-red-600 dark:text-red-400"
+            >
+              {fieldErrors.password}
+            </motion.p>
+          )}
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="space-y-2">
+          <label htmlFor="confirmPassword" className="text-sm font-medium flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            비밀번호 확인
+          </label>
+          <Input
+            id="confirmPassword"
+            name="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="비밀번호 재입력"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            disabled={isLoading}
+            aria-invalid={!!fieldErrors.confirmPassword}
+            aria-describedby={fieldErrors.confirmPassword ? "confirm-password-error" : undefined}
+            size="lg"
+          />
+          {fieldErrors.confirmPassword && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              id="confirm-password-error"
+              className="text-xs text-red-600 dark:text-red-400"
+            >
+              {fieldErrors.confirmPassword}
+            </motion.p>
+          )}
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <Button
+            type="submit"
+            className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>가입 중…</span>
+              </>
+            ) : (
+              <>
+                <span>회원가입</span>
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </>
+            )}
+          </Button>
+        </motion.div>
+      </form>
+
+      <motion.div variants={itemVariants} className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-card px-3 text-muted-foreground">또는</span>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="text-center text-sm">
+        <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
+        <Link
+          href="/login"
+          className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+        >
+          로그인
+        </Link>
+      </motion.div>
+    </motion.div>
+  );
+}

@@ -1,5 +1,5 @@
 import { validate } from "uuid";
-import { Thread } from "@langchain/langgraph-sdk";
+import { Thread, Client } from "@langchain/langgraph-sdk";
 import {
   createContext,
   ReactNode,
@@ -19,6 +19,7 @@ export interface ThreadContextType {
   setThreads: Dispatch<SetStateAction<Thread[]>>;
   threadsLoading: boolean;
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
+  client: Client | null;
 }
 
 export const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -44,10 +45,15 @@ export function ThreadProvider({ children, connection }: ThreadProviderProps) {
   const finalAssistantId = connection.assistantId?.trim() || undefined;
   const apiKey = connection.apiKey || getApiKey() || undefined;
 
-  const getThreads = useCallback(async (): Promise<Thread[]> => {
-    if (!connection.apiUrl || !finalAssistantId) return [];
+  // Create client once and memoize
+  const client = useMemo(() => {
+    if (!connection.apiUrl) return null;
+    return createClient(connection.apiUrl, apiKey);
+  }, [connection.apiUrl, apiKey]);
 
-    const client = createClient(connection.apiUrl, apiKey);
+  const getThreads = useCallback(async (): Promise<Thread[]> => {
+    if (!client || !finalAssistantId) return [];
+
     const threads = await client.threads.search({
       metadata: {
         ...getThreadSearchMetadata(finalAssistantId),
@@ -56,7 +62,7 @@ export function ThreadProvider({ children, connection }: ThreadProviderProps) {
     });
 
     return threads;
-  }, [connection.apiUrl, apiKey, finalAssistantId]);
+  }, [client, finalAssistantId]);
 
   const value = useMemo(
     () => ({
@@ -65,8 +71,9 @@ export function ThreadProvider({ children, connection }: ThreadProviderProps) {
       setThreads,
       threadsLoading,
       setThreadsLoading,
+      client,
     }),
-    [getThreads, threads, threadsLoading]
+    [getThreads, threads, threadsLoading, client]
   );
 
   return (

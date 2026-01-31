@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/hooks/useSettings";
 import { useThreads } from "@/hooks/useThreads";
-import { useStreamContext } from "@/hooks/useStreamContext";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryState } from "nuqs";
@@ -24,8 +23,7 @@ import { clearConnectionCookiesAction } from "@/app/actions";
 
 export function SettingsDialog() {
   const { userSettings, updateUserSettings, resetUserSettings } = useSettings();
-  const { threads, getThreads, setThreads } = useThreads();
-  const { client } = useStreamContext();
+  const { threads, getThreads, setThreads, client } = useThreads();
   const router = useRouter();
   const [threadId, setThreadId] = useQueryState("threadId");
 
