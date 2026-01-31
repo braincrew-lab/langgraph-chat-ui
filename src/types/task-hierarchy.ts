@@ -40,6 +40,8 @@ export interface TodoItem {
   sourceIndex?: number;           // TodoWrite 내 순서
   linkedTaskIndex?: number;       // 매칭된 Task 인덱스
   linkedTaskToolCallId?: string;  // Task의 tool_call_id
+  // 노드 이름 (msg.name에서 추출, Phase 1 개선)
+  nodeName?: string;              // 이 TODO가 실행되는 노드 이름
 }
 
 // 도구 호출 정보 (계층적 TODO에서 사용)
@@ -103,6 +105,12 @@ export interface HierarchicalTodoItem {
   // 순서 기반 매칭 필드 - 병렬 서브에이전트 지원 (메시지 기반 - LangSmith 불필요)
   linkedTaskToolCallId?: string;
   completionDetectedByToolResult?: boolean;
+
+  // 노드 이름 (msg.name에서 추출, Phase 1 개선)
+  nodeName?: string;
+
+  // 최종 Task 여부 (그래프에서 __end__로 연결되는 노드에서 실행, Phase 3 개선)
+  isFinalTask?: boolean;
 }
 
 // 통합 뷰 상태
@@ -123,4 +131,15 @@ export interface TaskStats {
   toolCount: number;
   llmCount: number;
   agentCount: number;
+}
+
+// 중간 노드 LLM 출력 (컴팩트 표시용)
+export interface IntermediateLLMOutput {
+  nodeId: string;           // Task tool_call_id 또는 "main"
+  nodeName: string;         // 노드 이름 (표시용)
+  outputSnippet: string;    // 축약된 출력 (~100자)
+  fullOutput: string;       // 전체 출력 (펼침용)
+  status: "streaming" | "completed";
+  timestamp: number;        // 정렬용
+  isFinal: boolean;         // 최종 노드 여부
 }

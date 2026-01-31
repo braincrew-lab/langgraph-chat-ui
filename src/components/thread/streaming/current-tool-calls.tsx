@@ -46,7 +46,7 @@ export function CurrentToolCalls({ toolCalls, isStreaming }: CurrentToolCallsPro
       <div className="flex flex-col gap-1">
         {toolCalls.map((toolCall, index) => (
           <motion.div
-            key={toolCall.id || `tool-${index}`}
+            key={`${toolCall.id || "tool"}-${index}`}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}

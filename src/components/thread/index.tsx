@@ -176,10 +176,13 @@ export function Thread() {
   const stream = useStreamContext();
   const messages = stream.messages;
   const isLoading = stream.isLoading;
+  const nodeUpdates = stream.nodeUpdates;
+  const updateNodeCompletedOutput = stream.updateNodeCompletedOutput;
   const {
     assistants,
     assistantsLoading,
     refetchAssistants,
+    finalNodeNames,
   } = useAssistantConfig();
 
   // LangSmith API 연동 - threadId로 runs 조회
@@ -214,7 +217,9 @@ export function Thread() {
     hasVisibleContent,
     hierarchicalTodos,
     activeLeafTasks,
-  } = useStreamingView(allRuns, isLoading, messages);
+    intermediateOutputs,
+    finalNodeId,
+  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput });
 
   // 서브에이전트 메시지 감지를 위한 컨텍스트
   const subagentContext = useMemo(() => {
@@ -358,6 +363,9 @@ export function Thread() {
 
     // Get schema payload (additional fields from input_schema)
     const schemaPayload = getSubmitPayload();
+
+    // 새 메시지 전송 전 노드 업데이트 초기화 (이전 노드 정보 클리어)
+    stream.clearNodeUpdates();
 
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
@@ -626,26 +634,23 @@ export function Thread() {
                         break;
                       }
                     }
+                    console.log("[Thread] lastHumanIndex:", lastHumanIndex, "compactView:", compactView, "hasVisibleContent:", hasVisibleContent, "filteredMessages.length:", filteredMessages.length);
 
-                    // compactView + TODO 박스 표시 시: 마지막 Human 이후 메인 에이전트 AI 메시지 중 텍스트가 있는 마지막 것만 표시
-                    // 서브에이전트 메시지는 TODO 박스 안에서만 표시되어야 하므로 제외
-                    let lastVisibleAiMessageId: string | null = null;
-                    if (compactView && hasVisibleContent && lastHumanIndex >= 0) {
-                      // 마지막 Human 이후의 메인 에이전트 AI 메시지들 중에서 텍스트 content가 있는 마지막 것 찾기
-                      for (let i = filteredMessages.length - 1; i > lastHumanIndex; i--) {
+                    // nodeUpdates에서 마지막 노드 이름 찾기 (hasMessages 필터링 제거)
+                    const sortedNodeUpdates = nodeUpdates?.slice().sort((a, b) => a.timestamp - b.timestamp) || [];
+                    const lastNodeName = sortedNodeUpdates.length > 0
+                      ? sortedNodeUpdates[sortedNodeUpdates.length - 1].nodeName
+                      : null;
+
+                    console.log("[Thread] sortedNodeUpdates:", sortedNodeUpdates.map(n => n.nodeName), "lastNodeName:", lastNodeName);
+
+                    // 마지막 AI 메시지만 표시 (가장 마지막에 추가된 AI 메시지 = 마지막 노드의 출력)
+                    let lastAiMessageId: string | null = null;
+                    if (compactView && hasVisibleContent) {
+                      const startIndex = lastHumanIndex >= 0 ? lastHumanIndex : -1;
+                      for (let i = filteredMessages.length - 1; i > startIndex; i--) {
                         const msg = filteredMessages[i];
                         if (msg.type === "ai") {
-                          // 서브에이전트 메시지 제외 (Task/Todo 호출이 없고 활성 Task 스코프 내에 있는 메시지)
-                          const aiMsg = msg as { tool_calls?: Array<{ name?: string }> };
-                          const hasMainAgentCall = aiMsg.tool_calls?.some(
-                            tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
-                          );
-                          // 메인 에이전트 도구 호출이 있거나, 서브에이전트가 아닌 경우에만 선택
-                          const isSubagent = !hasMainAgentCall && subagentContext.subagentMessageIds.has(msg.id || "");
-                          if (isSubagent) {
-                            continue; // 서브에이전트 메시지 스킵
-                          }
-
                           const content = msg.content;
                           const hasTextContent = typeof content === "string"
                             ? content.trim().length > 0
@@ -656,28 +661,51 @@ export function Thread() {
                                 ((c as { text: string }).text).trim().length > 0
                               );
                           if (hasTextContent) {
-                            lastVisibleAiMessageId = msg.id ?? null;
+                            lastAiMessageId = msg.id ?? null;
                             break;
                           }
                         }
                       }
                     }
 
+                    console.log("[Thread] lastAiMessageId:", lastAiMessageId);
+
                     const elements: React.ReactNode[] = [];
 
+                    // Human 메시지가 없는 경우 맨 앞에 StreamingTaskView 삽입
+                    if (compactView && hasVisibleContent && lastHumanIndex === -1) {
+                      console.log("[Thread] No human message, inserting StreamingTaskView at the beginning");
+                      elements.push(
+                        <StreamingTaskView
+                          key="streaming-task-view"
+                          hierarchicalTodos={hierarchicalTodos}
+                          activeLeafTasks={activeLeafTasks}
+                          isStreaming={isLoading}
+                          selectedTaskId={selectedTaskId}
+                          onSelectTask={setSelectedTaskId}
+                          intermediateOutputs={intermediateOutputs}
+                          finalNodeId={finalNodeId}
+                        />
+                      );
+                    }
+
                     filteredMessages.forEach((message, index) => {
+                      // 고유 키 생성 (message.id가 중복될 수 있으므로 index 포함)
+                      const messageKey = message.id ? `${message.type}-${message.id}-${index}` : `${message.type}-${index}`;
+
                       if (message.type === "human") {
                         // Human 메시지 렌더링
                         elements.push(
                           <HumanMessage
-                            key={message.id || `human-${index}`}
+                            key={messageKey}
                             message={message}
                             isLoading={isLoading}
                           />
                         );
 
                         // 마지막 Human 메시지 다음에 StreamingTaskView 삽입 (컨텐츠가 있을 때만)
-                        if (compactView && index === lastHumanIndex && hasVisibleContent) {
+                        if (compactView && hasVisibleContent && index === lastHumanIndex) {
+                          console.log("[Thread] Rendering StreamingTaskView!");
                           elements.push(
                             <StreamingTaskView
                               key="streaming-task-view"
@@ -686,34 +714,39 @@ export function Thread() {
                               isStreaming={isLoading}
                               selectedTaskId={selectedTaskId}
                               onSelectTask={setSelectedTaskId}
+                              intermediateOutputs={intermediateOutputs}
+                              finalNodeId={finalNodeId}
                             />
                           );
                         }
                       } else {
                         // AI/Tool 메시지 필터링
                         const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
+                        // Human 메시지가 없는 경우에도 compactView 필터링 적용
+                        const shouldApplyCompactFilter = compactView && hasVisibleContent && (isAfterLastHuman || lastHumanIndex === -1);
 
-                        // compactView + TODO 박스 표시 + 마지막 Human 이후인 경우: 지정된 AI 메시지만 표시
-                        if (compactView && hasVisibleContent && isAfterLastHuman) {
+                        // compactView + TODO/Intermediate 박스 표시: 스트리밍 중에는 모든 AI 메시지 숨김
+                        if (shouldApplyCompactFilter) {
                           // tool 메시지는 숨김
                           if (message.type === "tool") {
                             return;
                           }
                           // AI 메시지 처리
                           if (message.type === "ai") {
-                            // 서브에이전트 메시지는 항상 숨김 (TODO 박스 안에서만 표시)
+                            // 서브에이전트 메시지는 항상 숨김
                             if (subagentContext.subagentMessageIds.has(message.id || "")) {
                               return;
                             }
-                            // 지정된 마지막 메인 에이전트 메시지만 표시
-                            if (message.id !== lastVisibleAiMessageId) {
+                            // 스트리밍 중에는 모든 AI 메시지 숨김 (compact 박스에서만 표시)
+                            // 스트리밍 완료 후에만 마지막 AI 메시지 표시
+                            if (isLoading || message.id !== lastAiMessageId) {
                               return;
                             }
                           }
                         }
 
                         // 그 외의 경우 기존 shouldRenderMessage 로직 사용
-                        if (!compactView || !hasVisibleContent || !isAfterLastHuman) {
+                        if (!shouldApplyCompactFilter) {
                           if (!shouldRenderMessage(
                             message,
                             todoLifecycle,
@@ -726,9 +759,10 @@ export function Thread() {
                           }
                         }
 
+                        console.log("[Thread] Rendering AI message:", message.id);
                         elements.push(
                           <AssistantMessage
-                            key={message.id || `ai-${index}`}
+                            key={messageKey}
                             message={message}
                             isLoading={isLoading}
                             handleRegenerate={handleRegenerate}
@@ -738,6 +772,11 @@ export function Thread() {
                       }
                     });
 
+                    console.log("[Thread] Final elements count:", elements.length, "types:", elements.map(e => {
+                      const el = e as React.ReactElement;
+                      const typeName = typeof el?.type === "function" ? (el.type as { name?: string }).name : el?.type;
+                      return typeName || el?.key;
+                    }));
                     return elements;
                   })()}
 

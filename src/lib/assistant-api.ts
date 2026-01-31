@@ -145,3 +145,82 @@ export async function updateAssistantConfig(
     return null;
   }
 }
+
+/**
+ * Graph structure returned from LangGraph API
+ */
+export interface GraphNode {
+  id: string;
+  name?: string;
+  data?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  data?: string;
+  conditional?: boolean;
+}
+
+export interface GraphStructure {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+/**
+ * Get graph structure for an assistant
+ * This helps identify which node is the "final" node (the one that leads to __end__)
+ */
+export async function getAssistantGraph(
+  apiUrl: string,
+  assistantId: string,
+  apiKey?: string
+): Promise<GraphStructure | null> {
+  if (!assistantId) {
+    console.warn("Assistant ID is missing, skipping graph API call");
+    return null;
+  }
+
+  try {
+    const client = createClient(apiUrl, apiKey);
+    const graph = await client.assistants.getGraph(assistantId);
+    return graph as GraphStructure;
+  } catch (error) {
+    console.error(`Failed to fetch graph for "${assistantId}":`, error);
+    return null;
+  }
+}
+
+/**
+ * Extract the final node name from graph structure
+ * The final node is the one that has an edge to "__end__"
+ */
+export function extractFinalNodeName(graph: GraphStructure): string | null {
+  if (!graph || !graph.edges) return null;
+
+  // Find edges that lead to __end__
+  const finalEdges = graph.edges.filter(edge => edge.target === "__end__");
+
+  if (finalEdges.length === 0) return null;
+
+  // If there's only one, return it
+  if (finalEdges.length === 1) {
+    return finalEdges[0].source;
+  }
+
+  // If there are multiple (conditional branches), return all as a set
+  // For now, return the first one - caller should handle multiple
+  return finalEdges[0].source;
+}
+
+/**
+ * Get all node names that lead to __end__ (for graphs with conditional endings)
+ */
+export function extractAllFinalNodeNames(graph: GraphStructure): string[] {
+  if (!graph || !graph.edges) return [];
+
+  return graph.edges
+    .filter(edge => edge.target === "__end__")
+    .map(edge => edge.source);
+}

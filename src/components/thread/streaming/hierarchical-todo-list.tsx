@@ -305,19 +305,19 @@ function HierarchicalTodoItemComponent({
             transition={{ duration: 0.15 }}
           >
             {/* Reasoning/LLM 호출들 */}
-            {item.reasoning.map((r) => (
-              <ReasoningItem key={r.id} reasoning={r} depth={depth + 1} />
+            {item.reasoning.map((r, idx) => (
+              <ReasoningItem key={`${r.id}-${idx}`} reasoning={r} depth={depth + 1} />
             ))}
 
             {/* 도구 호출들 */}
-            {item.tools.map((tool) => (
-              <ToolCallItem key={tool.id} tool={tool} depth={depth + 1} />
+            {item.tools.map((tool, idx) => (
+              <ToolCallItem key={`${tool.id}-${idx}`} tool={tool} depth={depth + 1} />
             ))}
 
             {/* 하위 TODO들 (재귀) */}
-            {item.children.map((child) => (
+            {item.children.map((child, idx) => (
               <HierarchicalTodoItemComponent
-                key={child.id}
+                key={`${child.id}-${idx}`}
                 item={child}
                 depth={depth + 1}
                 isExpanded={expandedIds.has(child.id)}
@@ -408,9 +408,9 @@ export const HierarchicalTodoList = memo(function HierarchicalTodoList({
               style={{ maxHeight: MAX_HEIGHT }}
             >
               <AnimatePresence mode="popLayout">
-                {items.map((item) => (
+                {items.map((item, idx) => (
                   <motion.div
-                    key={item.id}
+                    key={`${item.id}-${idx}`}
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}

@@ -110,8 +110,8 @@ function SubagentChildTask({ task, depth = 0 }: { task: HierarchicalTask; depth?
             {/* Children */}
             {hasChildren && (
               <div className="mt-1">
-                {task.children.map((child) => (
-                  <SubagentChildTask key={child.id} task={child} depth={depth + 1} />
+                {task.children.map((child, idx) => (
+                  <SubagentChildTask key={`${child.id}-${idx}`} task={child} depth={depth + 1} />
                 ))}
               </div>
             )}
@@ -163,8 +163,8 @@ export function SubagentOutput({ task, isStreaming, defaultExpanded = false }: S
           >
             <div className="p-2 max-h-80 overflow-y-auto">
               {task.children.length > 0 ? (
-                task.children.map((child) => (
-                  <SubagentChildTask key={child.id} task={child} depth={0} />
+                task.children.map((child, idx) => (
+                  <SubagentChildTask key={`${child.id}-${idx}`} task={child} depth={0} />
                 ))
               ) : (
                 <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
@@ -207,9 +207,9 @@ export function SubagentList({ tasks, isStreaming }: SubagentListProps) {
         <GitBranch className="h-4 w-4" />
         <span>서브에이전트 ({subagentTasks.length})</span>
       </div>
-      {subagentTasks.map((task) => (
+      {subagentTasks.map((task, idx) => (
         <SubagentOutput
-          key={task.id}
+          key={`${task.id}-${idx}`}
           task={task}
           isStreaming={isStreaming}
           defaultExpanded={false}

@@ -155,9 +155,9 @@ export const TaskTreeItem = memo(function TaskTreeItem({
             >
               <div className="absolute left-0 top-0 bottom-0 w-px bg-border/50" />
               <div className="pl-4">
-                {task.children.map((child) => (
+                {task.children.map((child, idx) => (
                   <TaskTreeItem
-                    key={child.id}
+                    key={`${child.id}-${idx}`}
                     task={child}
                     isExpanded={expandedIds.has(child.id)}
                     expandedIds={expandedIds}
@@ -191,9 +191,9 @@ export function TaskTreeView({ tasks, expandedIds, onToggle }: TaskTreeViewProps
 
   return (
     <div className="py-2">
-      {tasks.map((task) => (
+      {tasks.map((task, idx) => (
         <TaskTreeItem
-          key={task.id}
+          key={`${task.id}-${idx}`}
           task={task}
           isExpanded={expandedIds.has(task.id)}
           expandedIds={expandedIds}

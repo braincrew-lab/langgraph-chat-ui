@@ -56,13 +56,31 @@ import {
   type HierarchicalTodoItem,
   type ToolCallInfo,
   type ReasoningInfo,
+  type IntermediateLLMOutput,
 } from "@/types/task-hierarchy";
+
+// 노드 업데이트 정보 (Stream.tsx에서 전달)
+interface NodeUpdateInfo {
+  nodeName: string;         // 노드 이름 (이벤트에서 추출)
+  namespace: string[];      // 서브그래프 경로
+  timestamp: number;        // 업데이트 시간
+  hasMessages: boolean;     // 메시지 업데이트 포함 여부
+  streamingContent: string; // 현재까지의 스트리밍 콘텐츠
+  isActive: boolean;        // 현재 활성(스트리밍 중) 여부
+  completedOutput: string;  // 노드 완료 시 저장된 출력
+}
 
 interface UseStreamingViewOptions {
   // 완료된 태스크 상세보기 기본값
   defaultShowCompletedDetails?: boolean;
   // 기본 확장 깊이
   defaultExpandDepth?: number;
+  // 스트리밍 이벤트에서 추출한 노드 업데이트 정보
+  nodeUpdates?: NodeUpdateInfo[];
+  // 그래프에서 __end__로 연결되는 노드 이름들 (최종 노드)
+  finalNodeNames?: string[];
+  // 노드 완료 출력 업데이트 콜백 (노드가 비활성화될 때 호출)
+  updateNodeCompletedOutput?: (nodeName: string, output: string) => void;
 }
 
 // TODO 라이프사이클 상태
@@ -92,18 +110,32 @@ interface UseStreamingViewReturn {
   todoLifecycle: TodoLifecycleState;
   /** 컨텐츠가 있어서 StreamingTaskView를 렌더링해야 하는지 여부 */
   hasVisibleContent: boolean;
+  /** 중간 노드 LLM 출력 목록 (컴팩트 표시용) */
+  intermediateOutputs: IntermediateLLMOutput[];
+  /** 최종 노드 ID ("main" 또는 서브에이전트 toolCallId) */
+  finalNodeId: string | null;
 }
 
 // 메시지 타입 정의
 interface LangGraphMessage {
   type?: string;
-  name?: string;
+  name?: string;  // 노드 이름 (LangGraph에서 설정)
   content?: string | unknown[];
   tool_calls?: Array<{
     id?: string;
     name: string;
     args?: Record<string, unknown>;
   }>;
+  id?: string;  // 메시지 ID
+}
+
+// 노드별 LLM 출력 정보
+interface NodeOutput {
+  nodeId: string;      // 노드 식별자 (name 또는 메시지 인덱스 기반)
+  nodeName: string;    // 표시용 노드 이름
+  output: string;      // LLM 출력 텍스트
+  messageIndex: number; // 메시지 인덱스 (정렬용)
+  isStreaming: boolean; // 스트리밍 중 여부
 }
 
 // 현재 호출 중인 도구 추출 (마지막 AI 메시지의 tool_calls)
@@ -141,6 +173,26 @@ function extractCurrentToolCalls(messages: unknown[], isStreaming: boolean): Cur
 
   return [];
 }
+
+// ============================================
+// 텍스트 유사도 임계값 상수 (일관성을 위해 통일)
+// ============================================
+
+/**
+ * 유사도 매칭 임계값 상수
+ *
+ * 모든 텍스트 유사도 비교에서 동일한 임계값을 사용하여 일관성 유지.
+ * - EXACT_MATCH: toolCallId 기반 정확 매칭
+ * - HIGH_CONFIDENCE: 높은 신뢰도 매칭 (부모-자식 관계 결정, 메시지 순서 기반)
+ * - FUZZY_MATCH: Fuzzy 매칭 최소 신뢰도 (상태+순서+유사도 조합)
+ * - MINIMUM_MATCH: 최소 매칭 임계값 (폴백 매칭, 더 많은 매칭 기회 제공)
+ */
+const SIMILARITY_THRESHOLDS = {
+  EXACT_MATCH: 1.0,
+  HIGH_CONFIDENCE: 0.5,
+  FUZZY_MATCH: 0.3,
+  MINIMUM_MATCH: 0.1,
+} as const;
 
 // ============================================
 // toolCallId 기반 인덱스 및 개선된 매칭 유틸리티
@@ -242,7 +294,7 @@ function matchTodoToSubagentFuzzy(
       confidence += 0.1;
     }
 
-    if (confidence > 0.3 && (!bestMatch || confidence > bestMatch.confidence)) {
+    if (confidence > SIMILARITY_THRESHOLDS.FUZZY_MATCH && (!bestMatch || confidence > bestMatch.confidence)) {
       bestMatch = {
         taskId: subagent.id,
         taskName: subagent.name,
@@ -602,7 +654,15 @@ function matchTodosToTasksByOrder(
 
 
 // Task 도구 args에서 TODO 항목으로 변환 (index는 안정적인 ID 생성용)
-function parseTaskArgsAsTodo(args: unknown, index: number): TodoItem | null {
+/**
+ * Task 도구 args를 TodoItem으로 변환
+ *
+ * @param args - Task 도구의 args (description, prompt, task 중 하나)
+ * @param index - 인덱스 (안정적인 ID 생성용)
+ * @param nodeName - 노드 이름 (msg.name에서 추출, Phase 1 개선)
+ * @returns TodoItem 또는 null
+ */
+function parseTaskArgsAsTodo(args: unknown, index: number, nodeName?: string): TodoItem | null {
   if (!args || typeof args !== "object") return null;
   const o = args as Record<string, unknown>;
 
@@ -619,6 +679,7 @@ function parseTaskArgsAsTodo(args: unknown, index: number): TodoItem | null {
     content: description,
     status: "in_progress",
     activeForm: subagentTypeStr ? `${subagentTypeStr} 실행 중` : "작업 진행 중",
+    nodeName,  // 노드 이름 (Phase 1 개선)
   };
 }
 
@@ -717,7 +778,8 @@ function extractTaskItemsWithIds(
             continue;
           }
         }
-        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
+        // msg.name을 노드 이름으로 전달 (Phase 1 개선)
+        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++, msg.name);
         if (taskAsTodo) {
           items.push({ todo: taskAsTodo, toolCallId: tc.id });
           if (tc.id) {
@@ -751,7 +813,8 @@ function extractTaskItemsWithIds(
             continue;
           }
         }
-        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++);
+        // msg.name을 노드 이름으로 전달 (Phase 1 개선)
+        const taskAsTodo = parseTaskArgsAsTodo(args, taskIndex++, msg.name);
         if (taskAsTodo) {
           items.push({ todo: taskAsTodo, toolCallId: tc.id });
           if (tc.id) {
@@ -880,6 +943,95 @@ function getTextFromContent(content: string | unknown[]): string {
     )
     .map((c) => c.text);
   return texts.join(" ");
+}
+
+/**
+ * 메시지에서 노드별 LLM 출력 추출 (일반 LangGraph 노드 지원)
+ *
+ * 마지막 Human 메시지 이후의 AI 메시지들을 노드별로 그룹화합니다.
+ * 노드 식별 우선순위:
+ * 1. nodeUpdates에서 추출한 실제 노드 이름 (SSE 이벤트 기반)
+ * 2. message.name 필드 (폴백)
+ * 3. "Node {index}" 형태 (최종 폴백)
+ *
+ * @param messages - 메시지 배열
+ * @param isStreaming - 스트리밍 중 여부
+ * @param nodeUpdates - SSE 이벤트에서 추출한 노드 업데이트 정보 (선택)
+ * @returns 노드별 출력 배열 (순서대로)
+ */
+function extractNodeBasedOutputs(
+  messages: unknown[],
+  isStreaming: boolean,
+  nodeUpdates?: NodeUpdateInfo[]
+): NodeOutput[] {
+  // 마지막 Human 메시지 인덱스 찾기
+  let lastHumanIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i] as LangGraphMessage;
+    if (msg.type === "human") {
+      lastHumanIndex = i;
+      break;
+    }
+  }
+
+  // Human 메시지가 없으면 전체 메시지 대상
+  const startIndex = lastHumanIndex >= 0 ? lastHumanIndex + 1 : 0;
+
+  // nodeUpdates를 타임스탬프 순으로 정렬 (hasMessages 필터링 제거 - SSE 형식에 따라 설정되지 않을 수 있음)
+  const sortedNodeUpdates = nodeUpdates
+    ?.slice()
+    .sort((a, b) => a.timestamp - b.timestamp) || [];
+
+  // 노드별 출력 수집 (동일 노드명은 마지막 것만 유지)
+  const nodeMap = new Map<string, NodeOutput>();
+  let nodeCounter = 0;
+  let nodeUpdateIndex = 0;
+
+  for (let i = startIndex; i < messages.length; i++) {
+    const msg = messages[i] as LangGraphMessage;
+
+    if (msg.type !== "ai" || !msg.content) continue;
+
+    const text = getTextFromContent(msg.content);
+    if (text.trim().length === 0) continue;
+
+    // 노드 이름 결정 (우선순위: message.name > nodeUpdates > 인덱스 기반)
+    let nodeName: string;
+    let nodeId: string;
+
+    if (msg.name) {
+      // 메시지에 노드 이름이 있는 경우 (가장 정확)
+      nodeName = msg.name;
+      nodeId = msg.name;
+    } else if (sortedNodeUpdates.length > nodeUpdateIndex) {
+      // SSE 이벤트에서 추출한 노드 이름 사용
+      const nodeUpdate = sortedNodeUpdates[nodeUpdateIndex];
+      nodeName = nodeUpdate.nodeName;
+      nodeId = nodeUpdate.namespace.length > 0
+        ? `${nodeUpdate.namespace.join(":")}.${nodeName}`
+        : nodeName;
+      nodeUpdateIndex++;
+    } else {
+      // 폴백: 인덱스 기반 이름 (거의 사용되지 않아야 함)
+      nodeName = `Node ${++nodeCounter}`;
+      nodeId = `node-${i}`;
+    }
+
+    // 마지막 메시지인지 확인 (스트리밍 중 여부)
+    const isLastAiMessage = i === messages.length - 1 ||
+      !messages.slice(i + 1).some(m => (m as LangGraphMessage).type === "ai");
+
+    nodeMap.set(nodeId, {
+      nodeId,
+      nodeName,
+      output: text,
+      messageIndex: i,
+      isStreaming: isStreaming && isLastAiMessage,
+    });
+  }
+
+  // Map을 배열로 변환하고 메시지 인덱스 순으로 정렬
+  return Array.from(nodeMap.values()).sort((a, b) => a.messageIndex - b.messageIndex);
 }
 
 /**
@@ -1278,9 +1430,9 @@ function findBestMatchingParent(
 
   for (const parent of parents) {
     const score = calculateTextSimilarity(subagentTodo.content, parent.todo.content);
-    // 최소 유사도 임계값 0.1 이상인 경우에만 매칭 후보로 고려
+    // 최소 유사도 임계값 이상인 경우에만 매칭 후보로 고려
     // (낮은 임계값으로 더 많은 매칭 기회 제공)
-    if (score > 0.1 && (!bestMatch || score > bestMatch.score)) {
+    if (score > SIMILARITY_THRESHOLDS.MINIMUM_MATCH && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { parent, score };
     }
   }
@@ -1395,7 +1547,7 @@ function matchSubagentToParentByMessageOrder(
     let bestMatch: { parent: IndexedTodo; score: number } | null = null;
     for (const mainTodo of mainTodos) {
       const score = calculateTextSimilarity(inProgressTodo.content, mainTodo.todo.content);
-      if (score > 0.5 && (!bestMatch || score > bestMatch.score)) {
+      if (score > SIMILARITY_THRESHOLDS.HIGH_CONFIDENCE && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { parent: mainTodo, score };
       }
     }
@@ -1478,12 +1630,14 @@ function createHierarchicalTodoItem(
   reasoning: ReasoningInfo[],
   match: { taskId: string; taskName: string; confidence: number } | null,
   linkedTaskToolCallId?: string,
-  completionDetectedByToolResult?: boolean
+  completionDetectedByToolResult?: boolean,
+  isFinalTask?: boolean,  // Phase 3: 최종 Task 여부
+  statusOverride?: TodoItem["status"]  // Phase 4: SSE 기반 상태 오버라이드
 ): HierarchicalTodoItem {
   return {
     id: todo.id,
     content: todo.content,
-    status: todo.status,
+    status: statusOverride ?? todo.status,  // Phase 4: 상태 오버라이드 적용
     activeForm: todo.activeForm,
     depth,
     children: [],
@@ -1494,6 +1648,8 @@ function createHierarchicalTodoItem(
     matchConfidence: match?.confidence,
     linkedTaskToolCallId,
     completionDetectedByToolResult,
+    nodeName: todo.nodeName,  // Phase 1: 노드 이름 전달
+    isFinalTask,  // Phase 3: 최종 Task 여부
   };
 }
 
@@ -1634,7 +1790,7 @@ function extractToolsAndReasoningWithMatch(
  * 3. 매칭 우선순위:
  *    - PRIMARY: 메시지 순서 기반 (matchSubagentToParentByMessageOrder)
  *      - Task 호출 직전의 TodoWrite에서 in_progress인 TODO가 부모
- *    - FALLBACK 1: 텍스트 유사도 기반 (calculateTextSimilarity, 임계값 0.2)
+ *    - FALLBACK 1: 텍스트 유사도 기반 (calculateTextSimilarity, SIMILARITY_THRESHOLDS.MINIMUM_MATCH)
  *    - FALLBACK 2: 첫 번째 사용 가능한 부모
  *    - FALLBACK 3: 순환 할당 (부모 부족 시)
  *
@@ -1649,6 +1805,10 @@ function extractToolsAndReasoningWithMatch(
  * @param streamingLLMOutput - 현재 스트리밍 중인 메인 에이전트 LLM 출력
  * @param messages - 원본 메시지 배열 (PRIMARY 도구 추출 및 순서 기반 매칭용)
  * @param subagentStreamingOutputs - 각 Task별 서브에이전트 스트리밍 출력 (선택)
+ * @param finalNodeId - 최종 노드 ID ("main" 또는 서브에이전트 toolCallId) - 이 노드만 reasoning에 스트리밍 출력 표시
+ * @param taskScopes - 캐싱된 Task 스코프 맵 (성능 최적화)
+ * @param finalNodeNames - 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
+ * @param nodeUpdates - SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
  */
 function buildHierarchicalTodosWithNesting(
   todos: TodoItem[],
@@ -1656,13 +1816,50 @@ function buildHierarchicalTodosWithNesting(
   currentToolCalls: CurrentToolCall[],
   streamingLLMOutput: string | null,
   messages: LangGraphMessage[] = [],
-  subagentStreamingOutputs?: Map<string, string>
+  subagentStreamingOutputs?: Map<string, string>,
+  finalNodeId?: string | null,
+  taskScopes?: Map<string, TaskScope>,  // 캐싱된 Task 스코프 (성능 최적화)
+  finalNodeNames?: string[],  // 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
+  nodeUpdates?: NodeUpdateInfo[]  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
 ): HierarchicalTodoItem[] {
   // toolCallId 인덱스 빌드 (LangSmith 메타데이터 매칭용)
   const toolCallIdIndex = buildToolCallIdIndex(subagents);
 
-  // Task 스코프 맵 빌드 (병렬 에이전트 격리 및 중첩 Task 처리용)
-  const taskScopes = buildTaskScopes(messages);
+  // Task 스코프 맵 사용 (이미 캐싱된 경우 재사용, 없으면 빌드)
+  const effectiveTaskScopes = taskScopes ?? buildTaskScopes(messages);
+
+  // finalNodeNames Set 생성 (빠른 조회용, Phase 3)
+  const finalNodeSet = new Set(finalNodeNames ?? []);
+
+  // 최종 Task 여부 판별 헬퍼 (Phase 3)
+  const isFinalTask = (todo: TodoItem): boolean => {
+    if (!todo.nodeName || finalNodeSet.size === 0) return false;
+    return finalNodeSet.has(todo.nodeName);
+  };
+
+  // 활성 노드 이름 추출 (Phase 4: SSE 기반 실시간 상태 업데이트)
+  const activeNodeName = nodeUpdates?.find(n => n.isActive)?.nodeName;
+
+  /**
+   * TODO 상태를 SSE 이벤트 기반으로 업데이트 (Phase 4)
+   *
+   * 우선순위:
+   * 1. 원본 상태가 completed면 유지 (이미 완료된 것은 변경하지 않음)
+   * 2. nodeName이 activeNodeName과 일치하면 in_progress
+   * 3. 그 외는 원본 상태 유지
+   */
+  const getUpdatedStatus = (todo: TodoItem): TodoItem["status"] => {
+    // 이미 완료된 것은 유지
+    if (todo.status === "completed") return "completed";
+
+    // 활성 노드와 일치하면 in_progress
+    if (activeNodeName && todo.nodeName === activeNodeName) {
+      return "in_progress";
+    }
+
+    // 그 외는 원본 상태 유지
+    return todo.status;
+  };
 
   // TODO가 없지만 Task 도구 호출이 있는 경우: 합성 항목 생성
   if (todos.length === 0) {
@@ -1754,7 +1951,7 @@ function buildHierarchicalTodosWithNesting(
       subagentTodo.todo,
       availableParents,
       messages,
-      taskScopes
+      effectiveTaskScopes
     );
 
     // ========================================
@@ -1817,8 +2014,11 @@ function buildHierarchicalTodosWithNesting(
     const finalTools: ToolCallInfo[] = [];
     const finalReasoning: ReasoningInfo[] = [];
 
-    // 진행 중인 TODO에 스트리밍 LLM 출력만 추가 (도구는 자식에서 표시)
-    if (todo.status === "in_progress" && streamingLLMOutput && !streamingContext.streamingOutputUsed) {
+    // SSE 기반 상태 업데이트 (Phase 4)
+    const updatedStatus = getUpdatedStatus(todo);
+
+    // 진행 중인 TODO에 스트리밍 LLM 출력만 추가 (최종 노드일 때만 - 중간 노드는 IntermediateLLMOutputList에서 표시)
+    if (updatedStatus === "in_progress" && streamingLLMOutput && !streamingContext.streamingOutputUsed && finalNodeId === "main") {
       finalReasoning.push({
         id: "streaming-llm",
         name: "LLM",
@@ -1830,7 +2030,9 @@ function buildHierarchicalTodosWithNesting(
 
     const item = createHierarchicalTodoItem(
       todo, 0, finalTools, finalReasoning, null,
-      linkedTaskToolCallId, isTaskCompleted
+      linkedTaskToolCallId, isTaskCompleted,
+      isFinalTask(todo),  // Phase 3: 최종 Task 여부
+      updatedStatus  // Phase 4: SSE 기반 상태 오버라이드
     );
     resultMap.set(todo.id, item);
     result.push(item);
@@ -1848,15 +2050,16 @@ function buildHierarchicalTodosWithNesting(
 
       const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
         todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
-        messages as LangGraphMessage[], linkedTaskToolCallId, taskScopes  // 메시지 기반 PRIMARY + 스코프 격리
+        messages as LangGraphMessage[], linkedTaskToolCallId, effectiveTaskScopes  // 메시지 기반 PRIMARY + 스코프 격리
       );
 
-      // 진행 중인 서브에이전트 TODO에 스트리밍 정보 추가 (병렬 지원)
-      // 서브에이전트별 스트리밍 출력 사용 (linkedTaskToolCallId로 매칭)
+      // 진행 중인 서브에이전트 TODO에 스트리밍 정보 추가 (최종 노드일 때만)
+      // 중간 노드의 출력은 IntermediateLLMOutputList에서만 표시 (중복 방지)
       let finalTools = tools;
       let finalReasoning = reasoning;
-      if (todo.status === "in_progress") {
-        // 해당 Task의 서브에이전트 스트리밍 출력 사용
+      const isFinalNode = linkedTaskToolCallId === finalNodeId;
+      if (todo.status === "in_progress" && isFinalNode) {
+        // 최종 노드일 때만 스트리밍 출력을 reasoning에 추가
         const subagentOutput = linkedTaskToolCallId
           ? subagentStreamingOutputs?.get(linkedTaskToolCallId) ?? null
           : null;
@@ -1872,7 +2075,9 @@ function buildHierarchicalTodosWithNesting(
 
       const childItem = createHierarchicalTodoItem(
         todo, 1, finalTools, finalReasoning, match,
-        linkedTaskToolCallId, isTaskCompleted
+        linkedTaskToolCallId, isTaskCompleted,
+        isFinalTask(todo),  // Phase 3: 최종 Task 여부
+        getUpdatedStatus(todo)  // Phase 4: SSE 기반 상태 오버라이드
       );
       parent.children.push(childItem);
     }
@@ -1895,13 +2100,14 @@ function buildHierarchicalTodosWithNesting(
 
     const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
       todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
-      messages, linkedTaskToolCallId, taskScopes  // 메시지 기반 PRIMARY + 스코프 격리
+      messages, linkedTaskToolCallId, effectiveTaskScopes  // 메시지 기반 PRIMARY + 스코프 격리
     );
 
-    // 해당 Task의 서브에이전트 스트리밍 출력 사용
+    // 최종 노드일 때만 스트리밍 출력을 reasoning에 추가 (중복 방지)
     let finalTools = tools;
     let finalReasoning = reasoning;
-    if (todo.status === "in_progress") {
+    const isFinalNode = linkedTaskToolCallId === finalNodeId;
+    if (todo.status === "in_progress" && isFinalNode) {
       const subagentOutput = linkedTaskToolCallId
         ? subagentStreamingOutputs?.get(linkedTaskToolCallId) ?? null
         : null;
@@ -1917,7 +2123,9 @@ function buildHierarchicalTodosWithNesting(
 
     const childItem = createHierarchicalTodoItem(
       todo, 0, finalTools, finalReasoning, match,
-      linkedTaskToolCallId, isTaskCompleted
+      linkedTaskToolCallId, isTaskCompleted,
+      isFinalTask(todo),  // Phase 3: 최종 Task 여부
+      getUpdatedStatus(todo)  // Phase 4: SSE 기반 상태 오버라이드
     );
     result.push(childItem);
   }
@@ -1949,7 +2157,7 @@ export function useStreamingView(
   messages: unknown[] = [],
   options: UseStreamingViewOptions = {}
 ): UseStreamingViewReturn {
-  const { defaultShowCompletedDetails = false, defaultExpandDepth = 1 } = options;
+  const { defaultShowCompletedDetails = false, defaultExpandDepth = 1, nodeUpdates, finalNodeNames = [], updateNodeCompletedOutput } = options;
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showCompletedDetails, setShowCompletedDetails] = useState(defaultShowCompletedDetails);
@@ -2017,6 +2225,12 @@ export function useStreamingView(
     return extractCurrentToolCalls(messages, isStreaming);
   }, [messages, isStreaming]);
 
+  // Task 스코프 캐싱 (병렬 에이전트 격리 및 중첩 Task 처리용)
+  // 한 번만 계산하고 여러 함수에서 재사용 (성능 최적화)
+  const taskScopes = useMemo(() => {
+    return buildTaskScopes(messages as LangGraphMessage[]);
+  }, [messages]);
+
   // 활성 Task 컨텍스트 계산 (서브에이전트 메시지 감지 및 스트리밍 출력 분리용)
   const activeTaskContext = useMemo(() => {
     const activeTaskCallIds = new Set<string>();
@@ -2050,10 +2264,173 @@ export function useStreamingView(
     return extractStreamingLLMOutput(messages, isStreaming, activeTaskContext.activeTaskCallIds);
   }, [messages, isStreaming, activeTaskContext.activeTaskCallIds]);
 
+  // 이전 활성 노드와 출력 추적 (노드 변경 시 completedOutput 저장)
+  const prevActiveNodeRef = useRef<string | null>(null);
+  const prevStreamingOutputRef = useRef<string | null>(null);
+
+  // 현재 활성 노드 이름
+  const currentActiveNode = useMemo(() => {
+    return nodeUpdates?.find(n => n.isActive)?.nodeName ?? null;
+  }, [nodeUpdates]);
+
+  // 활성 노드가 변경되면 이전 노드에 streamingLLMOutput 저장
+  useEffect(() => {
+    const prevNode = prevActiveNodeRef.current;
+    const prevOutput = prevStreamingOutputRef.current;
+
+    // 이전 노드가 있고, 현재 노드가 다르면 (노드 변경 발생)
+    if (prevNode && prevNode !== currentActiveNode && prevOutput && updateNodeCompletedOutput) {
+      // 이전 streamingLLMOutput을 이전 노드의 completedOutput으로 저장
+      updateNodeCompletedOutput(prevNode, prevOutput);
+    }
+
+    // 현재 상태 저장
+    prevActiveNodeRef.current = currentActiveNode;
+    prevStreamingOutputRef.current = streamingLLMOutput;
+  }, [currentActiveNode, streamingLLMOutput, updateNodeCompletedOutput]);
+
+  // 스트리밍 종료 시 마지막 활성 노드에 출력 저장
+  useEffect(() => {
+    if (!isStreaming && prevActiveNodeRef.current && prevStreamingOutputRef.current && updateNodeCompletedOutput) {
+      updateNodeCompletedOutput(prevActiveNodeRef.current, prevStreamingOutputRef.current);
+      // 초기화하지 않음 - 스트리밍이 다시 시작될 때까지 유지
+    }
+  }, [isStreaming, updateNodeCompletedOutput]);
+
   // 각 서브에이전트별 스트리밍 출력 추출 (병렬 서브에이전트 지원)
   const subagentStreamingOutputs = useMemo(() => {
     return extractSubagentStreamingOutput(messages, isStreaming, activeTaskContext.activeTaskCallIds);
   }, [messages, isStreaming, activeTaskContext.activeTaskCallIds]);
+
+  // 노드 기반 LLM 출력 추출 (일반 LangGraph 노드 지원)
+  // nodeUpdates에서 실제 노드 이름을 추출하여 사용
+  const nodeBasedOutputs = useMemo(() => {
+    const result = extractNodeBasedOutputs(messages, isStreaming, nodeUpdates);
+    return result;
+  }, [messages, isStreaming, nodeUpdates]);
+
+  // 중간 노드 LLM 출력 및 최종 노드 ID 계산
+  const { intermediateOutputs, finalNodeId } = useMemo((): { intermediateOutputs: IntermediateLLMOutput[]; finalNodeId: string | null } => {
+    const outputs: IntermediateLLMOutput[] = [];
+    const hasActiveSubagents = activeTaskContext.activeTaskCallIds.size > 0 && subagentStreamingOutputs.size > 0;
+
+    // Task 도구 기반 서브에이전트가 있으면 기존 로직 사용
+    if (hasActiveSubagents || subagentStreamingOutputs.size > 0) {
+      // 가장 최근 업데이트된 서브에이전트 ID 결정 (최종 노드 후보)
+      let latestActiveTaskId: string | null = null;
+      let latestTimestamp = 0;
+
+      // 서브에이전트 출력 처리
+      for (const [taskId, output] of subagentStreamingOutputs) {
+        const isActive = activeTaskContext.activeTaskCallIds.has(taskId);
+        const timestamp = Date.now();
+
+        if (isActive && output.length > 0) {
+          if (output.length > latestTimestamp) {
+            latestTimestamp = output.length;
+            latestActiveTaskId = taskId;
+          }
+        }
+
+        outputs.push({
+          nodeId: taskId,
+          nodeName: `Task ${taskId.slice(0, 8)}...`,
+          outputSnippet: output.length > 100 ? output.slice(0, 100) + "..." : output,
+          fullOutput: output,
+          status: isActive ? "streaming" : "completed",
+          timestamp,
+          isFinal: false,
+        });
+      }
+
+      // 메인 에이전트 출력 추가
+      if (streamingLLMOutput) {
+        outputs.unshift({
+          nodeId: "main",
+          nodeName: "Main Agent",
+          outputSnippet: streamingLLMOutput.length > 100 ? streamingLLMOutput.slice(0, 100) + "..." : streamingLLMOutput,
+          fullOutput: streamingLLMOutput,
+          status: "streaming",
+          timestamp: Date.now(),
+          isFinal: !hasActiveSubagents,
+        });
+      }
+
+      const finalId = hasActiveSubagents ? latestActiveTaskId : (streamingLLMOutput ? "main" : null);
+      for (const output of outputs) {
+        output.isFinal = output.nodeId === finalId;
+      }
+
+      return { intermediateOutputs: outputs, finalNodeId: finalId };
+    }
+
+    // SSE 이벤트 기반 노드 표시 (최우선 - nodeUpdates가 있으면 사용)
+    // isStreaming 조건 제거 - 스트리밍 ON/OFF 전환 시 플리커링 방지
+    // nodeUpdates는 새 메시지 제출 시 clearNodeUpdates()로 초기화됨
+    if (nodeUpdates && nodeUpdates.length > 0) {
+      // 타임스탬프 순으로 정렬 (hasMessages 필터링 제거 - SSE 형식에 따라 설정되지 않을 수 있음)
+      const sortedNodes = nodeUpdates.slice().sort((a, b) => a.timestamp - b.timestamp);
+
+      if (sortedNodes.length > 0) {
+        // 활성 노드 찾기 (isActive가 true인 마지막 노드)
+        const activeNode = sortedNodes.find(u => u.isActive);
+
+        for (let i = 0; i < sortedNodes.length; i++) {
+          const nodeUpdate = sortedNodes[i];
+          const isActiveNode = nodeUpdate === activeNode;
+
+          // 그래프 구조에서 __end__로 연결되는 노드인지 확인
+          const isGraphFinalNode = finalNodeNames.includes(nodeUpdate.nodeName);
+
+          // 활성 노드: 전역 streamingLLMOutput 사용 (현재 스트리밍 중인 콘텐츠)
+          // 비활성 노드: completedOutput 사용 (노드 전환 시 저장된 콘텐츠)
+          const outputText = isActiveNode
+            ? (streamingLLMOutput || "")
+            : (nodeUpdate.completedOutput || "");
+          const snippet = outputText.length > 100 ? outputText.slice(0, 100) + "..." : outputText;
+
+          outputs.push({
+            nodeId: nodeUpdate.nodeName,
+            nodeName: nodeUpdate.nodeName,
+            outputSnippet: snippet || (isActiveNode ? "Generating..." : "Completed"),
+            fullOutput: outputText,
+            status: isActiveNode ? "streaming" : "completed",
+            timestamp: nodeUpdate.timestamp,
+            // 그래프에서 정의된 최종 노드만 isFinal로 표시
+            isFinal: isGraphFinalNode,
+          });
+        }
+
+        // DEBUG: intermediateOutputs 로깅
+        console.log("[intermediateOutputs]", {
+          nodeUpdatesCount: nodeUpdates?.length,
+          outputsCount: outputs.length,
+          outputs: outputs.map(o => ({ node: o.nodeName, status: o.status, isFinal: o.isFinal, contentLen: o.fullOutput?.length }))
+        });
+
+        const finalId = outputs.find(o => o.isFinal)?.nodeId ?? null;
+        return { intermediateOutputs: outputs, finalNodeId: finalId };
+      }
+    }
+
+    // nodeUpdates 없이 streamingLLMOutput만 있는 경우 (단일 노드)
+    if (isStreaming && streamingLLMOutput) {
+      const snippet = streamingLLMOutput.length > 100 ? streamingLLMOutput.slice(0, 100) + "..." : streamingLLMOutput;
+      outputs.push({
+        nodeId: "main",
+        nodeName: "Agent",
+        outputSnippet: snippet,
+        fullOutput: streamingLLMOutput,
+        status: "streaming",
+        timestamp: Date.now(),
+        // 스트리밍 중에는 컴팩트뷰에 표시
+        isFinal: false,
+      });
+      return { intermediateOutputs: outputs, finalNodeId: "main" };
+    }
+
+    return { intermediateOutputs: [], finalNodeId: null };
+  }, [streamingLLMOutput, subagentStreamingOutputs, activeTaskContext.activeTaskCallIds, isStreaming, nodeUpdates, finalNodeNames]);
 
   // 계층적 TODO 빌드 (TODO + 서브에이전트 + 도구 + 스트리밍 LLM 통합, 중첩 지원, 순서 기반 매칭)
   const hierarchicalTodos = useMemo(() => {
@@ -2063,9 +2440,13 @@ export function useStreamingView(
       currentToolCalls,
       streamingLLMOutput,
       messages as LangGraphMessage[],
-      subagentStreamingOutputs  // 서브에이전트별 스트리밍 출력 전달
+      subagentStreamingOutputs,  // 서브에이전트별 스트리밍 출력 전달
+      finalNodeId,  // 최종 노드만 reasoning에 스트리밍 출력 표시 (중복 방지)
+      taskScopes,  // 캐싱된 Task 스코프 (성능 최적화)
+      finalNodeNames,  // 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
+      nodeUpdates  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
     );
-  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages, subagentStreamingOutputs]);
+  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages, subagentStreamingOutputs, finalNodeId, taskScopes, finalNodeNames, nodeUpdates]);
 
   // 뷰 상태
   const viewState: StreamingViewState = useMemo(() => ({
@@ -2136,7 +2517,8 @@ export function useStreamingView(
   }, [isStreaming, hierarchy, defaultExpandDepth]);
 
   // 컨텐츠가 있는지 여부 (StreamingTaskView를 렌더링해야 하는지)
-  const hasVisibleContent = hierarchicalTodos.length > 0 || activeLeafTasks.length > 0;
+  // intermediateOutputs가 있으면 TODO/Task 없이도 컴팩트 뷰 표시
+  const hasVisibleContent = hierarchicalTodos.length > 0 || activeLeafTasks.length > 0 || intermediateOutputs.length > 0;
 
   return {
     viewState,
@@ -2153,5 +2535,7 @@ export function useStreamingView(
     hierarchicalTodos,
     todoLifecycle,
     hasVisibleContent,
+    intermediateOutputs,
+    finalNodeId,
   };
 }

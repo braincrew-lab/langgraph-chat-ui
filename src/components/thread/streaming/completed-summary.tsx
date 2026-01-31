@@ -107,7 +107,7 @@ export function CompletedSummary({ tasks, stats, isExpanded, onToggle }: Complet
               "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
             )}>
               {displayTasks.map((task, index) => (
-                <CompletedTaskItem key={task.id || index} task={task} />
+                <CompletedTaskItem key={`${task.id || "task"}-${index}`} task={task} />
               ))}
             </div>
           </motion.div>

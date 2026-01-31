@@ -110,7 +110,7 @@ export function ActiveTasksList({ tasks, isStreaming }: ActiveTasksListProps) {
         <AnimatePresence mode="popLayout">
           {tasks.length > 0 ? (
             tasks.map((task, index) => (
-              <ActiveTask key={task.id || index} task={task} />
+              <ActiveTask key={`${task.id || "task"}-${index}`} task={task} />
             ))
           ) : (
             <motion.div

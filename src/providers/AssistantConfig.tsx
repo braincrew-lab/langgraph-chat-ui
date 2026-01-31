@@ -11,10 +11,13 @@ import {
   searchAssistants,
   getAssistantSchemas,
   updateAssistantConfig,
+  getAssistantGraph,
+  extractAllFinalNodeNames,
   isValidUUID,
   type AssistantConfig as AssistantConfigType,
   type AssistantSchemas,
   type Assistant,
+  type GraphStructure,
 } from "@/lib/assistant-api";
 import type { ServerAssistantData } from "@/lib/assistant-api-server";
 
@@ -29,6 +32,9 @@ export interface AssistantConfigContextType {
   assistants: Assistant[];
   assistantsLoading: boolean;
   refetchAssistants: () => Promise<void>;
+  // 그래프 구조 정보
+  graphStructure: GraphStructure | null;
+  finalNodeNames: string[];  // __end__로 연결되는 노드들
 }
 
 export const AssistantConfigContext = createContext<
@@ -60,6 +66,8 @@ export const AssistantConfigProvider: React.FC<{
     () => initialData?.assistants ?? []
   );
   const [assistantsLoading, setAssistantsLoading] = useState(false);
+  const [graphStructure, setGraphStructure] = useState<GraphStructure | null>(null);
+  const [finalNodeNames, setFinalNodeNames] = useState<string[]>([]);
 
   const fetchAssistants = useCallback(async () => {
     if (!apiUrl) {
@@ -190,6 +198,25 @@ export const AssistantConfigProvider: React.FC<{
       });
 
       setSchemas(assistantSchemas);
+
+      // 그래프 구조 조회하여 마지막 노드 파악
+      const graph = await getAssistantGraph(
+        apiUrl,
+        actualAssistantId,
+        apiKey || undefined
+      );
+
+      if (graph) {
+        console.log("[AssistantConfig] 📊 Fetched graph structure:", {
+          nodes: graph.nodes?.map(n => n.id),
+          edges: graph.edges?.map(e => `${e.source} -> ${e.target}`),
+        });
+        setGraphStructure(graph);
+
+        const finalNodes = extractAllFinalNodeNames(graph);
+        console.log("[AssistantConfig] 🎯 Final nodes (lead to __end__):", finalNodes);
+        setFinalNodeNames(finalNodes);
+      }
     } catch (err) {
       console.error("Error fetching assistant config:", err);
       setError("Unable to load assistant configuration");
@@ -255,6 +282,8 @@ export const AssistantConfigProvider: React.FC<{
       assistants,
       assistantsLoading,
       refetchAssistants: fetchAssistants,
+      graphStructure,
+      finalNodeNames,
     }),
     [
       config,
@@ -267,6 +296,8 @@ export const AssistantConfigProvider: React.FC<{
       assistants,
       assistantsLoading,
       fetchAssistants,
+      graphStructure,
+      finalNodeNames,
     ]
   );
 

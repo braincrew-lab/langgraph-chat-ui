@@ -50,7 +50,7 @@ export function TodoList({ items, isStreaming }: TodoListProps) {
         <AnimatePresence mode="popLayout">
           {items.map((item, index) => (
             <motion.div
-              key={item.id || index}
+              key={`${item.id || "item"}-${index}`}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}

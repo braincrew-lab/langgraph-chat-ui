@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { type HierarchicalTask } from "@/types/task-hierarchy";
+import { type HierarchicalTask, type IntermediateLLMOutput } from "@/types/task-hierarchy";
 import { type HierarchicalTodoItem } from "@/types/task-hierarchy";
 import { HierarchicalTodoList } from "./streaming/hierarchical-todo-list";
 import { ActiveTasksList } from "./streaming/active-task";
+import { IntermediateLLMOutputList } from "./streaming/intermediate-llm-outputs";
 import { cn } from "@/lib/utils";
 
 interface StreamingTaskViewProps {
@@ -15,6 +16,9 @@ interface StreamingTaskViewProps {
   // TODO ↔ 사이드바 연동
   selectedTaskId?: string | null;
   onSelectTask?: (taskId: string | null) => void;
+  // 중간 노드 출력 (컴팩트 표시)
+  intermediateOutputs?: IntermediateLLMOutput[];
+  finalNodeId?: string | null;
 }
 
 /**
@@ -30,9 +34,14 @@ export function StreamingTaskView({
   className,
   selectedTaskId,
   onSelectTask,
+  intermediateOutputs,
+  finalNodeId,
 }: StreamingTaskViewProps) {
+  // 중간 출력이 있는지 확인 (최종 노드가 아닌 출력만)
+  const hasIntermediateOutputs = intermediateOutputs && intermediateOutputs.filter(o => !o.isFinal).length > 0;
+
   // 컨텐츠가 없으면 렌더링하지 않음 (이중 체크 - 부모에서도 체크해야 함)
-  if (hierarchicalTodos.length === 0 && activeLeafTasks.length === 0) {
+  if (hierarchicalTodos.length === 0 && activeLeafTasks.length === 0 && !hasIntermediateOutputs) {
     return null;
   }
 
@@ -42,6 +51,11 @@ export function StreamingTaskView({
       animate={{ opacity: 1, y: 0 }}
       className={cn("flex flex-col gap-3", className)}
     >
+      {/* 중간 출력 컴팩트 리스트 (NEW) */}
+      {hasIntermediateOutputs && (
+        <IntermediateLLMOutputList outputs={intermediateOutputs} />
+      )}
+
       {/* 계층적 Todo 리스트 (TODO + 서브에이전트 + 도구 통합) */}
       {hierarchicalTodos.length > 0 && (
         <HierarchicalTodoList
