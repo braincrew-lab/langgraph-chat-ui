@@ -22,56 +22,12 @@ LangGraph 에이전트 서버를 프로덕션 환경에 배포하는 두 가지 
 | **모니터링** | 직접 구축 | LangSmith 내장 |
 | **권장 환경** | Air-gapped, 완전 독립 | 빠른 구축, 관리형 선호 |
 
-### 배포 결정 흐름
-
-```mermaid
-flowchart TD
-    A[LangGraph 배포] --> B{LangSmith<br/>사용 가능?}
-    B -->|Yes| C{관리형<br/>선호?}
-    B -->|No| D[Docker 기반]
-    C -->|Yes| E[LangGraph Cloud]
-    C -->|No| F{모니터링<br/>필요?}
-    F -->|Yes| G[Docker + LangSmith]
-    F -->|No| D
-
-    style D fill:#e1f5fe
-    style E fill:#fff3e0
-    style G fill:#fff3e0
-```
-
 ---
 
 ## Option A: Docker 기반 배포
 
 LangSmith 없이 Docker Compose로 완전 독립적인 환경을 구축합니다.
 
-### 아키텍처
-
-```mermaid
-flowchart TB
-    subgraph Docker["Docker Compose"]
-        subgraph Infra["인프라"]
-            PG[(PostgreSQL)]
-            RD[(Redis)]
-        end
-
-        subgraph App["애플리케이션"]
-            API[LangGraph API]
-        end
-
-        API --> PG
-        API --> RD
-    end
-
-    subgraph External["외부"]
-        NextJS[Next.js Frontend]
-        LLM[OpenAI API]
-    end
-
-    NextJS -->|JWT + 요청| API
-    API -->|LLM 호출| LLM
-    API -->|스트리밍 응답| NextJS
-```
 
 ### 1. 프로젝트 구조
 
@@ -213,32 +169,6 @@ docker compose down
 
 ### 8. 클라우드 배포
 
-#### 배포 흐름
-
-```mermaid
-flowchart LR
-    subgraph Local["로컬"]
-        Build[langgraph build]
-        Tag[docker tag]
-    end
-
-    subgraph Registry["컨테이너 레지스트리"]
-        ECR[AWS ECR]
-        GCR[GCP Artifact Registry]
-    end
-
-    subgraph Cloud["클라우드"]
-        ECS[AWS ECS]
-        CloudRun[GCP Cloud Run]
-    end
-
-    Build --> Tag
-    Tag --> ECR
-    Tag --> GCR
-    ECR --> ECS
-    GCR --> CloudRun
-```
-
 #### AWS ECS
 
 ```bash
@@ -278,47 +208,6 @@ docker push asia-northeast3-docker.pkg.dev/$PROJECT/repo/my-agent:latest
 
 LangSmith Platform을 사용한 관리형 배포입니다.
 
-### 아키텍처
-
-```mermaid
-flowchart TB
-    subgraph LangSmith["LangSmith Platform"]
-        subgraph Cloud["LangGraph Cloud"]
-            API[LangGraph API]
-            Scale[자동 스케일링]
-            Monitor[모니터링]
-        end
-    end
-
-    subgraph External["외부"]
-        NextJS[Next.js Frontend]
-        GitHub[GitHub Repository]
-    end
-
-    GitHub -->|자동 배포| Cloud
-    NextJS -->|API 호출| API
-    API -->|트레이싱| Monitor
-```
-
-### 배포 방법 비교
-
-```mermaid
-flowchart TD
-    A[LangSmith 기반] --> B[완전 관리형]
-    A --> C[Self-Hosted + 모니터링]
-
-    B --> B1[LangGraph Cloud]
-    B1 --> B2[GitHub 연동]
-    B1 --> B3[자동 스케일링]
-    B1 --> B4[인프라 관리 불필요]
-
-    C --> C1[Docker Compose]
-    C1 --> C2[LANGSMITH_API_KEY 추가]
-    C1 --> C3[트레이싱 활성화]
-
-    style B fill:#fff3e0
-    style C fill:#e8f5e9
-```
 
 ### 1. LangSmith 계정 설정
 
@@ -330,21 +219,6 @@ flowchart TD
 
 GitHub 저장소를 연결하여 자동 배포합니다.
 
-#### 배포 단계
-
-```mermaid
-sequenceDiagram
-    participant Dev as 개발자
-    participant GitHub as GitHub
-    participant LangSmith as LangSmith
-    participant Cloud as LangGraph Cloud
-
-    Dev->>GitHub: 코드 푸시
-    GitHub->>LangSmith: Webhook
-    LangSmith->>Cloud: 자동 빌드 & 배포
-    Cloud-->>LangSmith: 배포 완료
-    LangSmith-->>Dev: 알림 (URL 제공)
-```
 
 #### 설정 방법
 
@@ -442,23 +316,6 @@ POSTGRES_PASSWORD=secure-password
 ---
 
 ## 프로덕션 체크리스트
-
-### 보안
-
-```mermaid
-flowchart LR
-    subgraph Security["보안 체크리스트"]
-        A[JWT_SECRET_KEY 32자+]
-        B[HTTPS 적용]
-        C[CORS 설정]
-        D[Rate Limiting]
-    end
-
-    A --> E[✅ 완료]
-    B --> E
-    C --> E
-    D --> E
-```
 
 - [ ] `JWT_SECRET_KEY`를 32자 이상 랜덤 값으로 설정
 - [ ] HTTPS 적용 (nginx, traefik, 또는 클라우드 로드밸런서)
