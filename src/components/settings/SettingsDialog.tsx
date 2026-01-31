@@ -1,6 +1,7 @@
 "use client";
 
 import { Settings as SettingsIcon, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,27 +15,66 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/hooks/useSettings";
 import { useThreads } from "@/hooks/useThreads";
-import { createClient } from "@/providers/client";
-import { getApiKey } from "@/lib/api-key";
+import { useStreamContext } from "@/hooks/useStreamContext";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryState } from "nuqs";
 import { ConnectionList } from "./ConnectionList";
+import { clearConnectionCookiesAction } from "@/app/actions";
 
 export function SettingsDialog() {
   const { userSettings, updateUserSettings, resetUserSettings } = useSettings();
   const { threads, getThreads, setThreads } = useThreads();
-  const [apiUrlParam] = useQueryState("apiUrl");
+  const { client } = useStreamContext();
+  const router = useRouter();
   const [threadId, setThreadId] = useQueryState("threadId");
 
-  // Get API URL with environment variable fallback
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const apiUrl = apiUrlParam || envApiUrl;
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Reset all settings to server-side defaults
+  const handleResetToDefaults = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to reset all settings to defaults?\n\n" +
+      "This will reset:\n" +
+      "- UI settings (font, color scheme, etc.)\n" +
+      "- Connection settings\n" +
+      "- Sidebar states\n\n" +
+      "You will be redirected to the home page."
+    );
+
+    if (!confirmed) return;
+
+    setIsResetting(true);
+    try {
+      // Reset user settings (localStorage)
+      resetUserSettings();
+
+      // Clear connection cookies (server-side)
+      await clearConnectionCookiesAction();
+
+      // Clear localStorage connection data
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("lg:connections");
+        localStorage.removeItem("lg:chat:apiKey");
+      }
+
+      toast.success("Settings have been reset to defaults");
+
+      // Refresh to apply changes
+      router.refresh();
+      window.location.href = window.location.pathname;
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+      toast.error("Failed to reset settings");
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleDeleteAllThreads = async () => {
-    if (!apiUrl) {
-      toast.error("API URL is not configured");
+    if (!client) {
+      toast.error("API client is not configured");
       return;
     }
 
@@ -59,8 +99,6 @@ export function SettingsDialog() {
 
     setIsDeleting(true);
     try {
-      const client = createClient(apiUrl, getApiKey() ?? undefined);
-
       // Delete all threads
       const deletePromises = threadsToDelete.map(thread =>
         client.threads.delete(thread.thread_id)
@@ -315,9 +353,10 @@ export function SettingsDialog() {
           <div className="flex justify-end pt-4">
             <Button
               variant="outline"
-              onClick={resetUserSettings}
+              onClick={handleResetToDefaults}
+              disabled={isResetting}
             >
-              Reset to Defaults
+              {isResetting ? "Resetting..." : "Reset to Defaults"}
             </Button>
           </div>
         </div>

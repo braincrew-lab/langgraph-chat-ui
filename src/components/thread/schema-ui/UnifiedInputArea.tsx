@@ -67,6 +67,9 @@ interface UnifiedInputAreaProps {
   assistantsLoading: boolean;
   onAssistantChange: (value: string) => void;
   onRefreshAssistants: () => void;
+
+  // Chat page mode - enables form collapse even when not streaming
+  isChatPage?: boolean;
 }
 
 export function UnifiedInputArea({
@@ -97,20 +100,21 @@ export function UnifiedInputArea({
   assistantsLoading,
   onAssistantChange,
   onRefreshAssistants,
+  isChatPage = false,
 }: UnifiedInputAreaProps) {
   const { isFormValid, parsedSchema, formState, setFieldValue, isLoading: schemaLoading } = schemaUI;
   const { requiredFields, rawSchema } = parsedSchema;
 
-  // Form collapse state during streaming
-  const [isFormCollapsed, setIsFormCollapsed] = useState(true);
+  // Form collapse state - collapsed by default on chat page
+  const [isFormCollapsed, setIsFormCollapsed] = useState(isChatPage);
 
   // Hidden while schema is loading (SSR should prevent this in most cases)
   if (schemaLoading) {
     return null;
   }
 
-  // During streaming in form mode, show collapsible UI instead of hiding completely
-  const isStreamingInFormMode = isFormMode && isLoading;
+  // Show collapsible UI in form mode when: streaming OR on chat page
+  const shouldShowCollapsibleForm = isFormMode && (isChatPage || isLoading);
 
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -144,8 +148,8 @@ export function UnifiedInputArea({
         {/* 조건부 분기: InputSection */}
         {isFormMode ? (
           /* Form mode: RequiredFields + Submit 버튼 */
-          isStreamingInFormMode ? (
-            /* Collapsed form during streaming */
+          shouldShowCollapsibleForm ? (
+            /* Collapsible form (during streaming or on chat page) */
             <>
               <div className="px-4 py-3">
                 <button
@@ -154,8 +158,14 @@ export function UnifiedInputArea({
                   className="flex w-full items-center justify-between gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                    <span>실행 중...</span>
+                    {isLoading ? (
+                      <>
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        <span>실행 중...</span>
+                      </>
+                    ) : (
+                      <span>입력 폼 보기</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-xs">입력 폼</span>

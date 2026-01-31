@@ -34,6 +34,8 @@ export interface ChatConfig {
   ui: {
     autoCollapseToolCalls: boolean;
     chatWidth: "default" | "wide";
+    chatHistoryOpen: boolean;
+    tracingPanelOpen: boolean;
   };
 }
 

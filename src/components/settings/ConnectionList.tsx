@@ -105,15 +105,6 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
 
     switchConnection(connection.id);
 
-    // Update URL params
-    const url = new URL(window.location.href);
-    url.searchParams.set("apiUrl", connection.apiUrl);
-    if (connection.assistantId) {
-      url.searchParams.set("assistantId", connection.assistantId);
-    } else {
-      url.searchParams.delete("assistantId");
-    }
-
     // Save API key to localStorage if provided
     if (connection.apiKey) {
       localStorage.setItem("lg:chat:apiKey", connection.apiKey);
@@ -121,9 +112,9 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
 
     toast.success(`Switching to ${connection.name}...`);
 
-    // Reload page to apply connection
+    // Reload page to apply connection (cookies are already set by switchConnection)
     setTimeout(() => {
-      window.location.href = url.toString();
+      window.location.href = window.location.pathname;
     }, 500);
   };
 

@@ -13,6 +13,8 @@ export interface UserSettings {
   colorScheme: "light" | "dark" | "auto";
   autoCollapseToolCalls: boolean;
   chatWidth: "default" | "wide";
+  chatHistoryOpen: boolean;
+  tracingPanelOpen: boolean;
 }
 
 export interface SettingsContextType {
@@ -67,6 +69,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     colorScheme: initial.theme.colorScheme,
     autoCollapseToolCalls: initial.ui.autoCollapseToolCalls,
     chatWidth: initial.ui.chatWidth,
+    chatHistoryOpen: initial.ui.chatHistoryOpen,
+    tracingPanelOpen: initial.ui.tracingPanelOpen,
   });
 
   // Load config on mount
@@ -85,6 +89,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       autoCollapseToolCalls:
         stored.autoCollapseToolCalls ?? initial.ui.autoCollapseToolCalls,
       chatWidth: stored.chatWidth || initial.ui.chatWidth,
+      chatHistoryOpen: stored.chatHistoryOpen ?? initial.ui.chatHistoryOpen,
+      tracingPanelOpen: stored.tracingPanelOpen ?? initial.ui.tracingPanelOpen,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -134,6 +140,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       colorScheme: config.theme.colorScheme,
       autoCollapseToolCalls: config.ui.autoCollapseToolCalls,
       chatWidth: config.ui.chatWidth,
+      chatHistoryOpen: config.ui.chatHistoryOpen,
+      tracingPanelOpen: config.ui.tracingPanelOpen,
     };
     setUserSettings(defaultUserSettings);
     saveUserSettings(defaultUserSettings);

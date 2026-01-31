@@ -2400,9 +2400,11 @@ export function useStreamingView(
     const prevOutput = prevStreamingOutputRef.current;
 
     // 이전 노드가 있고, 현재 노드가 다르면 (노드 변경 발생)
-    if (prevNode && prevNode !== currentActiveNode && prevOutput && updateNodeCompletedOutput) {
+    // 참고: prevOutput이 빈 문자열이어도 저장해야 함 (출력 없는 노드 처리)
+    if (prevNode && prevNode !== currentActiveNode && updateNodeCompletedOutput) {
       // 이전 streamingLLMOutput을 이전 노드의 completedOutput으로 저장
-      updateNodeCompletedOutput(prevNode, prevOutput);
+      // 빈 문자열도 저장하여 "출력 없음" 상태를 명시적으로 기록
+      updateNodeCompletedOutput(prevNode, prevOutput ?? "");
     }
 
     // 현재 상태 저장
@@ -2412,8 +2414,10 @@ export function useStreamingView(
 
   // 스트리밍 종료 시 마지막 활성 노드에 출력 저장
   useEffect(() => {
-    if (!isStreaming && prevActiveNodeRef.current && prevStreamingOutputRef.current && updateNodeCompletedOutput) {
-      updateNodeCompletedOutput(prevActiveNodeRef.current, prevStreamingOutputRef.current);
+    // 스트리밍이 종료되고 마지막 활성 노드가 있으면 출력 저장
+    // 참고: prevStreamingOutputRef.current가 빈 문자열이어도 저장해야 함
+    if (!isStreaming && prevActiveNodeRef.current && updateNodeCompletedOutput) {
+      updateNodeCompletedOutput(prevActiveNodeRef.current, prevStreamingOutputRef.current ?? "");
       // 초기화하지 않음 - 스트리밍이 다시 시작될 때까지 유지
     }
   }, [isStreaming, updateNodeCompletedOutput]);
@@ -2546,8 +2550,16 @@ export function useStreamingView(
           const nodeUpdate = sortedNodes[i];
           const isActiveNode = nodeUpdate === activeNode;
 
-          // 그래프 구조에서 __end__로 연결되는 노드인지 확인
-          const isGraphFinalNode = finalNodeNames.includes(nodeUpdate.nodeName);
+          // namespace 기반 노드 ID 생성 (서브그래프 노드 구분)
+          // 예: ["summary"] + "init" => "summary:init"
+          const nodeId = nodeUpdate.namespace.length > 0
+            ? `${nodeUpdate.namespace.join(":")}:${nodeUpdate.nodeName}`
+            : nodeUpdate.nodeName;
+
+          // 서브그래프 노드는 main graph의 finalNode가 아님
+          // finalNodeNames는 main graph의 __end__에 연결된 노드만 포함
+          const isMainGraphNode = nodeUpdate.namespace.length === 0;
+          const isGraphFinalNode = isMainGraphNode && finalNodeNames.includes(nodeUpdate.nodeName);
 
           // 활성 노드: 전역 streamingLLMOutput 사용 (현재 스트리밍 중인 콘텐츠)
           // 비활성 노드: completedOutput 사용 (노드 전환 시 저장된 콘텐츠)
@@ -2557,7 +2569,7 @@ export function useStreamingView(
           const snippet = outputText.length > 100 ? outputText.slice(0, 100) + "..." : outputText;
 
           outputs.push({
-            nodeId: nodeUpdate.nodeName,
+            nodeId,
             nodeName: nodeUpdate.nodeName,
             outputSnippet: snippet || (isActiveNode ? "Generating..." : "Completed"),
             fullOutput: outputText,

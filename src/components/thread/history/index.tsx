@@ -1,38 +1,37 @@
 "use client";
 
 import { useThreads } from "@/hooks/useThreads";
-import { useSettings } from "@/hooks/useSettings";
+import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { useEffect } from "react";
-import { useQueryState, parseAsBoolean } from "nuqs";
+import { useQueryState } from "nuqs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DesktopSidebar } from "./components/DesktopSidebar";
 import { MobileSidebar } from "./components/MobileSidebar";
 
 interface ThreadHistoryProps {
   onShowGuide?: () => void;
+  chatHistoryOpen: boolean;
+  onChatHistoryOpenChange: (open: boolean) => void;
 }
 
-export default function ThreadHistory({ onShowGuide }: ThreadHistoryProps) {
-  const { config } = useSettings();
+export default function ThreadHistory({
+  onShowGuide,
+  chatHistoryOpen,
+  onChatHistoryOpenChange,
+}: ThreadHistoryProps) {
+  const { assistantId } = useAssistantConfig();
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
-  const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
-    "chatHistoryOpen",
-    parseAsBoolean.withDefault(config.threads.sidebarOpenByDefault),
-  );
   const [_threadId, setThreadId] = useQueryState("threadId");
-  const [apiUrl] = useQueryState("apiUrl");
-  const [assistantId] = useQueryState("assistantId");
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const finalApiUrl = apiUrl || envApiUrl;
+
   const finalAssistantId = assistantId?.trim();
 
   const { getThreads, threads, setThreads, threadsLoading, setThreadsLoading } =
     useThreads();
 
-  // Load threads when apiUrl and assistantId are available
+  // Load threads when assistantId is available
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!finalApiUrl || !finalAssistantId) return;
+    if (!finalAssistantId) return;
 
     setThreadsLoading(true);
     getThreads()
@@ -43,7 +42,6 @@ export default function ThreadHistory({ onShowGuide }: ThreadHistoryProps) {
       })
       .finally(() => setThreadsLoading(false));
   }, [
-    finalApiUrl,
     finalAssistantId,
     getThreads,
     setThreads,
@@ -55,16 +53,16 @@ export default function ThreadHistory({ onShowGuide }: ThreadHistoryProps) {
   };
 
   const handleToggleChatHistory = () => {
-    setChatHistoryOpen((p) => !p);
+    onChatHistoryOpenChange(!chatHistoryOpen);
   };
 
   const handleMobileNewChat = () => {
     handleNewChat();
-    setChatHistoryOpen(false);
+    onChatHistoryOpenChange(false);
   };
 
   const handleMobileThreadClick = () => {
-    setChatHistoryOpen((o) => !o);
+    onChatHistoryOpenChange(!chatHistoryOpen);
   };
 
   return (
@@ -79,10 +77,10 @@ export default function ThreadHistory({ onShowGuide }: ThreadHistoryProps) {
       />
       <MobileSidebar
         threads={threads}
-        isOpen={!!chatHistoryOpen && !isLargeScreen}
+        isOpen={chatHistoryOpen && !isLargeScreen}
         onOpenChange={(open) => {
           if (isLargeScreen) return;
-          setChatHistoryOpen(open);
+          onChatHistoryOpenChange(open);
         }}
         onNewChat={handleMobileNewChat}
         onThreadClick={handleMobileThreadClick}

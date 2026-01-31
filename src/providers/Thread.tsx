@@ -1,7 +1,5 @@
 import { validate } from "uuid";
-import { getApiKey } from "@/lib/api-key";
 import { Thread } from "@langchain/langgraph-sdk";
-import { useQueryState } from "nuqs";
 import {
   createContext,
   ReactNode,
@@ -12,6 +10,8 @@ import {
   SetStateAction,
 } from "react";
 import { createClient } from "./client";
+import { getApiKey } from "@/lib/api-key";
+import type { ConnectionConfig } from "./Stream";
 
 export interface ThreadContextType {
   getThreads: () => Promise<Thread[]>;
@@ -33,20 +33,21 @@ function getThreadSearchMetadata(
   }
 }
 
-export function ThreadProvider({ children }: { children: ReactNode }) {
-  const [apiUrl] = useQueryState("apiUrl");
-  const [assistantId] = useQueryState("assistantId");
+interface ThreadProviderProps {
+  children: ReactNode;
+  connection: ConnectionConfig;
+}
+
+export function ThreadProvider({ children, connection }: ThreadProviderProps) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const finalApiUrl = apiUrl || envApiUrl;
-  const sanitizedAssistantId = assistantId?.trim();
-  const finalAssistantId = sanitizedAssistantId || undefined;
+  const finalAssistantId = connection.assistantId?.trim() || undefined;
+  const apiKey = connection.apiKey || getApiKey() || undefined;
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
-    if (!finalApiUrl || !finalAssistantId) return [];
-    const client = createClient(finalApiUrl, getApiKey() ?? undefined);
+    if (!connection.apiUrl || !finalAssistantId) return [];
 
+    const client = createClient(connection.apiUrl, apiKey);
     const threads = await client.threads.search({
       metadata: {
         ...getThreadSearchMetadata(finalAssistantId),
@@ -55,7 +56,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     });
 
     return threads;
-  }, [finalApiUrl, finalAssistantId]);
+  }, [connection.apiUrl, apiKey, finalAssistantId]);
 
   const value = useMemo(
     () => ({
