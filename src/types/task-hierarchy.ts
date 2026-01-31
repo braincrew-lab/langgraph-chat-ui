@@ -28,6 +28,9 @@ export interface HierarchicalTask {
   error?: string;
   // tool_call_id (LangSmith Run에서 추출, 메시지 매칭용)
   toolCallId?: string;
+  // Task 도구 매칭용 (inputs.input에서 파싱)
+  taskSubagentType?: string;   // subagent_type
+  taskDescription?: string;    // description
 }
 
 // Todo 아이템
@@ -42,6 +45,8 @@ export interface TodoItem {
   linkedTaskToolCallId?: string;  // Task의 tool_call_id
   // 노드 이름 (msg.name에서 추출, Phase 1 개선)
   nodeName?: string;              // 이 TODO가 실행되는 노드 이름
+  // 서브에이전트 타입 (Task의 subagent_type 인자에서 추출, 네임스페이스 매칭용)
+  subagentType?: string;          // Task 도구의 subagent_type 인자
 }
 
 // 도구 호출 정보 (계층적 TODO에서 사용)

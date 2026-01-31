@@ -55,11 +55,15 @@ const useTypedStream = useStream<
   }
 >;
 
+// tool_call_id → namespace 매핑 (병렬 Task에서 도구 분리용)
+export type ToolCallNamespaceMap = Map<string, string[]>;
+
 // 확장된 스트림 컨텍스트 타입 (노드 업데이트 정보 포함)
 export type StreamContextType = ReturnType<typeof useTypedStream> & {
   nodeUpdates: NodeUpdateInfo[];
   clearNodeUpdates: () => void;
   updateNodeCompletedOutput: (nodeName: string, output: string) => void;
+  toolCallNamespaceMap: ToolCallNamespaceMap;  // Phase 5: 도구 호출 → 네임스페이스 매핑
 };
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
@@ -71,18 +75,12 @@ async function checkGraphStatus(
   apiUrl: string,
   apiKey: string | null,
 ): Promise<boolean> {
-  console.log("[checkGraphStatus] Checking connection to:", apiUrl);
-  console.log("[checkGraphStatus] API Key:", apiKey ? `${apiKey.substring(0, 10)}...` : "none");
-
   if (!apiUrl || apiUrl.trim() === "") {
-    console.error("[checkGraphStatus] ❌ API URL is empty");
     return false;
   }
 
   try {
     const url = `${apiUrl}/info`;
-    console.log("[checkGraphStatus] Fetching:", url);
-
     const res = await fetch(url, {
       ...(apiKey && {
         headers: {
@@ -90,13 +88,8 @@ async function checkGraphStatus(
         },
       }),
     });
-
-    console.log("[checkGraphStatus] Response status:", res.status, res.statusText);
-    const isOk = res.ok;
-    console.log(`[checkGraphStatus] ${isOk ? "✅" : "❌"} Connection ${isOk ? "successful" : "failed"}`);
-    return isOk;
-  } catch (e) {
-    console.error("[checkGraphStatus] ❌ Error:", e);
+    return res.ok;
+  } catch {
     return false;
   }
 }
@@ -121,6 +114,10 @@ const StreamSession = ({
   const [nodeUpdates, setNodeUpdates] = useState<NodeUpdateInfo[]>([]);
   const nodeUpdatesRef = useRef<NodeUpdateInfo[]>([]);
 
+  // Phase 5: tool_call_id → namespace 매핑 (병렬 Task에서 도구 분리용)
+  const toolCallNamespaceMapRef = useRef<ToolCallNamespaceMap>(new Map());
+  const [toolCallNamespaceMap, setToolCallNamespaceMap] = useState<ToolCallNamespaceMap>(new Map());
+
   // Memoize callbacks to prevent infinite re-renders
   const handleCustomEvent = useCallback(
     (event: unknown, options: { mutate: (fn: (prev: StateType) => StateType) => void }) => {
@@ -144,13 +141,8 @@ const StreamSession = ({
       const nodeNames = Object.keys(data);
       const timestamp = Date.now();
 
-      // DEBUG: SSE 이벤트 데이터 로깅
-      console.log("[SSE Event]", {
-        nodeNames,
-        namespace: options.namespace,
-        data: JSON.stringify(data, null, 2).slice(0, 500),
-        currentNodeUpdates: nodeUpdatesRef.current.map(n => ({ name: n.nodeName, active: n.isActive, content: n.streamingContent?.slice(0, 50) }))
-      });
+      // DEBUG: SSE 이벤트 데이터 로깅 (성능 이슈로 비활성화)
+      // console.log("[SSE Event]", { nodeNames, namespace: options.namespace });
 
       // 모든 기존 노드를 비활성화 (새 이벤트의 노드만 활성)
       for (const update of nodeUpdatesRef.current) {
@@ -167,8 +159,28 @@ const StreamSession = ({
         // SSE 이벤트에서 직접 메시지 콘텐츠 추출
         let messageContent = "";
         if (hasMessages && nodeData) {
-          const messages = nodeData.messages as unknown;
-          if (Array.isArray(messages) && messages.length > 0) {
+          const rawMessages = nodeData.messages as unknown;
+          // messages가 배열, 단일 객체, 또는 문자열일 수 있음 (SDK 타입: Message[] | Message | string)
+          const messages = Array.isArray(rawMessages) ? rawMessages :
+                          (typeof rawMessages === "object" && rawMessages !== null) ? [rawMessages] : [];
+
+          if (messages.length > 0) {
+            // 모든 메시지에서 tool_call_id와 namespace 매핑 추출 (Phase 5)
+            for (const msg of messages) {
+              if (typeof msg === "object" && msg !== null) {
+                const msgObj = msg as Record<string, unknown>;
+
+                // AI 메시지의 tool_calls에서 tool_call_id 추출
+                if (msgObj.type === "ai" && Array.isArray(msgObj.tool_calls)) {
+                  for (const tc of msgObj.tool_calls as Array<{ id?: string; name?: string }>) {
+                    if (tc.id && options.namespace && options.namespace.length > 0) {
+                      toolCallNamespaceMapRef.current.set(tc.id, options.namespace);
+                    }
+                  }
+                }
+              }
+            }
+
             // 마지막 메시지의 콘텐츠 추출
             const lastMsg = messages[messages.length - 1];
             if (typeof lastMsg === "object" && lastMsg !== null) {
@@ -187,12 +199,6 @@ const StreamSession = ({
                   })
                   .join("");
               }
-            }
-          } else if (typeof messages === "object" && messages !== null) {
-            // 단일 메시지인 경우
-            const content = (messages as Record<string, unknown>).content;
-            if (typeof content === "string") {
-              messageContent = content;
             }
           }
         }
@@ -228,6 +234,7 @@ const StreamSession = ({
 
       // React 상태 업데이트
       setNodeUpdates([...nodeUpdatesRef.current]);
+      setToolCallNamespaceMap(new Map(toolCallNamespaceMapRef.current));
     },
     []
   );
@@ -235,7 +242,9 @@ const StreamSession = ({
   const handleThreadId = useCallback(
     (id: string) => {
       setThreadId(id);
-      // 스레드 변경 시 노드 업데이트 초기화
+      // 스레드 변경 시 노드 업데이트만 초기화
+      // toolCallNamespaceMap은 초기화하지 않음 (스트리밍 중 수집된 매핑 유지)
+      // 새 메시지 제출 시 clearNodeUpdates()에서 초기화됨
       nodeUpdatesRef.current = [];
       setNodeUpdates([]);
       // Refetch threads list when thread ID changes.
@@ -264,7 +273,9 @@ const StreamSession = ({
   // 노드 업데이트 초기화 함수 (새 Human 메시지 전송 시 호출)
   const clearNodeUpdates = useCallback(() => {
     nodeUpdatesRef.current = [];
+    toolCallNamespaceMapRef.current = new Map();
     setNodeUpdates([]);
+    setToolCallNamespaceMap(new Map());
   }, []);
 
   // 노드 완료 출력 업데이트 함수 (노드가 비활성화될 때 출력 저장)
@@ -286,8 +297,9 @@ const StreamSession = ({
       nodeUpdates,
       clearNodeUpdates,
       updateNodeCompletedOutput,
+      toolCallNamespaceMap,  // Phase 5: 도구 호출 → 네임스페이스 매핑
     }),
-    [streamValue, nodeUpdates, clearNodeUpdates, updateNodeCompletedOutput]
+    [streamValue, nodeUpdates, clearNodeUpdates, updateNodeCompletedOutput, toolCallNamespaceMap]
   );
 
   useEffect(() => {
@@ -365,18 +377,6 @@ export const StreamProvider: React.FC<{
     () => normalizeApiUrl(finalApiUrl),
     [finalApiUrl]
   );
-
-  // Log connection parameters
-  console.log("[StreamProvider] Connection parameters:", {
-    apiUrl,
-    envApiUrl,
-    finalApiUrl,
-    resolvedApiUrl,
-    assistantId,
-    envAssistantId,
-    finalAssistantId,
-    apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "none",
-  });
 
   // Sync connection to cookies for SSR (only on client, and only when values are set)
   const hasSyncedRef = useRef(false);

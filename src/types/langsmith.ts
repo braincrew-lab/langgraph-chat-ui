@@ -463,6 +463,27 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
   // tool_call_id 추출 (메시지 매칭용)
   const toolCallId = extractToolCallIdFromRun(run);
 
+  // Task 도구 매칭용 필드 추출 (inputs.input에서 subagent_type, description 파싱)
+  let taskSubagentType: string | undefined;
+  let taskDescription: string | undefined;
+
+  if (run.runType === "tool" && run.name.toLowerCase() === "task" && run.inputs) {
+    const inputStr = run.inputs.input;
+    if (typeof inputStr === "string") {
+      // Python dict 문자열 파싱: {'key': 'value', ...}
+      // subagent_type 추출
+      const subagentMatch = inputStr.match(/'subagent_type':\s*'([^']+)'/);
+      if (subagentMatch) {
+        taskSubagentType = subagentMatch[1];
+      }
+      // description 추출
+      const descMatch = inputStr.match(/'description':\s*'([^']+)'/);
+      if (descMatch) {
+        taskDescription = descMatch[1];
+      }
+    }
+  }
+
   return {
     id: run.id,
     name: run.name,
@@ -482,6 +503,8 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
     runId: run.id,
     error: run.error,
     toolCallId: toolCallId ?? undefined,
+    taskSubagentType,
+    taskDescription,
   };
 }
 

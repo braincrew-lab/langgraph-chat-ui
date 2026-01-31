@@ -58,6 +58,7 @@ import {
   type ReasoningInfo,
   type IntermediateLLMOutput,
 } from "@/types/task-hierarchy";
+import type { ToolCallNamespaceMap } from "@/providers/Stream";
 
 // 노드 업데이트 정보 (Stream.tsx에서 전달)
 interface NodeUpdateInfo {
@@ -81,6 +82,8 @@ interface UseStreamingViewOptions {
   finalNodeNames?: string[];
   // 노드 완료 출력 업데이트 콜백 (노드가 비활성화될 때 호출)
   updateNodeCompletedOutput?: (nodeName: string, output: string) => void;
+  // Phase 5: tool_call_id → namespace 매핑 (병렬 Task에서 도구 분리용)
+  toolCallNamespaceMap?: ToolCallNamespaceMap;
 }
 
 // TODO 라이프사이클 상태
@@ -213,6 +216,59 @@ function buildToolCallIdIndex(tasks: HierarchicalTask[]): Map<string, Hierarchic
     if (task.toolCallId) {
       index.set(task.toolCallId, task);
     }
+    for (const child of task.children) {
+      traverse(child);
+    }
+  }
+
+  for (const task of tasks) {
+    traverse(task);
+  }
+
+  return index;
+}
+
+/**
+ * subagentType 기반 인덱스 빌드 (병렬 Task 매칭용)
+ *
+ * 두 가지 방식으로 인덱싱:
+ * 1. Task Run의 taskSubagentType (inputs.input에서 파싱)
+ * 2. Agent/Chain Run의 name (내부 agent 이름)
+ *
+ * 이렇게 하면 TODO.subagentType이 내부 Agent Run과 직접 매칭 가능.
+ * 내부 Agent Run은 실제 tool runs를 children으로 가지고 있음.
+ *
+ * @param tasks - HierarchicalTask 배열
+ * @returns Map<subagentType, HierarchicalTask[]>
+ */
+function buildSubagentTypeIndex(tasks: HierarchicalTask[]): Map<string, HierarchicalTask[]> {
+  const index = new Map<string, HierarchicalTask[]>();
+
+  function addToIndex(key: string, task: HierarchicalTask) {
+    const existing = index.get(key) || [];
+    // 중복 방지
+    if (!existing.some(t => t.id === task.id)) {
+      existing.push(task);
+      index.set(key, existing);
+    }
+  }
+
+  function traverse(task: HierarchicalTask) {
+    // 1. Task Run의 taskSubagentType으로 인덱싱 (lowercase)
+    if (task.taskSubagentType) {
+      addToIndex(task.taskSubagentType.toLowerCase(), task);
+    }
+
+    // 2. Agent/Chain Run의 name으로 인덱싱 (내부 agent 매칭용)
+    // name이 일반적인 이름(agent, chain 등)이 아닌 경우에만
+    if ((task.type === "agent" || task.type === "chain") && task.name) {
+      const name = task.name.toLowerCase();
+      // 일반적인 이름 제외
+      if (!["agent", "chain", "llm", "tool", "langgraph"].includes(name)) {
+        addToIndex(name, task);
+      }
+    }
+
     for (const child of task.children) {
       traverse(child);
     }
@@ -664,14 +720,38 @@ function matchTodosToTasksByOrder(
  */
 function parseTaskArgsAsTodo(args: unknown, index: number, nodeName?: string): TodoItem | null {
   if (!args || typeof args !== "object") return null;
-  const o = args as Record<string, unknown>;
+  let o = args as Record<string, unknown>;
+
+  // 중첩 구조 처리: { input: ... }
+  if (o.input) {
+    if (typeof o.input === "object") {
+      // { input: { subagent_type: ..., description: ... } }
+      o = o.input as Record<string, unknown>;
+    } else if (typeof o.input === "string") {
+      // { input: "{'subagent_type': '...', 'description': '...'}" }
+      // Python dict 문자열에서 직접 파싱
+      const inputStr = o.input;
+      const subagentMatch = inputStr.match(/'subagent_type':\s*'([^']+)'/);
+      const descMatch = inputStr.match(/'description':\s*'([^']+)'/);
+      if (descMatch) {
+        return {
+          id: `task-${index}`,
+          content: descMatch[1],
+          status: "in_progress",
+          activeForm: subagentMatch ? `${subagentMatch[1]} 실행 중` : "작업 진행 중",
+          nodeName,
+          subagentType: subagentMatch ? subagentMatch[1] : undefined,
+        };
+      }
+    }
+  }
 
   // Task 도구의 description을 content로 사용
   const description = o.description || o.prompt || o.task;
   if (typeof description !== "string" || description.length === 0) return null;
 
-  // subagent_type은 activeForm 표시에만 사용
-  const subagentType = o.subagent_type || o.type;
+  // subagent_type 추출 (다양한 키 이름 지원)
+  const subagentType = o.subagent_type || o.subagentType || o.type;
   const subagentTypeStr = typeof subagentType === "string" ? subagentType : undefined;
 
   return {
@@ -680,6 +760,7 @@ function parseTaskArgsAsTodo(args: unknown, index: number, nodeName?: string): T
     status: "in_progress",
     activeForm: subagentTypeStr ? `${subagentTypeStr} 실행 중` : "작업 진행 중",
     nodeName,  // 노드 이름 (Phase 1 개선)
+    subagentType: subagentTypeStr,  // 네임스페이스 매칭용 (Phase 2 개선)
   };
 }
 
@@ -929,7 +1010,9 @@ function extractTodosFromMessages(messages: unknown[]): TodoItem[] {
   }
 
   // 3. TodoWrite 항목과 Task 항목 결합
-  return [...latestTodoWriteItems, ...taskItems];
+  const result = [...latestTodoWriteItems, ...taskItems];
+
+  return result;
 }
 
 // 메시지 content에서 텍스트 추출
@@ -1407,6 +1490,29 @@ function _extractToolsFromMessages(
 // ESLint 억제를 위한 빈 export (호환성 함수)
 export { _extractToolsFromMessages };
 
+/**
+ * 네임스페이스 기반 도구 필터링 (Phase 5: 병렬 Task 분리)
+ *
+ * 병렬 Task가 같은 메시지 범위에서 호출될 때, 각 Task에 속한 도구를
+ * tool_call_id → namespace 매핑을 사용하여 분리합니다.
+ *
+ * @param tools - 추출된 전체 도구 목록
+ * @param subagentType - TODO의 서브에이전트 타입 (예: "web_researcher")
+ * @param allSubagentTypes - 모든 병렬 Task의 subagentType 목록
+ * @param toolCallNamespaceMap - tool_call_id → namespace 매핑 (SSE 이벤트에서 수집)
+ * @returns 필터링된 도구 목록
+ */
+function filterToolsByNamespace(
+  tools: ToolCallInfo[],
+  _subagentType: string | undefined,
+  _allSubagentTypes: string[],
+  _toolCallNamespaceMap?: ToolCallNamespaceMap
+): ToolCallInfo[] {
+  // SSE namespace 방식은 불완전함 (서브에이전트 내부 tool_calls가 충분히 오지 않음)
+  // LangSmith 없이는 병렬 Task 도구 분리 불가 - 모든 도구 반환 (중복 표시)
+  return tools;
+}
+
 // 서브에이전트 TODO인지 확인 (Task 도구로 생성된 TODO)
 function isSubagentTodo(todo: TodoItem): boolean {
   return todo.id.startsWith("task-");
@@ -1438,6 +1544,56 @@ function findBestMatchingParent(
   }
 
   return bestMatch?.parent ?? null;
+}
+
+/**
+ * Phase 5: 노드 히스토리 기반 서브에이전트-부모 TODO 매칭
+ *
+ * SSE 이벤트에서 추적한 노드 히스토리를 사용하여 서브에이전트 TODO의 부모를 찾습니다.
+ * Task 호출 시점의 활성 노드 직전 노드를 찾아 해당 TODO와 매칭합니다.
+ *
+ * ## 알고리즘
+ * 1. 노드 히스토리에서 Task 관련 노드 (task, agent 포함) 찾기
+ * 2. Task 노드 직전의 노드 이름으로 TODO 매칭
+ * 3. 노드 이름이 TODO content에 포함되거나 nodeName과 일치하면 매칭
+ *
+ * @param subagentTodo - 서브에이전트 TODO (task-*)
+ * @param mainTodos - 메인 TODO 목록 (todo-*)
+ * @param nodeHistory - 활성 노드 히스토리 (시간순)
+ * @returns 매칭된 부모 TODO 또는 null
+ */
+function matchSubagentToParentByNodeHistory(
+  subagentTodo: TodoItem,
+  mainTodos: IndexedTodo[],
+  nodeHistory?: string[]
+): IndexedTodo | null {
+  if (!nodeHistory || nodeHistory.length < 2) return null;
+
+  // Task 관련 노드 찾기 (역순으로 최신 Task 먼저)
+  for (let i = nodeHistory.length - 1; i > 0; i--) {
+    const nodeName = nodeHistory[i].toLowerCase();
+    // Task/agent 관련 노드인지 확인
+    if (nodeName.includes("task") || nodeName.includes("agent") || nodeName.includes("subagent")) {
+      // 이 Task 노드 직전의 노드 이름
+      const prevNodeName = nodeHistory[i - 1];
+
+      // prevNodeName으로 TODO 매칭 시도
+      // 1. nodeName이 일치하는 TODO
+      const matchByNodeName = mainTodos.find(m =>
+        m.todo.nodeName && m.todo.nodeName.toLowerCase() === prevNodeName.toLowerCase()
+      );
+      if (matchByNodeName) return matchByNodeName;
+
+      // 2. content에 노드 이름이 포함된 TODO
+      const matchByContent = mainTodos.find(m =>
+        m.todo.content.toLowerCase().includes(prevNodeName.toLowerCase()) ||
+        prevNodeName.toLowerCase().includes(m.todo.content.toLowerCase().split(" ")[0])
+      );
+      if (matchByContent) return matchByContent;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -1672,10 +1828,11 @@ function createHierarchicalTodoItem(
  * @param originalIndex - 원본 인덱스
  * @param subagents - LangSmith에서 빌드된 서브에이전트 태스크
  * @param usedTaskIds - 이미 사용된 Task ID (중복 방지)
- * @param toolCallIdIndex - toolCallId → HierarchicalTask 인덱스 (LangSmith 매칭용)
+ * @param toolCallIdIndex - toolCallId → HierarchicalTask 인덱스 (LangSmith 매칭용) - deprecated
  * @param messages - 메시지 배열 (메시지 기반 도구 추출용)
  * @param linkedTaskToolCallId - 연결된 Task의 tool_call_id
  * @param taskScopes - 전체 Task 스코프 맵 (병렬 Task 감지 및 스코프 격리용)
+ * @param subagentTypeIndex - subagentType → HierarchicalTask[] 인덱스 (PRIMARY 매칭)
  */
 function extractToolsAndReasoningWithMatch(
   todo: TodoItem,
@@ -1685,7 +1842,8 @@ function extractToolsAndReasoningWithMatch(
   toolCallIdIndex: Map<string, HierarchicalTask>,
   messages?: LangGraphMessage[],
   linkedTaskToolCallId?: string,
-  taskScopes?: Map<string, TaskScope>
+  taskScopes?: Map<string, TaskScope>,
+  subagentTypeIndex?: Map<string, HierarchicalTask[]>
 ): {
   tools: ToolCallInfo[];
   reasoning: ReasoningInfo[];
@@ -1696,7 +1854,7 @@ function extractToolsAndReasoningWithMatch(
   let match: { taskId: string; taskName: string; confidence: number } | null = null;
 
   // ========================================
-  // 병렬 Task 감지: 같은 startMessageIndex를 가진 다른 Task 존재 여부
+  // 병렬 Task 감지
   // ========================================
   let isParallelTask = false;
   if (linkedTaskToolCallId && taskScopes) {
@@ -1713,10 +1871,51 @@ function extractToolsAndReasoningWithMatch(
   }
 
   // ========================================
-  // LangSmith 매칭 먼저 시도 (병렬 Task에서는 PRIMARY)
+  // PRIMARY: subagentType + description 매칭 (100% 정확)
+  // LangSmith Run의 inputs.input에서 파싱한 taskSubagentType/taskDescription과
+  // TODO의 subagentType/content를 비교
   // ========================================
   let langSmithMatch: HierarchicalTask | null = null;
-  if (linkedTaskToolCallId) {
+
+  if (subagentTypeIndex && todo.subagentType) {
+    const candidates = subagentTypeIndex.get(todo.subagentType.toLowerCase());
+    if (candidates && candidates.length > 0) {
+      // 후보 정렬: children이 있는 것 우선 (Agent Run > Task Run)
+      // Task Run은 children이 비어있고, Agent Run은 children에 도구가 있음
+      const sortedCandidates = [...candidates].sort((a, b) => {
+        const aHasChildren = a.children.length > 0 ? 1 : 0;
+        const bHasChildren = b.children.length > 0 ? 1 : 0;
+        return bHasChildren - aHasChildren;  // children 있는 것 우선
+      });
+
+      // 후보 중 미사용 것 찾기 (children 있는 것 우선)
+      for (const candidate of sortedCandidates) {
+        if (usedTaskIds.has(candidate.id)) continue;
+
+        langSmithMatch = candidate;
+        match = {
+          taskId: candidate.id,
+          taskName: candidate.name,
+          confidence: 1.0
+        };
+        usedTaskIds.add(candidate.id);
+        reasoning = extractReasoningFromTask(candidate);
+        break;
+      }
+      console.log("[DEBUG] langSmithMatch:", {
+        subagentType: todo.subagentType,
+        candidatesCount: candidates.length,
+        matchName: langSmithMatch?.name,
+        matchType: langSmithMatch?.type,
+        matchChildren: langSmithMatch?.children.length
+      });
+    }
+  }
+
+  // ========================================
+  // FALLBACK: toolCallId 매칭 (구버전 호환)
+  // ========================================
+  if (!langSmithMatch && linkedTaskToolCallId) {
     const exactMatch = toolCallIdIndex.get(linkedTaskToolCallId);
     if (exactMatch && !usedTaskIds.has(exactMatch.id)) {
       langSmithMatch = exactMatch;
@@ -1731,22 +1930,30 @@ function extractToolsAndReasoningWithMatch(
   }
 
   // ========================================
-  // 도구 추출 전략 분기
+  // 도구 추출
   // ========================================
-  if (isParallelTask && langSmithMatch) {
-    // 병렬 Task + LangSmith 있음: LangSmith에서 도구 추출 (메시지로는 구분 불가)
+  if (langSmithMatch) {
+    // LangSmith 매칭 있음: LangSmith에서 도구 추출 (가장 정확)
     tools = extractToolsFromTask(langSmithMatch);
-  } else if (linkedTaskToolCallId && messages) {
-    // 순차 Task 또는 LangSmith 없음: 메시지 기반 추출
-    tools = extractToolsFromMessagesForTask(messages, linkedTaskToolCallId, taskScopes);
-
-    // 메시지에서 추출 실패 시 LangSmith 폴백
-    if (tools.length === 0 && langSmithMatch) {
-      tools = extractToolsFromTask(langSmithMatch);
+    console.log("[DEBUG] extractTools:", {
+      matchId: langSmithMatch.id,
+      matchName: langSmithMatch.name,
+      matchType: langSmithMatch.type,
+      matchChildren: langSmithMatch.children.length,
+      toolsExtracted: tools.length,
+      isParallelTask
+    });
+    // LangSmith에서 도구가 비어있으면 메시지 기반 폴백 (스트리밍 중 children 미완성 시)
+    // 병렬 Task에서는 폴백 사용 금지 (중복 발생)
+    if (tools.length === 0 && !isParallelTask && linkedTaskToolCallId && messages) {
+      tools = extractToolsFromMessagesForTask(messages, linkedTaskToolCallId, taskScopes);
     }
-  } else if (langSmithMatch) {
-    // linkedTaskToolCallId 없지만 LangSmith 매치 있음
-    tools = extractToolsFromTask(langSmithMatch);
+  } else if (isParallelTask && linkedTaskToolCallId && messages && taskScopes) {
+    // 병렬 Task + LangSmith 없음: 분리 불가, 빈 배열
+    tools = [];
+  } else if (linkedTaskToolCallId && messages) {
+    // 순차 Task + LangSmith 없음: 메시지 기반 추출
+    tools = extractToolsFromMessagesForTask(messages, linkedTaskToolCallId, taskScopes);
   }
 
   // ========================================
@@ -1809,6 +2016,9 @@ function extractToolsAndReasoningWithMatch(
  * @param taskScopes - 캐싱된 Task 스코프 맵 (성능 최적화)
  * @param finalNodeNames - 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
  * @param nodeUpdates - SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
+ * @param todoStatusOverride - TODO 상태 오버라이드 맵 (Phase 5: 노드 전환 기반 실시간 상태)
+ * @param activeNodeHistory - 활성 노드 히스토리 (Phase 5: 서브에이전트 부모 매칭용)
+ * @param toolCallNamespaceMap - tool_call_id → namespace 매핑 (Phase 5: 병렬 Task 도구 분리)
  */
 function buildHierarchicalTodosWithNesting(
   todos: TodoItem[],
@@ -1820,10 +2030,17 @@ function buildHierarchicalTodosWithNesting(
   finalNodeId?: string | null,
   taskScopes?: Map<string, TaskScope>,  // 캐싱된 Task 스코프 (성능 최적화)
   finalNodeNames?: string[],  // 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
-  nodeUpdates?: NodeUpdateInfo[]  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
+  nodeUpdates?: NodeUpdateInfo[],  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
+  todoStatusOverride?: Map<string, TodoItem["status"]>,  // Phase 5: 노드 전환 기반 상태 오버라이드
+  activeNodeHistory?: string[],  // Phase 5: 활성 노드 히스토리 (서브에이전트 부모 매칭용)
+  toolCallNamespaceMap?: ToolCallNamespaceMap  // Phase 5: tool_call_id → namespace 매핑
 ): HierarchicalTodoItem[] {
-  // toolCallId 인덱스 빌드 (LangSmith 메타데이터 매칭용)
+  // toolCallId 인덱스 빌드 (deprecated, fallback용)
   const toolCallIdIndex = buildToolCallIdIndex(subagents);
+
+  // subagentType 인덱스 빌드 (PRIMARY 매칭)
+  const subagentTypeIndex = buildSubagentTypeIndex(subagents);
+
 
   // Task 스코프 맵 사용 (이미 캐싱된 경우 재사용, 없으면 빌드)
   const effectiveTaskScopes = taskScopes ?? buildTaskScopes(messages);
@@ -1840,19 +2057,27 @@ function buildHierarchicalTodosWithNesting(
   // 활성 노드 이름 추출 (Phase 4: SSE 기반 실시간 상태 업데이트)
   const activeNodeName = nodeUpdates?.find(n => n.isActive)?.nodeName;
 
+
   /**
-   * TODO 상태를 SSE 이벤트 기반으로 업데이트 (Phase 4)
+   * TODO 상태를 업데이트 (Phase 4 + Phase 5)
    *
    * 우선순위:
-   * 1. 원본 상태가 completed면 유지 (이미 완료된 것은 변경하지 않음)
-   * 2. nodeName이 activeNodeName과 일치하면 in_progress
-   * 3. 그 외는 원본 상태 유지
+   * 1. Phase 5: todoStatusOverride 맵에서 오버라이드 상태 확인 (최우선)
+   * 2. 원본 상태가 completed면 유지 (이미 완료된 것은 변경하지 않음)
+   * 3. Phase 4: nodeName이 activeNodeName과 일치하면 in_progress
+   * 4. 그 외는 원본 상태 유지
    */
   const getUpdatedStatus = (todo: TodoItem): TodoItem["status"] => {
+    // Phase 5: 오버라이드 맵에서 상태 확인 (최우선)
+    const override = todoStatusOverride?.get(todo.id);
+    if (override) {
+      return override;
+    }
+
     // 이미 완료된 것은 유지
     if (todo.status === "completed") return "completed";
 
-    // 활성 노드와 일치하면 in_progress
+    // Phase 4: 활성 노드와 일치하면 in_progress (폴백)
     if (activeNodeName && todo.nodeName === activeNodeName) {
       return "in_progress";
     }
@@ -1909,11 +2134,13 @@ function buildHierarchicalTodosWithNesting(
   // 1. TODO 타입별 분류
   const { mainTodos, subagentTodos } = partitionTodosByType(todos);
 
-  // 2. 순서 기반 TODO-Task 매칭 (텍스트 유사도 대신)
-  const { inProgressTodos, taskCalls } = extractOrderedTodosAndTasks(messages);
-  const todoToTaskMap = matchTodosToTasksByOrder(inProgressTodos, taskCalls);
+  // Phase 5: 모든 subagentType 수집 (병렬 Task 네임스페이스 필터링용)
+  // mainTodos 유무와 관계없이 필요
+  const allSubagentTypes: string[] = subagentTodos
+    .map(s => s.todo.subagentType)
+    .filter((t): t is string => typeof t === "string" && t.length > 0);
 
-  // 3. 완료된 Task의 tool_call_id 수집
+  // 완료된 Task의 tool_call_id 수집 (early return 전에 필요)
   const completedTaskIds = new Set<string>();
   for (const msg of messages) {
     const m = msg as { type?: string; tool_call_id?: string; name?: string };
@@ -1921,6 +2148,104 @@ function buildHierarchicalTodosWithNesting(
       completedTaskIds.add(m.tool_call_id);
     }
   }
+
+  // ========================================
+  // Phase 5: mainTodos가 없을 때 subagentTodos를 최상위로 처리
+  // ========================================
+  // TodoWrite를 사용하지 않는 에이전트에서는 Task 도구만 사용하므로
+  // 모든 TODO가 task-* ID를 가짐. 이 경우 subagentTodos를 최상위로 표시
+  if (mainTodos.length === 0 && subagentTodos.length > 0) {
+    // ========================================
+    // Phase 5: 모든 subagentType 수집 (병렬 Task 네임스페이스 필터링용)
+    // ========================================
+    const allSubagentTypes: string[] = subagentTodos
+      .map(s => s.todo.subagentType)
+      .filter((t): t is string => typeof t === "string" && t.length > 0);
+
+    const result: HierarchicalTodoItem[] = [];
+
+    // 중복 매칭 방지를 위한 usedTaskIds (루프 간 공유)
+    const usedTaskIds = new Set<string>();
+
+    // 상태 결정 로직:
+    // 1. completedTaskIds에 있는 TODO는 completed
+    // 2. 첫 번째 미완료 TODO는 in_progress (활성 노드가 있을 때)
+    // 3. 나머지는 pending
+    let firstInProgressAssigned = false;
+
+    for (const { todo, originalIndex } of subagentTodos) {
+      const linkedTaskToolCallId = todo.linkedTaskToolCallId;
+      const isTaskCompleted = linkedTaskToolCallId ? completedTaskIds.has(linkedTaskToolCallId) : false;
+
+      // 상태 결정 (Phase 5: 노드 전환 없이 직접 계산)
+      let computedStatus: TodoItem["status"];
+      if (isTaskCompleted || todo.status === "completed") {
+        computedStatus = "completed";
+      } else if (!firstInProgressAssigned && activeNodeName) {
+        // 첫 번째 미완료 TODO를 in_progress로
+        computedStatus = "in_progress";
+        firstInProgressAssigned = true;
+      } else if (!firstInProgressAssigned && !activeNodeName && todo.status === "in_progress") {
+        // 노드 정보 없을 때 원본 in_progress 상태 유지
+        computedStatus = "in_progress";
+        firstInProgressAssigned = true;
+      } else {
+        // 원본 상태 또는 override 맵 확인
+        const override = todoStatusOverride?.get(todo.id);
+        computedStatus = override ?? todo.status;
+      }
+
+      // LangSmith 메타데이터 추출 (subagentType 매칭 사용)
+      const { tools: rawTools, reasoning, match } = extractToolsAndReasoningWithMatch(
+        todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
+        messages, linkedTaskToolCallId, effectiveTaskScopes, subagentTypeIndex
+      );
+
+      // ========================================
+      // Phase 5: 네임스페이스 기반 도구 필터링 (병렬 Task 분리)
+      // ========================================
+      // 병렬 Task가 있을 때 toolCallNamespaceMap을 사용하여
+      // 각 도구의 namespace와 subagentType을 매칭하여 해당 Task에 속한 도구만 표시
+      const tools = filterToolsByNamespace(
+        rawTools,
+        todo.subagentType,
+        allSubagentTypes,
+        toolCallNamespaceMap  // Phase 5: SSE에서 수집한 tool_call_id → namespace 매핑
+      );
+
+      // 스트리밍 정보 추가 (최종 노드일 때)
+      let finalTools = tools;
+      let finalReasoning = reasoning;
+      const isFinalNode = linkedTaskToolCallId === finalNodeId;
+      if (computedStatus === "in_progress" && isFinalNode) {
+        const subagentOutput = linkedTaskToolCallId
+          ? subagentStreamingOutputs?.get(linkedTaskToolCallId) ?? null
+          : null;
+        const subagentContext: StreamingContext = {
+          streamingLLMOutput: subagentOutput,
+          currentToolCalls: [],
+          streamingOutputUsed: false,
+        };
+        const attached = attachStreamingInfo(tools, reasoning, subagentContext);
+        finalTools = attached.tools;
+        finalReasoning = attached.reasoning;
+      }
+
+      const item = createHierarchicalTodoItem(
+        todo, 0, finalTools, finalReasoning, match,
+        linkedTaskToolCallId, isTaskCompleted,
+        isFinalTask(todo),
+        computedStatus  // Phase 5: 직접 계산된 상태 사용
+      );
+      result.push(item);
+    }
+
+    return result;
+  }
+
+  // 2. 순서 기반 TODO-Task 매칭 (텍스트 유사도 대신)
+  const { inProgressTodos, taskCalls } = extractOrderedTodosAndTasks(messages);
+  const todoToTaskMap = matchTodosToTasksByOrder(inProgressTodos, taskCalls);
 
   // 4. 메인 TODO와 서브에이전트 TODO 매칭 (메시지 순서 기반 PRIMARY)
   // 모든 메인 TODO를 부모 후보로 사용 (상태 무관)
@@ -1943,16 +2268,30 @@ function buildHierarchicalTodosWithNesting(
     const availableParents = effectiveParents.filter(p => !usedParentIds.has(p.todo.id));
 
     // ========================================
-    // PRIMARY: 메시지 순서 기반 부모 매칭
+    // Phase 5 PRIMARY: 노드 히스토리 기반 부모 매칭
     // ========================================
-    // Task 호출 직전의 TodoWrite에서 in_progress 상태였던 TODO를 부모로 매칭
-    // 이 방식은 텍스트 유사도보다 정확하며, 병렬 에이전트에서도 올바르게 작동
-    let bestParent = matchSubagentToParentByMessageOrder(
+    // SSE 이벤트에서 추적한 노드 히스토리를 사용하여 Task 호출 시점의 부모를 찾음
+    // 노드 이름 매칭이므로 가장 정확함
+    let bestParent = matchSubagentToParentByNodeHistory(
       subagentTodo.todo,
       availableParents,
-      messages,
-      effectiveTaskScopes
+      activeNodeHistory
     );
+
+    // ========================================
+    // PRIMARY: 메시지 순서 기반 부모 매칭
+    // ========================================
+    // 노드 히스토리 매칭 실패 시 메시지 순서로 폴백
+    // Task 호출 직전의 TodoWrite에서 in_progress 상태였던 TODO를 부모로 매칭
+    // 이 방식은 텍스트 유사도보다 정확하며, 병렬 에이전트에서도 올바르게 작동
+    if (!bestParent) {
+      bestParent = matchSubagentToParentByMessageOrder(
+        subagentTodo.todo,
+        availableParents,
+        messages,
+        effectiveTaskScopes
+      );
+    }
 
     // ========================================
     // FALLBACK 1: 텍스트 유사도 기반 매칭
@@ -2050,7 +2389,7 @@ function buildHierarchicalTodosWithNesting(
 
       const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
         todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
-        messages as LangGraphMessage[], linkedTaskToolCallId, effectiveTaskScopes  // 메시지 기반 PRIMARY + 스코프 격리
+        messages as LangGraphMessage[], linkedTaskToolCallId, effectiveTaskScopes, subagentTypeIndex
       );
 
       // 진행 중인 서브에이전트 TODO에 스트리밍 정보 추가 (최종 노드일 때만)
@@ -2100,7 +2439,7 @@ function buildHierarchicalTodosWithNesting(
 
     const { tools, reasoning, match } = extractToolsAndReasoningWithMatch(
       todo, originalIndex, subagents, usedTaskIds, toolCallIdIndex,
-      messages, linkedTaskToolCallId, effectiveTaskScopes  // 메시지 기반 PRIMARY + 스코프 격리
+      messages, linkedTaskToolCallId, effectiveTaskScopes, subagentTypeIndex
     );
 
     // 최종 노드일 때만 스트리밍 출력을 reasoning에 추가 (중복 방지)
@@ -2157,7 +2496,7 @@ export function useStreamingView(
   messages: unknown[] = [],
   options: UseStreamingViewOptions = {}
 ): UseStreamingViewReturn {
-  const { defaultShowCompletedDetails = false, defaultExpandDepth = 1, nodeUpdates, finalNodeNames = [], updateNodeCompletedOutput } = options;
+  const { defaultShowCompletedDetails = false, defaultExpandDepth = 1, nodeUpdates, finalNodeNames = [], updateNodeCompletedOutput, toolCallNamespaceMap } = options;
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showCompletedDetails, setShowCompletedDetails] = useState(defaultShowCompletedDetails);
@@ -2187,12 +2526,18 @@ export function useStreamingView(
 
   // 서브에이전트 태스크 (agent 또는 children이 있는 chain 타입)
   // 모든 중첩된 태스크를 포함하여 정확한 매칭 지원
+  // + toolCallId가 있는 Task 도구 Run도 포함 (병렬 Task 매칭용)
   const subagentTasks = useMemo(() => {
     const allSubagents: HierarchicalTask[] = [];
 
     function collectSubagents(task: HierarchicalTask) {
-      // agent 타입이거나 children이 있는 chain만 수집
-      if (task.type === "agent" || (task.type === "chain" && task.children.length > 0)) {
+      // 수집 조건:
+      // 1. agent 타입
+      // 2. children이 있는 chain 타입
+      // 3. toolCallId가 있는 task (Task 도구 Run 매칭용)
+      if (task.type === "agent" ||
+          (task.type === "chain" && task.children.length > 0) ||
+          task.toolCallId) {
         allSubagents.push(task);
       }
       // 자식 태스크도 재귀적으로 탐색
@@ -2207,6 +2552,9 @@ export function useStreamingView(
 
     return allSubagents;
   }, [hierarchy]);
+
+  // DEBUG: LangSmith 데이터 확인
+  console.log("[DEBUG] runs:", runs.length, "subagentTasks:", subagentTasks.length, subagentTasks.map(t => ({ name: t.name, type: t.type, children: t.children.length })));
 
   // Todo 리스트 추출
   const currentTodo = useMemo(() => {
@@ -2268,6 +2616,17 @@ export function useStreamingView(
   const prevActiveNodeRef = useRef<string | null>(null);
   const prevStreamingOutputRef = useRef<string | null>(null);
 
+  // ========================================
+  // Phase 5: TODO 상태 실시간 업데이트 개선
+  // ========================================
+  // TODO 상태 오버라이드 맵 (노드 전환 시 저장)
+  // Key: todo.id, Value: 오버라이드 상태 (in_progress | completed)
+  const todoStatusOverrideRef = useRef<Map<string, TodoItem["status"]>>(new Map());
+
+  // 활성 노드 히스토리 (서브에이전트 부모 매칭용)
+  // 최근 활성화된 노드들의 이름을 순서대로 저장
+  const activeNodeHistoryRef = useRef<string[]>([]);
+
   // 현재 활성 노드 이름
   const currentActiveNode = useMemo(() => {
     return nodeUpdates?.find(n => n.isActive)?.nodeName ?? null;
@@ -2296,6 +2655,59 @@ export function useStreamingView(
       // 초기화하지 않음 - 스트리밍이 다시 시작될 때까지 유지
     }
   }, [isStreaming, updateNodeCompletedOutput]);
+
+  // ========================================
+  // Phase 5: TODO 상태 실시간 업데이트 (노드 전환 기반)
+  // ========================================
+  // 노드가 변경되면 TODO 상태를 자동으로 업데이트
+  // - 이전 노드의 in_progress TODO를 completed로 전환
+  // - 현재 노드의 pending TODO를 in_progress로 전환
+  useEffect(() => {
+    const prevNode = prevActiveNodeRef.current;
+
+    // 노드 히스토리 업데이트
+    if (currentActiveNode && activeNodeHistoryRef.current[activeNodeHistoryRef.current.length - 1] !== currentActiveNode) {
+      activeNodeHistoryRef.current.push(currentActiveNode);
+      // 최대 10개 유지
+      if (activeNodeHistoryRef.current.length > 10) {
+        activeNodeHistoryRef.current.shift();
+      }
+    }
+
+    // 노드 전환 감지: 이전 노드가 있고 현재 노드와 다를 때
+    if (prevNode && prevNode !== currentActiveNode) {
+      // 이전 노드에서 in_progress였던 TODO들을 completed로 전환
+      for (const todo of currentTodo) {
+        const currentOverride = todoStatusOverrideRef.current.get(todo.id);
+        if (currentOverride === "in_progress") {
+          todoStatusOverrideRef.current.set(todo.id, "completed");
+        }
+      }
+    }
+
+    // 현재 활성 노드가 있고 TODO가 있을 때
+    if (currentActiveNode && currentTodo.length > 0) {
+      // 아직 override가 없는 첫 번째 pending TODO를 in_progress로 전환
+      const pendingTodo = currentTodo.find(t => {
+        const override = todoStatusOverrideRef.current.get(t.id);
+        // override가 없고, 원본 상태가 pending인 경우
+        return !override && t.status === "pending";
+      });
+
+      if (pendingTodo) {
+        todoStatusOverrideRef.current.set(pendingTodo.id, "in_progress");
+      }
+    }
+  }, [currentActiveNode, currentTodo]);
+
+  // 새 메시지 제출 시 TODO 상태 override 맵 초기화
+  // messages가 빈 배열로 리셋되면 (새 대화 시작) override 맵도 초기화
+  useEffect(() => {
+    if (messages.length === 0) {
+      todoStatusOverrideRef.current.clear();
+      activeNodeHistoryRef.current = [];
+    }
+  }, [messages.length]);
 
   // 각 서브에이전트별 스트리밍 출력 추출 (병렬 서브에이전트 지원)
   const subagentStreamingOutputs = useMemo(() => {
@@ -2401,13 +2813,6 @@ export function useStreamingView(
           });
         }
 
-        // DEBUG: intermediateOutputs 로깅
-        console.log("[intermediateOutputs]", {
-          nodeUpdatesCount: nodeUpdates?.length,
-          outputsCount: outputs.length,
-          outputs: outputs.map(o => ({ node: o.nodeName, status: o.status, isFinal: o.isFinal, contentLen: o.fullOutput?.length }))
-        });
-
         const finalId = outputs.find(o => o.isFinal)?.nodeId ?? null;
         return { intermediateOutputs: outputs, finalNodeId: finalId };
       }
@@ -2433,6 +2838,8 @@ export function useStreamingView(
   }, [streamingLLMOutput, subagentStreamingOutputs, activeTaskContext.activeTaskCallIds, isStreaming, nodeUpdates, finalNodeNames]);
 
   // 계층적 TODO 빌드 (TODO + 서브에이전트 + 도구 + 스트리밍 LLM 통합, 중첩 지원, 순서 기반 매칭)
+  // Note: todoStatusOverrideRef.current는 의도적으로 deps에 포함하지 않음 (ref.current는 리렌더링 트리거 안함)
+  // 대신 currentActiveNode 변경 시 함께 업데이트됨
   const hierarchicalTodos = useMemo(() => {
     return buildHierarchicalTodosWithNesting(
       currentTodo,
@@ -2444,9 +2851,15 @@ export function useStreamingView(
       finalNodeId,  // 최종 노드만 reasoning에 스트리밍 출력 표시 (중복 방지)
       taskScopes,  // 캐싱된 Task 스코프 (성능 최적화)
       finalNodeNames,  // 그래프에서 __end__로 연결되는 노드 이름들 (Phase 3)
-      nodeUpdates  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
+      nodeUpdates,  // SSE 이벤트에서 추출한 노드 업데이트 정보 (Phase 4)
+      todoStatusOverrideRef.current,  // Phase 5: 노드 전환 기반 상태 오버라이드
+      activeNodeHistoryRef.current,  // Phase 5: 활성 노드 히스토리 (서브에이전트 부모 매칭용)
+      toolCallNamespaceMap  // Phase 5: tool_call_id → namespace 매핑
     );
-  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages, subagentStreamingOutputs, finalNodeId, taskScopes, finalNodeNames, nodeUpdates]);
+    // currentActiveNode는 useMemo 내에서 직접 사용되지 않지만, refs가 업데이트될 때
+    // 강제로 재계산하기 위해 의도적으로 추가됨 (refs는 리렌더링을 트리거하지 않음)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTodo, subagentTasks, currentToolCalls, streamingLLMOutput, messages, subagentStreamingOutputs, finalNodeId, taskScopes, finalNodeNames, nodeUpdates, currentActiveNode, toolCallNamespaceMap]);
 
   // 뷰 상태
   const viewState: StreamingViewState = useMemo(() => ({

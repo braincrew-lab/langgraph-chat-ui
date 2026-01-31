@@ -178,6 +178,7 @@ export function Thread() {
   const isLoading = stream.isLoading;
   const nodeUpdates = stream.nodeUpdates;
   const updateNodeCompletedOutput = stream.updateNodeCompletedOutput;
+  const toolCallNamespaceMap = stream.toolCallNamespaceMap;  // Phase 5: 병렬 Task 도구 분리용
   const {
     assistants,
     assistantsLoading,
@@ -219,7 +220,7 @@ export function Thread() {
     activeLeafTasks,
     intermediateOutputs,
     finalNodeId,
-  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput });
+  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput, toolCallNamespaceMap });
 
   // 서브에이전트 메시지 감지를 위한 컨텍스트
   const subagentContext = useMemo(() => {
@@ -634,15 +635,11 @@ export function Thread() {
                         break;
                       }
                     }
-                    console.log("[Thread] lastHumanIndex:", lastHumanIndex, "compactView:", compactView, "hasVisibleContent:", hasVisibleContent, "filteredMessages.length:", filteredMessages.length);
-
                     // nodeUpdates에서 마지막 노드 이름 찾기 (hasMessages 필터링 제거)
                     const sortedNodeUpdates = nodeUpdates?.slice().sort((a, b) => a.timestamp - b.timestamp) || [];
                     const lastNodeName = sortedNodeUpdates.length > 0
                       ? sortedNodeUpdates[sortedNodeUpdates.length - 1].nodeName
                       : null;
-
-                    console.log("[Thread] sortedNodeUpdates:", sortedNodeUpdates.map(n => n.nodeName), "lastNodeName:", lastNodeName);
 
                     // 마지막 AI 메시지만 표시 (가장 마지막에 추가된 AI 메시지 = 마지막 노드의 출력)
                     let lastAiMessageId: string | null = null;
@@ -668,13 +665,10 @@ export function Thread() {
                       }
                     }
 
-                    console.log("[Thread] lastAiMessageId:", lastAiMessageId);
-
                     const elements: React.ReactNode[] = [];
 
                     // Human 메시지가 없는 경우 맨 앞에 StreamingTaskView 삽입
                     if (compactView && hasVisibleContent && lastHumanIndex === -1) {
-                      console.log("[Thread] No human message, inserting StreamingTaskView at the beginning");
                       elements.push(
                         <StreamingTaskView
                           key="streaming-task-view"
@@ -705,7 +699,6 @@ export function Thread() {
 
                         // 마지막 Human 메시지 다음에 StreamingTaskView 삽입 (컨텐츠가 있을 때만)
                         if (compactView && hasVisibleContent && index === lastHumanIndex) {
-                          console.log("[Thread] Rendering StreamingTaskView!");
                           elements.push(
                             <StreamingTaskView
                               key="streaming-task-view"
@@ -759,7 +752,6 @@ export function Thread() {
                           }
                         }
 
-                        console.log("[Thread] Rendering AI message:", message.id);
                         elements.push(
                           <AssistantMessage
                             key={messageKey}
@@ -772,11 +764,6 @@ export function Thread() {
                       }
                     });
 
-                    console.log("[Thread] Final elements count:", elements.length, "types:", elements.map(e => {
-                      const el = e as React.ReactElement;
-                      const typeName = typeof el?.type === "function" ? (el.type as { name?: string }).name : el?.type;
-                      return typeName || el?.key;
-                    }));
                     return elements;
                   })()}
 
