@@ -178,7 +178,6 @@ export function Thread() {
   const isLoading = stream.isLoading;
   const nodeUpdates = stream.nodeUpdates;
   const updateNodeCompletedOutput = stream.updateNodeCompletedOutput;
-  const toolCallNamespaceMap = stream.toolCallNamespaceMap;  // Phase 5: 병렬 Task 도구 분리용
   const {
     assistants,
     assistantsLoading,
@@ -220,7 +219,7 @@ export function Thread() {
     activeLeafTasks,
     intermediateOutputs,
     finalNodeId,
-  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput, toolCallNamespaceMap });
+  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput });
 
   // 서브에이전트 메시지 감지를 위한 컨텍스트
   const subagentContext = useMemo(() => {
@@ -432,11 +431,7 @@ export function Thread() {
           <motion.div
             className="absolute z-20 h-full overflow-hidden border-r border-border bg-sidebar"
             style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
-            animate={
-              isLargeScreen
-                ? { x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }
-                : { x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }
-            }
+            animate={{ x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }}
             initial={{ x: -UI.CHAT_SIDEBAR_WIDTH }}
             transition={
               isLargeScreen
@@ -635,12 +630,6 @@ export function Thread() {
                         break;
                       }
                     }
-                    // nodeUpdates에서 마지막 노드 이름 찾기 (hasMessages 필터링 제거)
-                    const sortedNodeUpdates = nodeUpdates?.slice().sort((a, b) => a.timestamp - b.timestamp) || [];
-                    const lastNodeName = sortedNodeUpdates.length > 0
-                      ? sortedNodeUpdates[sortedNodeUpdates.length - 1].nodeName
-                      : null;
-
                     // 마지막 AI 메시지만 표시 (가장 마지막에 추가된 AI 메시지 = 마지막 노드의 출력)
                     let lastAiMessageId: string | null = null;
                     if (compactView && hasVisibleContent) {

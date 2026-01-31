@@ -96,12 +96,6 @@ export const AssistantConfigProvider: React.FC<{
   }, [apiUrl, apiKey]);
 
   const fetchConfig = useCallback(async () => {
-    console.log("[AssistantConfig] fetchConfig called with:", {
-      apiUrl,
-      initialAssistantId,
-      apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "none",
-    });
-
     setIsLoading(true);
     setError(null);
 
@@ -117,10 +111,8 @@ export const AssistantConfigProvider: React.FC<{
       let actualAssistantId = initialAssistantId;
       let assistant: Assistant | null = null;
 
-      console.log("[AssistantConfig] Checking if UUID:", initialAssistantId);
       // If it's a valid UUID, try direct lookup first
       if (isValidUUID(initialAssistantId)) {
-        console.log("[AssistantConfig] Valid UUID, trying direct lookup");
 
         assistant = await getAssistant(
           apiUrl,
@@ -131,9 +123,6 @@ export const AssistantConfigProvider: React.FC<{
 
       // If not found or not a UUID, search by graph_id
       if (!assistant) {
-        console.log(
-          `[AssistantConfig] Not a UUID or not found, searching by graph_id: "${initialAssistantId}"`
-        );
         const assistants = await searchAssistants(
           apiUrl,
           {
@@ -146,19 +135,13 @@ export const AssistantConfigProvider: React.FC<{
           apiKey || undefined
         );
 
-        console.log(`[AssistantConfig] Search results:`, assistants);
-
         if (assistants.length > 0) {
           actualAssistantId = assistants[0].assistant_id;
-          console.log(
-            `[AssistantConfig] ✅ Resolved graph_id "${initialAssistantId}" to assistant ID: ${actualAssistantId}`
-          );
           assistant = await getAssistant(
             apiUrl,
             actualAssistantId,
             apiKey || undefined
           );
-          console.log(`[AssistantConfig] Assistant details:`, assistant);
         } else {
           const message = `No assistant found for graph_id: ${initialAssistantId}`;
           console.error(`[AssistantConfig] ❌ ${message}`);
@@ -190,13 +173,6 @@ export const AssistantConfigProvider: React.FC<{
         apiKey || undefined
       );
 
-      // Debug: Log state_schema to understand structure
-      console.log("[AssistantConfig] 📋 Fetched schemas:", {
-        graph_id: assistantSchemas?.graph_id,
-        state_schema: assistantSchemas?.state_schema,
-        input_schema: assistantSchemas?.input_schema,
-      });
-
       setSchemas(assistantSchemas);
 
       // 그래프 구조 조회하여 마지막 노드 파악
@@ -207,14 +183,8 @@ export const AssistantConfigProvider: React.FC<{
       );
 
       if (graph) {
-        console.log("[AssistantConfig] 📊 Fetched graph structure:", {
-          nodes: graph.nodes?.map(n => n.id),
-          edges: graph.edges?.map(e => `${e.source} -> ${e.target}`),
-        });
         setGraphStructure(graph);
-
         const finalNodes = extractAllFinalNodeNames(graph);
-        console.log("[AssistantConfig] 🎯 Final nodes (lead to __end__):", finalNodes);
         setFinalNodeNames(finalNodes);
       }
     } catch (err) {
@@ -227,18 +197,14 @@ export const AssistantConfigProvider: React.FC<{
 
   // Skip initial fetch if we have SSR data
   useEffect(() => {
-    // If we have initial schemas from SSR, skip the fetch
     if (initialData?.schemas && initialData?.assistantId) {
-      console.log("[AssistantConfig] Using SSR data, skipping initial fetch");
       return;
     }
     fetchConfig();
   }, [fetchConfig, initialData?.schemas, initialData?.assistantId]);
 
   useEffect(() => {
-    // If we have initial assistants from SSR, skip the fetch
     if (initialData?.assistants && initialData.assistants.length > 0) {
-      console.log("[AssistantConfig] Using SSR assistants, skipping initial fetch");
       return;
     }
     fetchAssistants();

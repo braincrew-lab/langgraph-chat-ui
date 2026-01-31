@@ -55,15 +55,11 @@ const useTypedStream = useStream<
   }
 >;
 
-// tool_call_id → namespace 매핑 (병렬 Task에서 도구 분리용)
-export type ToolCallNamespaceMap = Map<string, string[]>;
-
 // 확장된 스트림 컨텍스트 타입 (노드 업데이트 정보 포함)
 export type StreamContextType = ReturnType<typeof useTypedStream> & {
   nodeUpdates: NodeUpdateInfo[];
   clearNodeUpdates: () => void;
   updateNodeCompletedOutput: (nodeName: string, output: string) => void;
-  toolCallNamespaceMap: ToolCallNamespaceMap;  // Phase 5: 도구 호출 → 네임스페이스 매핑
 };
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
@@ -114,10 +110,6 @@ const StreamSession = ({
   const [nodeUpdates, setNodeUpdates] = useState<NodeUpdateInfo[]>([]);
   const nodeUpdatesRef = useRef<NodeUpdateInfo[]>([]);
 
-  // Phase 5: tool_call_id → namespace 매핑 (병렬 Task에서 도구 분리용)
-  const toolCallNamespaceMapRef = useRef<ToolCallNamespaceMap>(new Map());
-  const [toolCallNamespaceMap, setToolCallNamespaceMap] = useState<ToolCallNamespaceMap>(new Map());
-
   // Memoize callbacks to prevent infinite re-renders
   const handleCustomEvent = useCallback(
     (event: unknown, options: { mutate: (fn: (prev: StateType) => StateType) => void }) => {
@@ -165,22 +157,6 @@ const StreamSession = ({
                           (typeof rawMessages === "object" && rawMessages !== null) ? [rawMessages] : [];
 
           if (messages.length > 0) {
-            // 모든 메시지에서 tool_call_id와 namespace 매핑 추출 (Phase 5)
-            for (const msg of messages) {
-              if (typeof msg === "object" && msg !== null) {
-                const msgObj = msg as Record<string, unknown>;
-
-                // AI 메시지의 tool_calls에서 tool_call_id 추출
-                if (msgObj.type === "ai" && Array.isArray(msgObj.tool_calls)) {
-                  for (const tc of msgObj.tool_calls as Array<{ id?: string; name?: string }>) {
-                    if (tc.id && options.namespace && options.namespace.length > 0) {
-                      toolCallNamespaceMapRef.current.set(tc.id, options.namespace);
-                    }
-                  }
-                }
-              }
-            }
-
             // 마지막 메시지의 콘텐츠 추출
             const lastMsg = messages[messages.length - 1];
             if (typeof lastMsg === "object" && lastMsg !== null) {
@@ -234,7 +210,6 @@ const StreamSession = ({
 
       // React 상태 업데이트
       setNodeUpdates([...nodeUpdatesRef.current]);
-      setToolCallNamespaceMap(new Map(toolCallNamespaceMapRef.current));
     },
     []
   );
@@ -242,9 +217,7 @@ const StreamSession = ({
   const handleThreadId = useCallback(
     (id: string) => {
       setThreadId(id);
-      // 스레드 변경 시 노드 업데이트만 초기화
-      // toolCallNamespaceMap은 초기화하지 않음 (스트리밍 중 수집된 매핑 유지)
-      // 새 메시지 제출 시 clearNodeUpdates()에서 초기화됨
+      // 스레드 변경 시 노드 업데이트 초기화
       nodeUpdatesRef.current = [];
       setNodeUpdates([]);
       // Refetch threads list when thread ID changes.
@@ -273,9 +246,7 @@ const StreamSession = ({
   // 노드 업데이트 초기화 함수 (새 Human 메시지 전송 시 호출)
   const clearNodeUpdates = useCallback(() => {
     nodeUpdatesRef.current = [];
-    toolCallNamespaceMapRef.current = new Map();
     setNodeUpdates([]);
-    setToolCallNamespaceMap(new Map());
   }, []);
 
   // 노드 완료 출력 업데이트 함수 (노드가 비활성화될 때 출력 저장)
@@ -297,9 +268,8 @@ const StreamSession = ({
       nodeUpdates,
       clearNodeUpdates,
       updateNodeCompletedOutput,
-      toolCallNamespaceMap,  // Phase 5: 도구 호출 → 네임스페이스 매핑
     }),
-    [streamValue, nodeUpdates, clearNodeUpdates, updateNodeCompletedOutput, toolCallNamespaceMap]
+    [streamValue, nodeUpdates, clearNodeUpdates, updateNodeCompletedOutput]
   );
 
   useEffect(() => {
@@ -347,28 +317,24 @@ export const StreamProvider: React.FC<{
   const envApiKey: string | undefined = process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY;
 
   // Use URL params with env var fallbacks
-  const [apiUrl, _setApiUrl] = useQueryState("apiUrl", {
+  const [apiUrl] = useQueryState("apiUrl", {
     defaultValue: envApiUrl || "",
   });
-  const [assistantId, _setAssistantId] = useQueryState("assistantId", {
+  const [assistantId] = useQueryState("assistantId", {
     defaultValue: envAssistantId || "",
   });
 
   // For API key, use localStorage with env var fallback
-  const [apiKey, _setApiKey] = useState(() => {
+  const apiKey = useMemo(() => {
+    if (typeof window === "undefined") return envApiKey || "";
     const storedKey = getApiKey();
     // If no stored key but env var exists, use and save the env var
-    if (!storedKey && envApiKey && typeof window !== "undefined") {
+    if (!storedKey && envApiKey) {
       window.localStorage.setItem("lg:chat:apiKey", envApiKey);
       return envApiKey;
     }
     return storedKey || envApiKey || "";
-  });
-
-  const _setApiKeyWrapper = (key: string) => {
-    window.localStorage.setItem("lg:chat:apiKey", key);
-    _setApiKey(key);
-  };
+  }, [envApiKey]);
 
   // Determine final values to use, prioritizing URL params then env vars
   const finalApiUrl = apiUrl || envApiUrl;
