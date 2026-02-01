@@ -136,6 +136,7 @@ export function ThreadContent() {
   const isLoading = stream.isLoading;
   const nodeUpdates = stream.nodeUpdates;
   const updateNodeCompletedOutput = stream.updateNodeCompletedOutput;
+  const messageNodeMap = stream.messageNodeMap;
   const {
     assistantId: currentAssistantId,
     assistants,
@@ -169,11 +170,12 @@ export function ThreadContent() {
     };
   }, [langSmithMiddlewareRuns, langSmithToolRuns, langSmithLLMRuns]);
 
-  // Streaming view state
+  // Streaming view state (flat list with grouping)
   const {
+    progress,
     todoLifecycle,
     hasVisibleContent,
-    hierarchicalTodos,
+    showTaskView,
     activeLeafTasks,
     intermediateOutputs,
     finalNodeId,
@@ -181,6 +183,8 @@ export function ThreadContent() {
     nodeUpdates,
     finalNodeNames,
     updateNodeCompletedOutput,
+    getMessagesMetadata: stream.getMessagesMetadata,
+    messageNodeMap,
   });
 
   // Refetch LangSmith when streaming completes
@@ -397,10 +401,12 @@ export function ThreadContent() {
                     formSubmissions={formSubmissions}
                     compactView={compactView ?? true}
                     hasVisibleContent={hasVisibleContent}
-                    hierarchicalTodos={hierarchicalTodos}
+                    showTaskView={showTaskView}
+                    progress={progress}
                     activeLeafTasks={activeLeafTasks}
                     intermediateOutputs={intermediateOutputs}
                     finalNodeId={finalNodeId}
+                    finalNodeNames={finalNodeNames}
                     todoLifecycle={todoLifecycle}
                     selectedTaskId={selectedTaskId}
                     onSelectTask={setSelectedTaskId}

@@ -5,17 +5,19 @@
  * and proper message rendering based on type and state.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import type { Message, Checkpoint } from "@langchain/langgraph-sdk";
 import { DO_NOT_RENDER_ID_PREFIX } from "@/lib/utils/ensure-tool-responses";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import { StreamingTaskView } from "./StreamingTaskView";
 import { shouldRenderMessage, buildSubagentContext } from "./utils";
-import type { HierarchicalTodoItem, HierarchicalTask, IntermediateLLMOutput } from "@/types/task-hierarchy";
+import type { HierarchicalTask, IntermediateLLMOutput } from "@/types/task-hierarchy";
+import type { TaskProgressItem } from "@/types/task-progress";
 import type { TodoLifecycleState } from "@/features/chat/hooks/useStreamingView";
 import { FormSubmissionMessage } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
+import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 
 interface FormSubmission {
   data: FormState;
@@ -30,10 +32,12 @@ interface MessageListProps {
   formSubmissions: FormSubmission[];
   compactView: boolean;
   hasVisibleContent: boolean;
-  hierarchicalTodos: HierarchicalTodoItem[];
+  showTaskView: boolean;
+  progress: TaskProgressItem[];
   activeLeafTasks: HierarchicalTask[];
   intermediateOutputs: IntermediateLLMOutput[];
   finalNodeId: string | null;
+  finalNodeNames: string[];
   todoLifecycle: TodoLifecycleState;
   selectedTaskId: string | null;
   onSelectTask: (id: string | null) => void;
@@ -49,10 +53,12 @@ export function MessageList({
   formSubmissions,
   compactView,
   hasVisibleContent,
-  hierarchicalTodos,
+  showTaskView,
+  progress,
   activeLeafTasks,
   intermediateOutputs,
   finalNodeId,
+  finalNodeNames,
   todoLifecycle,
   selectedTaskId,
   onSelectTask,
@@ -60,6 +66,8 @@ export function MessageList({
   firstTokenReceived,
   interrupt,
 }: MessageListProps) {
+  const stream = useStreamContext();
+
   // Build subagent context for message detection
   const subagentContext = useMemo(() => {
     return buildSubagentContext(messages);
@@ -68,6 +76,41 @@ export function MessageList({
   // Check if there are no AI or tool messages
   const hasNoAIOrToolMessages = !messages.find(
     (m) => m.type === "ai" || m.type === "tool"
+  );
+
+  // Check if a message is from an intermediate node (not final)
+  // Uses streamMetadata.langgraph_node from SDK
+  const isIntermediateNodeMessage = useCallback(
+    (message: Message): boolean => {
+      if (message.type !== "ai") return false;
+
+      const meta = stream.getMessagesMetadata(message);
+      const nodeName = (meta?.streamMetadata as Record<string, unknown>)?.langgraph_node as string | undefined;
+
+      // DEBUG: 실제 값 확인
+      console.log("[isIntermediateNodeMessage]", {
+        messageId: message.id,
+        nodeName,
+        finalNodeNames,
+        streamMetadata: meta?.streamMetadata,
+      });
+
+      // If no node name, treat as final (main agent output)
+      if (!nodeName) return false;
+
+      // If finalNodeNames is empty, we can't determine - treat as final
+      if (finalNodeNames.length === 0) return false;
+
+      // Check if this node is in the final node list
+      const isFinal = finalNodeNames.some(
+        (name) => nodeName.toLowerCase() === name.toLowerCase()
+      );
+
+      console.log("[isIntermediateNodeMessage] isFinal:", isFinal);
+
+      return !isFinal;
+    },
+    [stream, finalNodeNames]
   );
 
   // Render the message list
@@ -118,11 +161,12 @@ export function MessageList({
     const elements: React.ReactNode[] = [];
 
     // Insert StreamingTaskView before first message if no human messages
-    if (compactView && hasVisibleContent && lastHumanIndex === -1) {
+    // Use showTaskView (not hasVisibleContent) to show "thinking" indicator during streaming
+    if (compactView && showTaskView && lastHumanIndex === -1) {
       elements.push(
         <StreamingTaskView
           key="streaming-task-view"
-          hierarchicalTodos={hierarchicalTodos}
+          progress={progress}
           activeLeafTasks={activeLeafTasks}
           isStreaming={isLoading}
           selectedTaskId={selectedTaskId}
@@ -148,11 +192,12 @@ export function MessageList({
         );
 
         // Insert StreamingTaskView after last human message
-        if (compactView && hasVisibleContent && index === lastHumanIndex) {
+        // Use showTaskView (not hasVisibleContent) to show "thinking" indicator during streaming
+        if (compactView && showTaskView && index === lastHumanIndex) {
           elements.push(
             <StreamingTaskView
               key="streaming-task-view"
-              hierarchicalTodos={hierarchicalTodos}
+              progress={progress}
               activeLeafTasks={activeLeafTasks}
               isStreaming={isLoading}
               selectedTaskId={selectedTaskId}
@@ -165,9 +210,11 @@ export function MessageList({
       } else {
         const isAfterLastHuman =
           lastHumanIndex >= 0 && index > lastHumanIndex;
+        // Apply compact filter during streaming (isLoading) OR when there's visible content
+        // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
         const shouldApplyCompactFilter =
           compactView &&
-          hasVisibleContent &&
+          (hasVisibleContent || isLoading) &&
           (isAfterLastHuman || lastHumanIndex === -1);
 
         if (shouldApplyCompactFilter) {
@@ -175,10 +222,16 @@ export function MessageList({
             return;
           }
           if (message.type === "ai") {
+            // 서브에이전트 메시지는 항상 숨김
             if (subagentContext.subagentMessageIds.has(message.id || "")) {
               return;
             }
-            if (isLoading || message.id !== lastAiMessageId) {
+            // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
+            if (isIntermediateNodeMessage(message)) {
+              return;
+            }
+            // 스트리밍 중에는 마지막 AI 메시지만 표시
+            if (isLoading && message.id !== lastAiMessageId) {
               return;
             }
           }

@@ -6,17 +6,11 @@ import { cn } from "@/lib/utils";
 import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
-import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
-import { HumanMessage } from "./messages/human";
-import {
-  DO_NOT_RENDER_ID_PREFIX,
-  ensureToolCallsHaveResponses,
-} from "@/lib/utils/ensure-tool-responses";
+import { ensureToolCallsHaveResponses } from "@/lib/utils/ensure-tool-responses";
 import {
   LoaderCircle,
   BookOpen,
 } from "lucide-react";
-import { StreamingTaskView } from "./StreamingTaskView";
 import { useLangSmithRuns } from "@/features/chat/hooks/useLangSmithRuns";
 import { useStreamingView } from "@/features/chat/hooks/useStreamingView";
 import {
@@ -42,14 +36,13 @@ import { useSettings } from "@/shared/hooks/useSettings";
 import { FullDescriptionModal } from "./modals/FullDescriptionModal";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
 import { ChatOpeners } from "./input/ChatOpeners";
-import { shouldRenderMessage, buildSubagentContext } from "./utils";
 import { useSchemaUI } from "@/features/chat/hooks/useSchemaUI";
 import {
   UnifiedInputArea,
-  FormSubmissionMessage,
 } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { updateAssistantIdAction } from "@/app/actions";
+import { MessageList } from "./MessageList";
 
 export function Thread() {
   const { config, userSettings, updateUserSettings } = useSettings();
@@ -146,18 +139,14 @@ export function Thread() {
 
   // 스트리밍 뷰 상태 (TODO 라이프사이클 등)
   const {
+    progress,
     todoLifecycle,
     hasVisibleContent,
-    hierarchicalTodos,
+    showTaskView,
     activeLeafTasks,
     intermediateOutputs,
     finalNodeId,
   } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput });
-
-  // 서브에이전트 메시지 감지를 위한 컨텍스트
-  const subagentContext = useMemo(() => {
-    return buildSubagentContext(messages);
-  }, [messages]);
 
   // 스트리밍 완료 시 LangSmith 재조회
   const prevIsLoading = useRef(isLoading);
@@ -349,9 +338,6 @@ export function Thread() {
   }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
 
   const chatStarted = !!threadId || !!messages.length || formSubmissions.length > 0;
-  const hasNoAIOrToolMessages = !messages.find(
-    (m) => m.type === "ai" || m.type === "tool",
-  );
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
@@ -429,171 +415,26 @@ export function Thread() {
                 userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
               )}
               content={
-                <>
-                  {/* Form mode: render form submissions */}
-                  {isFormMode && formSubmissions.map((submission, idx) => (
-                    <FormSubmissionMessage
-                      key={`form-submission-${idx}`}
-                      formData={submission.data}
-                      fields={submission.fields}
-                      timestamp={submission.timestamp}
-                    />
-                  ))}
-
-                  {/* 메시지를 원래 순서대로 렌더링 (Human-AI-Human-AI 순서 유지) */}
-                  {(() => {
-                    const filteredMessages = messages.filter(
-                      (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
-                    );
-
-                    // 마지막 human 메시지 인덱스 찾기
-                    let lastHumanIndex = -1;
-                    for (let i = filteredMessages.length - 1; i >= 0; i--) {
-                      if (filteredMessages[i].type === "human") {
-                        lastHumanIndex = i;
-                        break;
-                      }
-                    }
-                    // 마지막 AI 메시지만 표시 (가장 마지막에 추가된 AI 메시지 = 마지막 노드의 출력)
-                    let lastAiMessageId: string | null = null;
-                    if (compactView && hasVisibleContent) {
-                      const startIndex = lastHumanIndex >= 0 ? lastHumanIndex : -1;
-                      for (let i = filteredMessages.length - 1; i > startIndex; i--) {
-                        const msg = filteredMessages[i];
-                        if (msg.type === "ai") {
-                          const content = msg.content;
-                          const hasTextContent = typeof content === "string"
-                            ? content.trim().length > 0
-                            : Array.isArray(content) && content.some(
-                                (c: unknown) => typeof c === "object" && c !== null && "type" in c &&
-                                (c as { type: string }).type === "text" && "text" in c &&
-                                typeof (c as { text: unknown }).text === "string" &&
-                                ((c as { text: string }).text).trim().length > 0
-                              );
-                          if (hasTextContent) {
-                            lastAiMessageId = msg.id ?? null;
-                            break;
-                          }
-                        }
-                      }
-                    }
-
-                    const elements: React.ReactNode[] = [];
-
-                    // Human 메시지가 없는 경우 맨 앞에 StreamingTaskView 삽입
-                    if (compactView && hasVisibleContent && lastHumanIndex === -1) {
-                      elements.push(
-                        <StreamingTaskView
-                          key="streaming-task-view"
-                          hierarchicalTodos={hierarchicalTodos}
-                          activeLeafTasks={activeLeafTasks}
-                          isStreaming={isLoading}
-                          selectedTaskId={selectedTaskId}
-                          onSelectTask={setSelectedTaskId}
-                          intermediateOutputs={intermediateOutputs}
-                          finalNodeId={finalNodeId}
-                        />
-                      );
-                    }
-
-                    filteredMessages.forEach((message, index) => {
-                      // 고유 키 생성 (message.id가 중복될 수 있으므로 index 포함)
-                      const messageKey = message.id ? `${message.type}-${message.id}-${index}` : `${message.type}-${index}`;
-
-                      if (message.type === "human") {
-                        // Human 메시지 렌더링
-                        elements.push(
-                          <HumanMessage
-                            key={messageKey}
-                            message={message}
-                            isLoading={isLoading}
-                          />
-                        );
-
-                        // 마지막 Human 메시지 다음에 StreamingTaskView 삽입 (컨텐츠가 있을 때만)
-                        if (compactView && hasVisibleContent && index === lastHumanIndex) {
-                          elements.push(
-                            <StreamingTaskView
-                              key="streaming-task-view"
-                              hierarchicalTodos={hierarchicalTodos}
-                              activeLeafTasks={activeLeafTasks}
-                              isStreaming={isLoading}
-                              selectedTaskId={selectedTaskId}
-                              onSelectTask={setSelectedTaskId}
-                              intermediateOutputs={intermediateOutputs}
-                              finalNodeId={finalNodeId}
-                            />
-                          );
-                        }
-                      } else {
-                        // AI/Tool 메시지 필터링
-                        const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
-                        // Human 메시지가 없는 경우에도 compactView 필터링 적용
-                        const shouldApplyCompactFilter = compactView && hasVisibleContent && (isAfterLastHuman || lastHumanIndex === -1);
-
-                        // compactView + TODO/Intermediate 박스 표시: 스트리밍 중에는 모든 AI 메시지 숨김
-                        if (shouldApplyCompactFilter) {
-                          // tool 메시지는 숨김
-                          if (message.type === "tool") {
-                            return;
-                          }
-                          // AI 메시지 처리
-                          if (message.type === "ai") {
-                            // 서브에이전트 메시지는 항상 숨김
-                            if (subagentContext.subagentMessageIds.has(message.id || "")) {
-                              return;
-                            }
-                            // 스트리밍 중에는 모든 AI 메시지 숨김 (compact 박스에서만 표시)
-                            // 스트리밍 완료 후에만 마지막 AI 메시지 표시
-                            if (isLoading || message.id !== lastAiMessageId) {
-                              return;
-                            }
-                          }
-                        }
-
-                        // 그 외의 경우 기존 shouldRenderMessage 로직 사용
-                        if (!shouldApplyCompactFilter) {
-                          if (!shouldRenderMessage(
-                            message,
-                            todoLifecycle,
-                            compactView,
-                            false,
-                            subagentContext,
-                            filteredMessages
-                          )) {
-                            return;
-                          }
-                        }
-
-                        elements.push(
-                          <AssistantMessage
-                            key={messageKey}
-                            message={message}
-                            isLoading={isLoading}
-                            handleRegenerate={handleRegenerate}
-                            compactView={compactView}
-                          />
-                        );
-                      }
-                    });
-
-                    return elements;
-                  })()}
-
-                  {/* Special rendering case where there are no AI/tool messages, but there is an interrupt. */}
-                  {hasNoAIOrToolMessages && !!stream.interrupt && (
-                    <AssistantMessage
-                      key="interrupt-msg"
-                      message={undefined}
-                      isLoading={isLoading}
-                      handleRegenerate={handleRegenerate}
-                      compactView={compactView}
-                    />
-                  )}
-                  {isLoading && !firstTokenReceived && (
-                    <AssistantMessageLoading />
-                  )}
-                </>
+                <MessageList
+                  messages={messages}
+                  isLoading={isLoading}
+                  isFormMode={isFormMode}
+                  formSubmissions={formSubmissions}
+                  compactView={compactView ?? true}
+                  hasVisibleContent={hasVisibleContent}
+                  showTaskView={showTaskView}
+                  progress={progress}
+                  activeLeafTasks={activeLeafTasks}
+                  intermediateOutputs={intermediateOutputs}
+                  finalNodeId={finalNodeId}
+                  finalNodeNames={finalNodeNames}
+                  todoLifecycle={todoLifecycle}
+                  selectedTaskId={selectedTaskId}
+                  onSelectTask={setSelectedTaskId}
+                  handleRegenerate={handleRegenerate}
+                  firstTokenReceived={firstTokenReceived}
+                  interrupt={stream.interrupt}
+                />
               }
               footer={
                 <div className="sticky bottom-0 flex flex-col items-center gap-10 bg-none">

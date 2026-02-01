@@ -8,6 +8,8 @@ import { MarkdownText } from "../content/MarkdownText";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./ToolCalls";
+import { ToolCardList } from "../ToolCard";
+import { isNewTaskUIEnabled } from "@/types/task-progress";
 import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
 import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
@@ -203,15 +205,48 @@ export const AssistantMessage = memo(function AssistantMessage({
 
             {!hideToolCalls && !compactView && (
               <>
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
-                )) ||
-                  (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
-                  )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
-                  ))}
+                {isNewTaskUIEnabled() ? (
+                  // New ToolCard UI
+                  <>
+                    {hasToolCalls && filteredToolCalls && (
+                      <ToolCardList
+                        tools={filteredToolCalls.map((tc) => ({
+                          id: tc.id || `tool-${tc.name}`,
+                          name: tc.name || "Unknown",
+                          args: tc.args as Record<string, unknown>,
+                          status: isLoading ? "running" : "completed",
+                          toolCallId: tc.id,
+                        }))}
+                        variant="full"
+                      />
+                    )}
+                    {!hasToolCalls && hasAnthropicToolCalls && filteredAnthropicToolCalls && (
+                      <ToolCardList
+                        tools={filteredAnthropicToolCalls.map((tc) => ({
+                          id: tc.id || `tool-${tc.name}`,
+                          name: tc.name || "Unknown",
+                          args: tc.args as Record<string, unknown>,
+                          status: isLoading ? "running" : "completed",
+                          toolCallId: tc.id,
+                        }))}
+                        variant="full"
+                      />
+                    )}
+                  </>
+                ) : (
+                  // Original ToolCalls UI
+                  <>
+                    {(hasToolCalls && toolCallsHaveContents && (
+                      <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                    )) ||
+                      (hasAnthropicToolCalls && (
+                        <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
+                      )) ||
+                      (hasToolCalls && (
+                        <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                      ))}
+                  </>
+                )}
               </>
             )}
 
