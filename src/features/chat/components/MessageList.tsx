@@ -18,6 +18,7 @@ import type { TodoLifecycleState } from "@/features/chat/hooks/useStreamingView"
 import { FormSubmissionMessage } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
+import { LoaderCircle } from "lucide-react";
 
 interface FormSubmission {
   data: FormState;
@@ -44,6 +45,10 @@ interface MessageListProps {
   handleRegenerate: (checkpoint: Checkpoint | null | undefined) => void;
   firstTokenReceived: boolean;
   interrupt?: unknown;
+  /** Thread ID - when set, indicates we're on a chat detail page */
+  threadId?: string | null;
+  /** Whether conversation history is currently loading */
+  isHistoryLoading?: boolean;
 }
 
 export function MessageList({
@@ -65,6 +70,8 @@ export function MessageList({
   handleRegenerate,
   firstTokenReceived,
   interrupt,
+  threadId,
+  isHistoryLoading = false,
 }: MessageListProps) {
   const stream = useStreamContext();
 
@@ -129,12 +136,20 @@ export function MessageList({
     }
 
     // Find last AI message with text content (for compact view)
+    // Also find last AI message index for streaming cases
     let lastAiMessageId: string | null = null;
-    if (compactView && hasVisibleContent) {
+    let lastAiMessageIndex: number = -1;
+
+    if (compactView && (hasVisibleContent || isLoading)) {
       const startIndex = lastHumanIndex >= 0 ? lastHumanIndex : -1;
       for (let i = filteredMessages.length - 1; i > startIndex; i--) {
         const msg = filteredMessages[i];
         if (msg.type === "ai") {
+          // Track last AI message index for streaming (even without content)
+          if (lastAiMessageIndex === -1) {
+            lastAiMessageIndex = i;
+          }
+
           const content = msg.content;
           const hasTextContent =
             typeof content === "string"
@@ -231,8 +246,14 @@ export function MessageList({
               return;
             }
             // 스트리밍 중에는 마지막 AI 메시지만 표시
-            if (isLoading && message.id !== lastAiMessageId) {
-              return;
+            // Use lastAiMessageId if found, otherwise use lastAiMessageIndex
+            if (isLoading) {
+              const isLastAiMessage = lastAiMessageId
+                ? message.id === lastAiMessageId
+                : index === lastAiMessageIndex;
+              if (!isLastAiMessage) {
+                return;
+              }
             }
           }
         }
@@ -267,8 +288,21 @@ export function MessageList({
     return elements;
   };
 
+  // Show loading spinner when on chat detail page and no messages yet
+  const showHistoryLoading = threadId && messages.length === 0 && formSubmissions.length === 0 && (isHistoryLoading || !firstTokenReceived);
+
   return (
     <>
+      {/* Loading spinner for conversation history */}
+      {showHistoryLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+            <span className="text-sm">대화를 불러오는 중...</span>
+          </div>
+        </div>
+      )}
+
       {/* Form mode: render form submissions */}
       {isFormMode &&
         formSubmissions.map((submission, idx) => (
@@ -280,7 +314,7 @@ export function MessageList({
           />
         ))}
 
-      {renderMessages()}
+      {!showHistoryLoading && renderMessages()}
 
       {/* Show interrupt message if no AI/tool messages */}
       {hasNoAIOrToolMessages && !!interrupt && (

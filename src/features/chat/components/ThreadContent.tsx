@@ -413,6 +413,7 @@ export function ThreadContent() {
                     handleRegenerate={handleRegenerate}
                     firstTokenReceived={firstTokenReceived}
                     interrupt={stream.interrupt}
+                    threadId={threadId}
                   />
                 }
                 footer={

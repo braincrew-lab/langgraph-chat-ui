@@ -275,7 +275,8 @@ export const ToolCard = memo(function ToolCard({
   autoCollapse = true,
 }: ToolCardProps) {
   const { userSettings } = useSettings();
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Start collapsed by default (more compact), expand when user clicks
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Auto-collapse when completed (if setting enabled)
   useEffect(() => {
@@ -288,19 +289,32 @@ export const ToolCard = memo(function ToolCard({
   const hasResult = result && result.length > 0;
   const isCompact = variant === "compact";
 
+  // Get status-specific styling
+  const getStatusColor = () => {
+    switch (status) {
+      case "completed":
+        return "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10";
+      case "error":
+        return "border-red-300 dark:border-red-700/50 bg-red-50/30 dark:bg-red-950/10";
+      case "running":
+      default:
+        return "border-purple-300 dark:border-purple-700/50 bg-purple-50/30 dark:bg-purple-950/10";
+    }
+  };
+
   // Compact variant: minimal inline display
   if (isCompact) {
     return (
       <div
         className={cn(
           "flex items-center gap-2 py-1.5 px-2 text-xs",
-          "border-l-2 border-orange-200 dark:border-orange-800/50",
-          "bg-orange-50/30 dark:bg-orange-950/10 rounded-r",
+          "border-l-2 rounded-r",
+          getStatusColor(),
           className
         )}
       >
-        <Wrench className="h-3 w-3 text-orange-500 flex-shrink-0" />
-        <span className="font-medium text-orange-700 dark:text-orange-400">{name}</span>
+        <Wrench className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        <span className="font-medium text-foreground/80">{name}</span>
         <StatusIcon status={status} />
         {latency && <LatencyBadge latency={latency} />}
         {hasArgs && (
@@ -314,42 +328,47 @@ export const ToolCard = memo(function ToolCard({
     );
   }
 
-  // Full variant: expandable card
+  // Full variant: unified inline style with border-left (matches TaskProgressList)
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border/50 dark:border-border bg-card",
-        "shadow-sm transition-all duration-200 hover:shadow-md hover:border-border dark:hover:border-border/80",
+        "overflow-hidden rounded-lg border-l-2",
+        getStatusColor(),
+        "transition-all duration-150",
         className
       )}
     >
-      {/* Header */}
+      {/* Header - compact inline style */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full border-b border-border/50 dark:border-border bg-muted/30 dark:bg-muted/50 px-4 py-3 text-left transition-all duration-200 hover:bg-muted/50 dark:hover:bg-muted/70"
+        className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/8 ring-1 ring-foreground/5">
-              <Wrench className="h-3.5 w-3.5 text-foreground/70" />
-            </div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-foreground text-sm">{name}</h3>
-              <StatusIcon status={status} />
-              {latency && <LatencyBadge latency={latency} />}
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Wrench className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="font-medium text-sm text-foreground truncate">{name}</span>
+            <StatusIcon status={status} />
+            {latency && <LatencyBadge latency={latency} />}
+            {/* Show args preview when collapsed */}
+            {!isExpanded && hasArgs && (
+              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                ({Object.entries(args).map(([k, v]) =>
+                  `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`
+                ).join(", ")})
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {toolCallId && (
-              <code className="rounded-md bg-muted/70 px-2 py-0.5 text-xs font-mono text-muted-foreground/80 border border-border/30">
-                {toolCallId.slice(0, 8)}...
+              <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+                {toolCallId.slice(0, 6)}
               </code>
             )}
             <motion.div
               animate={{ rotate: isExpanded ? 0 : -90 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
             >
-              <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
             </motion.div>
           </div>
         </div>
@@ -362,12 +381,12 @@ export const ToolCard = memo(function ToolCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
+            transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden border-t border-border/30"
           >
             {/* Args Section */}
             {hasArgs && (
-              <div className="bg-card">
+              <div className="bg-muted/10">
                 <ArgsTable args={args} />
               </div>
             )}
@@ -379,8 +398,8 @@ export const ToolCard = memo(function ToolCard({
 
             {/* Running State */}
             {status === "running" && !hasResult && (
-              <div className="px-4 py-3 border-t border-border/40 bg-orange-50/30 dark:bg-orange-950/10">
-                <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+              <div className="px-3 py-2 bg-purple-50/20 dark:bg-purple-950/10">
+                <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Running...</span>
                 </div>

@@ -1,8 +1,9 @@
 import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, Wrench, CheckCircle2, Loader2 } from "lucide-react";
 import { useSettings } from "@/shared/hooks/useSettings";
+import { cn } from "@/lib/utils";
 
 function isComplexValue(value: unknown): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
@@ -35,7 +36,8 @@ function ToolCallItem({
   isLoading?: boolean;
 }) {
   const { userSettings } = useSettings();
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Start collapsed by default for unified compact style
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     if (userSettings.autoCollapseToolCalls && isLoading === false) {
@@ -48,43 +50,51 @@ function ToolCallItem({
   const argEntries = Object.entries(args);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/50 dark:border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-border dark:hover:border-border/80">
+    <div
+      className={cn(
+        "overflow-hidden rounded-lg border-l-2 transition-all duration-150",
+        isLoading
+          ? "border-purple-300 dark:border-purple-700/50 bg-purple-50/30 dark:bg-purple-950/10"
+          : "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10"
+      )}
+    >
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full border-b border-border/50 dark:border-border bg-muted/30 dark:bg-muted/50 px-5 py-3.5 text-left transition-all duration-200 hover:bg-muted/50 dark:hover:bg-muted/70"
+        className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/8 ring-1 ring-foreground/5">
-              <svg
-                className="h-3.5 w-3.5 text-foreground/70"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <h3 className="font-medium text-foreground text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Wrench className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="font-medium text-sm text-foreground truncate">
               {toolCall.name}
-              {toolCall.id && (
-                <code className="ml-2 rounded-md bg-muted/70 px-2 py-0.5 text-xs font-mono text-muted-foreground/80 border border-border/30">
-                  {toolCall.id.slice(0, 8)}...
-                </code>
-              )}
-            </h3>
+            </span>
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 text-purple-500 animate-spin flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+            )}
+            {/* Show args preview when collapsed */}
+            {!isExpanded && hasArgs && (
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                ({argEntries.map(([k, v]) =>
+                  `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`
+                ).join(", ")})
+              </span>
+            )}
           </div>
-          <motion.div
-            animate={{ rotate: isExpanded ? 0 : -90 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-          >
-            <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
-          </motion.div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {toolCall.id && (
+              <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+                {toolCall.id.slice(0, 6)}
+              </code>
+            )}
+            <motion.div
+              animate={{ rotate: isExpanded ? 0 : -90 }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
+            >
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+            </motion.div>
+          </div>
         </div>
       </button>
       <AnimatePresence initial={false}>
@@ -93,11 +103,11 @@ function ToolCallItem({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
+            transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden border-t border-border/30"
           >
             {hasArgs ? (
-              <div className="bg-card">
+              <div className="bg-muted/10">
                 <table className="min-w-full">
                   <tbody className="divide-y divide-border/40">
                     {argEntries.map(([key, value], argIdx) => (
@@ -105,16 +115,16 @@ function ToolCallItem({
                         key={argIdx}
                         className="transition-colors duration-150 hover:bg-muted/30"
                       >
-                        <td className="px-5 py-3 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
+                        <td className="px-3 py-2 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
                           {key}
                         </td>
-                        <td className="px-5 py-3 text-sm text-foreground/85">
+                        <td className="px-3 py-2 text-sm text-foreground/85">
                           {isComplexValue(value) ? (
-                            <code className="block rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs break-all border border-border/30">
+                            <code className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-xs break-all border border-border/30 whitespace-pre-wrap">
                               {JSON.stringify(value, null, 2)}
                             </code>
                           ) : (
-                            <span className="font-normal">{String(value)}</span>
+                            <span className="font-normal break-words">{String(value)}</span>
                           )}
                         </td>
                       </tr>
@@ -123,10 +133,10 @@ function ToolCallItem({
                 </table>
               </div>
             ) : (
-              <div className="bg-card px-5 py-4">
-                <code className="text-xs text-muted-foreground/60 italic">
+              <div className="px-3 py-2">
+                <span className="text-xs text-muted-foreground/60 italic">
                   No arguments
-                </code>
+                </span>
               </div>
             )}
           </motion.div>
@@ -144,7 +154,9 @@ export function ToolResult({
   isLoading?: boolean;
 }) {
   const { userSettings } = useSettings();
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Start collapsed by default for unified compact style
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
 
   useEffect(() => {
     if (userSettings.autoCollapseToolCalls && isLoading === false) {
@@ -168,63 +180,50 @@ export function ToolResult({
   const contentStr = isJsonContent
     ? JSON.stringify(parsedContent, null, 2)
     : String(message.content);
-  const contentLines = contentStr.split("\n");
-  const shouldTruncate = contentLines.length > 4 || contentStr.length > 500;
-  const displayedContent =
-    shouldTruncate && !isExpanded
-      ? contentStr.length > 500
-        ? contentStr.slice(0, 500) + "..."
-        : contentLines.slice(0, 4).join("\n") + "\n..."
-      : contentStr;
+  const shouldTruncate = contentStr.length > 300;
+  const displayedContent = shouldTruncate && !showFullContent
+    ? contentStr.slice(0, 300) + "..."
+    : contentStr;
+
+  // Preview for collapsed state
+  const previewContent = contentStr.slice(0, 60).replace(/\n/g, " ");
 
   return (
     <div className={`mx-auto grid ${userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"} grid-rows-[1fr_auto] gap-0`}>
-      <div className="overflow-hidden rounded-xl border border-border/50 dark:border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-border dark:hover:border-border/80">
+      <div
+        className={cn(
+          "overflow-hidden rounded-lg border-l-2 transition-all duration-150",
+          "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10"
+        )}
+      >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full border-b border-border/50 dark:border-border bg-muted/30 dark:bg-muted/50 px-5 py-3.5 text-left transition-all duration-200 hover:bg-muted/50 dark:hover:bg-muted/70 cursor-pointer"
+          className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/8 ring-1 ring-foreground/5">
-                <svg
-                  className="h-3.5 w-3.5 text-foreground/70"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              {message.name ? (
-                <h3 className="font-medium text-foreground text-sm flex gap-2 items-center">
-                  Tool Result
-                  <code className="rounded-md bg-muted/70 px-2 py-0.5 text-xs font-mono text-muted-foreground/80 border border-border/30">
-                    {message.name}
-                  </code>
-                </h3>
-              ) : (
-                <h3 className="font-medium text-foreground text-sm">
-                  Tool Result
-                </h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+              <span className="font-medium text-sm text-foreground">
+                {message.name || "Result"}
+              </span>
+              {/* Preview when collapsed */}
+              {!isExpanded && (
+                <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                  {previewContent}{previewContent.length >= 60 ? "..." : ""}
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {message.tool_call_id && (
-                <code className="rounded-md bg-muted/70 px-2 py-0.5 text-xs font-mono text-muted-foreground/80 border border-border/30">
-                  {message.tool_call_id.slice(0, 8)}...
+                <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+                  {message.tool_call_id.slice(0, 6)}
                 </code>
               )}
               <motion.div
                 animate={{ rotate: isExpanded ? 0 : -90 }}
-                transition={{ duration: 0.25, ease: "easeInOut" }}
+                transition={{ duration: 0.15, ease: "easeInOut" }}
               >
-                <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
               </motion.div>
             </div>
           </div>
@@ -232,92 +231,67 @@ export function ToolResult({
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              className="min-w-full bg-card overflow-hidden"
+              className="min-w-full overflow-hidden border-t border-border/30"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             >
-              <div className="p-3">
-                <AnimatePresence
-                  mode="wait"
-                  initial={false}
-                >
-                  <motion.div
-                    key={isExpanded ? "expanded" : "collapsed"}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  >
-                    {isJsonContent ? (
-                      <table className="min-w-full">
-                        <tbody className="divide-y divide-border/40">
-                          {(Array.isArray(parsedContent)
-                            ? isExpanded
-                              ? parsedContent
-                              : parsedContent.slice(0, 5)
-                            : Object.entries(parsedContent as Record<string, unknown>)
-                          ).map((item, argIdx) => {
-                            const [key, value] = Array.isArray(parsedContent)
-                              ? [argIdx, item]
-                              : [item[0], item[1]];
-                            return (
-                              <tr
-                                key={argIdx}
-                                className="transition-colors duration-150 hover:bg-muted/30"
-                              >
-                                <td className="px-5 py-3 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
-                                  {key}
-                                </td>
-                                <td className="px-5 py-3 text-sm text-foreground/85">
-                                  {isComplexValue(value) ? (
-                                    <code className="block rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs break-all border border-border/30">
-                                      {JSON.stringify(value, null, 2)}
-                                    </code>
-                                  ) : (
-                                    <span className="font-normal">{String(value)}</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <code className="block rounded-lg bg-muted/40 px-3 py-2.5 text-sm font-mono border border-border/30 leading-relaxed whitespace-pre-wrap">
-                        {displayedContent}
-                      </code>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
+              <div className="p-3 bg-muted/10">
+                {isJsonContent ? (
+                  <table className="min-w-full">
+                    <tbody className="divide-y divide-border/40">
+                      {(Array.isArray(parsedContent)
+                        ? showFullContent
+                          ? parsedContent
+                          : parsedContent.slice(0, 5)
+                        : Object.entries(parsedContent as Record<string, unknown>)
+                      ).map((item, argIdx) => {
+                        const [key, value] = Array.isArray(parsedContent)
+                          ? [argIdx, item]
+                          : [item[0], item[1]];
+                        return (
+                          <tr
+                            key={argIdx}
+                            className="transition-colors duration-150 hover:bg-muted/30"
+                          >
+                            <td className="px-3 py-2 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
+                              {key}
+                            </td>
+                            <td className="px-3 py-2 text-sm text-foreground/85">
+                              {isComplexValue(value) ? (
+                                <code className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-xs break-all border border-border/30 whitespace-pre-wrap">
+                                  {JSON.stringify(value, null, 2)}
+                                </code>
+                              ) : (
+                                <span className="font-normal break-words">{String(value)}</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <code className="block rounded bg-muted/40 px-2 py-1.5 text-xs font-mono border border-border/30 leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                    {displayedContent}
+                  </code>
+                )}
               </div>
               {((shouldTruncate && !isJsonContent) ||
                 (isJsonContent &&
                   Array.isArray(parsedContent) &&
                   parsedContent.length > 5)) && (
-                <motion.button
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsExpanded(!isExpanded);
+                    setShowFullContent(!showFullContent);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 border-t border-border/40 bg-muted/20 py-2.5 text-xs font-medium text-foreground/70 transition-all duration-150 ease-in-out hover:bg-muted/40"
-                  initial={{ scale: 1 }}
-                  whileHover={{ scale: 1.002 }}
-                  whileTap={{ scale: 0.998 }}
+                  className="flex w-full items-center justify-center gap-1.5 border-t border-border/30 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/30 transition-colors"
                 >
-                  {isExpanded ? (
-                    <>
-                      <ChevronUp className="h-3.5 w-3.5" />
-                      <span>Show less</span>
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-3.5 w-3.5" />
-                      <span>Show more</span>
-                    </>
-                  )}
-                </motion.button>
+                  <ChevronDown className={cn("h-3 w-3 transition-transform", showFullContent && "rotate-180")} />
+                  <span>{showFullContent ? "Show less" : "Show more"}</span>
+                </button>
               )}
             </motion.div>
           )}

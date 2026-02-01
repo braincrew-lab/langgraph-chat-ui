@@ -16,7 +16,7 @@
  * └─────────────────────────────────────────┘
  */
 
-import React, { FormEvent, ChangeEvent, RefObject, useState } from "react";
+import React, { FormEvent, ChangeEvent, RefObject, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -113,6 +113,20 @@ export function UnifiedInputArea({
 
   // Form collapse state - collapsed by default on chat page
   const [isFormCollapsed, setIsFormCollapsed] = useState(isChatPage);
+
+  // Auto-collapse form when entering chat page or when streaming starts
+  useEffect(() => {
+    if (isChatPage && isFormMode) {
+      setIsFormCollapsed(true);
+    }
+  }, [isChatPage, isFormMode]);
+
+  // Collapse form when streaming starts
+  useEffect(() => {
+    if (isLoading && isFormMode) {
+      setIsFormCollapsed(true);
+    }
+  }, [isLoading, isFormMode]);
 
   // Hidden while schema is loading (SSR should prevent this in most cases)
   if (schemaLoading) {
