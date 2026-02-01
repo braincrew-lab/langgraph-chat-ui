@@ -4,7 +4,7 @@
  * These settings can be modified by admins in the dashboard
  */
 
-export type SettingCategory = "auth" | "ui" | "features";
+export type SettingCategory = "auth" | "ui" | "features" | "branding";
 
 /**
  * All available setting keys grouped by category
@@ -31,6 +31,12 @@ export interface GlobalSettings {
   "features.enableAdvancedInput": boolean; // 고급 입력 활성화 (스키마 기반 선택적 필드)
   "features.defaultGraphId": string; // 기본 그래프 ID (그래프 선택 비활성화 시 사용)
   "features.defaultConnectionApiUrl": string; // 기본 커넥션 API URL (커넥션 선택 비활성화 시 사용)
+
+  // Branding settings
+  "branding.appTitle": string; // 앱 타이틀
+  "branding.logoUrl": string; // 로고 이미지 URL
+  "branding.faviconUrl": string; // Favicon URL (빈 값 = logoUrl 사용)
+  "branding.chatOpeners": string[]; // 채팅 시작 문구 목록 (빈 배열 = 정적 설정 사용)
 }
 
 export type SettingKey = keyof GlobalSettings;
@@ -43,8 +49,9 @@ export interface SettingMeta {
   label: string;
   description: string;
   category: SettingCategory;
-  type: "string" | "boolean" | "number" | "select";
+  type: "string" | "boolean" | "number" | "select" | "url" | "array";
   options?: string[];
+  maxItems?: number; // array 타입일 때 최대 항목 수
   defaultValue: GlobalSettings[SettingKey];
 }
 
@@ -85,6 +92,12 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "features.enableAdvancedInput": true,
   "features.defaultGraphId": "",
   "features.defaultConnectionApiUrl": "",
+
+  // Branding
+  "branding.appTitle": "TeddyNote Chat",
+  "branding.logoUrl": "/logo.png",
+  "branding.faviconUrl": "", // 빈 값 = logoUrl 사용
+  "branding.chatOpeners": [], // 빈 배열 = 정적 설정 사용
 };
 
 /**
@@ -202,5 +215,40 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
     category: "features",
     type: "string",
     defaultValue: DEFAULT_SETTINGS["features.defaultConnectionApiUrl"],
+  },
+
+  // Branding
+  {
+    key: "branding.appTitle",
+    label: "앱 타이틀",
+    description: "브라우저 탭과 헤더에 표시되는 앱 이름",
+    category: "branding",
+    type: "string",
+    defaultValue: DEFAULT_SETTINGS["branding.appTitle"],
+  },
+  {
+    key: "branding.logoUrl",
+    label: "로고 이미지 URL",
+    description: "헤더와 로그인 페이지에 표시되는 로고 이미지 URL",
+    category: "branding",
+    type: "url",
+    defaultValue: DEFAULT_SETTINGS["branding.logoUrl"],
+  },
+  {
+    key: "branding.faviconUrl",
+    label: "Favicon URL",
+    description: "브라우저 탭에 표시되는 아이콘 URL (비워두면 로고 사용)",
+    category: "branding",
+    type: "url",
+    defaultValue: DEFAULT_SETTINGS["branding.faviconUrl"],
+  },
+  {
+    key: "branding.chatOpeners",
+    label: "채팅 시작 문구",
+    description: "새 채팅 시작 시 표시되는 예시 질문 목록 (비워두면 기본값 사용)",
+    category: "branding",
+    type: "array",
+    maxItems: 20,
+    defaultValue: DEFAULT_SETTINGS["branding.chatOpeners"],
   },
 ];

@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban, Clock, CheckCircle } from "lucide-react";
-import { siteConfig } from "@/configs/site";
 import { useAuthContext } from "../AuthLayoutClient";
 import { registerUser } from "@/app/actions/auth";
 import type { UserStatus } from "@/types/auth-mode";
@@ -34,7 +33,7 @@ const itemVariants = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { allowRegistration } = useAuthContext();
+  const { allowRegistration, branding } = useAuthContext();
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
@@ -116,16 +115,16 @@ export default function RegisterPage() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={siteConfig.branding.logoPath}
-              alt={`${siteConfig.branding.appName} 로고`}
-              width={siteConfig.branding.logoWidth * 2}
-              height={siteConfig.branding.logoHeight * 2}
+              src={branding.logoPath}
+              alt={`${branding.appName} 로고`}
+              width={branding.logoWidth * 2}
+              height={branding.logoHeight * 2}
               className="flex-shrink-0"
             />
           </motion.div>
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
-              {siteConfig.branding.appName}
+              {branding.appName}
             </h1>
           </div>
         </motion.div>
@@ -258,16 +257,16 @@ export default function RegisterPage() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={siteConfig.branding.logoPath}
-            alt={`${siteConfig.branding.appName} 로고`}
-            width={siteConfig.branding.logoWidth * 2}
-            height={siteConfig.branding.logoHeight * 2}
+            src={branding.logoPath}
+            alt={`${branding.appName} 로고`}
+            width={branding.logoWidth * 2}
+            height={branding.logoHeight * 2}
             className="flex-shrink-0"
           />
         </motion.div>
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            {siteConfig.branding.appName}
+            {branding.appName}
           </h1>
           <p className="text-sm text-muted-foreground">
             새 계정을 만들어 시작하세요

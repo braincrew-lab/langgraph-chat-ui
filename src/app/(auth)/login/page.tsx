@@ -8,7 +8,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { LoaderCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react";
-import { siteConfig } from "@/configs/site";
 import { useAuthContext } from "../AuthLayoutClient";
 
 const containerVariants = {
@@ -36,7 +35,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const registered = searchParams.get("registered") === "true";
-  const { allowRegistration } = useAuthContext();
+  const { allowRegistration, branding } = useAuthContext();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,16 +92,16 @@ function LoginForm() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={siteConfig.branding.logoPath}
-            alt={`${siteConfig.branding.appName} 로고`}
-            width={siteConfig.branding.logoWidth * 2}
-            height={siteConfig.branding.logoHeight * 2}
+            src={branding.logoPath}
+            alt={`${branding.appName} 로고`}
+            width={branding.logoWidth * 2}
+            height={branding.logoHeight * 2}
             className="flex-shrink-0"
           />
         </motion.div>
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            {siteConfig.branding.appName}
+            {branding.appName}
           </h1>
           <p className="text-sm text-muted-foreground">
             계정에 로그인하여 시작하세요

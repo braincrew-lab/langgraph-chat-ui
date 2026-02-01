@@ -10,12 +10,34 @@ function applyGlobalSettings(
   config: typeof fullConfig,
   settings: GlobalSettings
 ): ChatConfig {
+  // Branding fallback chain
+  const logoUrl = settings["branding.logoUrl"] || config.branding.logoPath;
+  const faviconUrl = settings["branding.faviconUrl"] || logoUrl;
+  const chatOpeners =
+    settings["branding.chatOpeners"]?.length > 0
+      ? settings["branding.chatOpeners"]
+      : config.branding.chatOpeners;
+  const appTitle = settings["branding.appTitle"] || config.meta.title;
+
   return {
     ...config,
+    meta: {
+      ...config.meta,
+      // branding.appTitle → meta.title
+      title: appTitle,
+      // branding.faviconUrl → meta.favicon (with fallback to logo)
+      favicon: faviconUrl,
+    },
     branding: {
       ...config.branding,
+      // branding.appTitle → branding.appName
+      appName: appTitle,
+      // branding.logoUrl → branding.logoPath
+      logoPath: logoUrl,
       // ui.welcomeMessage → branding.description
       description: settings["ui.welcomeMessage"] || config.branding.description,
+      // branding.chatOpeners → branding.chatOpeners (with fallback to static config)
+      chatOpeners,
     },
     buttons: {
       ...config.buttons,
