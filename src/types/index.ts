@@ -52,3 +52,18 @@ export type {
 } from "./middleware";
 
 export { groupTracesByMiddleware } from "./middleware";
+
+// Task progress types (NEW - simplified)
+export type {
+  TaskProgressItem,
+  TaskStatus,
+  ToolStatus,
+  LangSmithEnrichment,
+  StreamingOutput,
+  UseTaskProgressReturn,
+  UseLangSmithEnrichmentReturn,
+  ProgressGroup,
+  ExtractedToolCall,
+} from "./task-progress";
+
+export { isNewTaskUIEnabled } from "./task-progress";
