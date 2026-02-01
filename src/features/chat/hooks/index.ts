@@ -1,29 +1,23 @@
 /**
  * Streaming View Hooks
  *
- * Modular hooks for streaming view state management.
- * Composed from smaller, focused hooks.
+ * Simplified hooks for streaming view state management.
+ * Uses flat list with grouping (no hierarchical nesting).
  *
  * ## Hook Composition
  * ```
  * useStreamingView (main export)
- * ├─ useTaskExtraction - TODO/tool extraction from messages
- * ├─ useStreamingOutput - LLM output extraction
- * └─ useTaskHierarchy - Hierarchical TODO building
- * ```
- *
- * ## Data Flow
- * ```
- * LangSmith Runs + Messages
- * ├─ useTaskExtraction → currentTodo, currentToolCalls, taskScopes
- * ├─ useStreamingOutput → streamingLLMOutput, intermediateOutputs
- * └─ useTaskHierarchy → hierarchicalTodos
+ * ├─ useTaskProgress - Flat task/todo extraction
+ * └─ useLangSmithEnrichment - Simple LangSmith enrichment
  * ```
  */
 
-export { useTaskExtraction, type TodoLifecycleState } from "./useTaskExtraction";
-export { useStreamingOutput } from "./useStreamingOutput";
-export { useTaskHierarchy } from "./useTaskHierarchy";
+// Main hook
+export { useStreamingView, type TodoLifecycleState } from "./useStreamingView";
+
+// Supporting hooks
+export { useTaskProgress, groupProgressItems, isFilteredToolName } from "./useTaskProgress";
+export { useLangSmithEnrichment, getRunsForTask, calculateTotalLatency, getActiveRunForTask } from "./useLangSmithEnrichment";
 
 // Re-export utility types
 export type {
@@ -31,14 +25,11 @@ export type {
   CurrentToolCall,
   TaskScope,
   NodeUpdateInfo,
-  StreamingContext,
 } from "./utils";
 
-// Re-export utility functions for external use
+// Re-export utility functions
 export {
   isTodoToolName,
   isTaskToolName,
   isSubagentTodo,
-  calculateTextSimilarity,
-  collectAllTaskIds,
 } from "./utils";
