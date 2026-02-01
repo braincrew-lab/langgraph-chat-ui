@@ -8,6 +8,8 @@ import { MarkdownText } from "../content/MarkdownText";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./ToolCalls";
+import { ToolCardList } from "../ToolCard";
+import { isNewTaskUIEnabled } from "@/types/task-progress";
 import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
 import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
@@ -177,7 +179,10 @@ export const AssistantMessage = memo(function AssistantMessage({
   const hasContent = contentString.length > 0;
   const hasVisibleToolCalls = !hideToolCalls && !compactView && (hasToolCalls || hasAnthropicToolCalls);
 
-  if (!isToolResult && !hasContent && !hasVisibleToolCalls && !hasInterrupt) {
+  // During streaming, show loading indicator for last message even without content
+  const isStreamingEmptyMessage = isLoading && isLastMessage && !hasContent;
+
+  if (!isToolResult && !hasContent && !hasVisibleToolCalls && !hasInterrupt && !isStreamingEmptyMessage) {
     return null;
   }
 
@@ -195,23 +200,65 @@ export const AssistantMessage = memo(function AssistantMessage({
           </>
         ) : (
           <>
-            {contentString.length > 0 && (
-              <div className="py-1 leading-relaxed">
+            {contentString.length > 0 ? (
+              <div className="py-1 leading-relaxed min-w-0 overflow-hidden">
                 <MarkdownText>{contentString}</MarkdownText>
               </div>
-            )}
+            ) : isStreamingEmptyMessage ? (
+              // Show typing indicator for streaming empty message
+              <div className="py-1">
+                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-2 shadow-sm border border-border/20">
+                  <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
+                  <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>
+                  <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_1s_infinite] rounded-full"></div>
+                </div>
+              </div>
+            ) : null}
 
             {!hideToolCalls && !compactView && (
               <>
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
-                )) ||
-                  (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
-                  )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
-                  ))}
+                {isNewTaskUIEnabled() ? (
+                  // New ToolCard UI
+                  <>
+                    {hasToolCalls && filteredToolCalls && (
+                      <ToolCardList
+                        tools={filteredToolCalls.map((tc) => ({
+                          id: tc.id || `tool-${tc.name}`,
+                          name: tc.name || "Unknown",
+                          args: tc.args as Record<string, unknown>,
+                          status: isLoading ? "running" : "completed",
+                          toolCallId: tc.id,
+                        }))}
+                        variant="full"
+                      />
+                    )}
+                    {!hasToolCalls && hasAnthropicToolCalls && filteredAnthropicToolCalls && (
+                      <ToolCardList
+                        tools={filteredAnthropicToolCalls.map((tc) => ({
+                          id: tc.id || `tool-${tc.name}`,
+                          name: tc.name || "Unknown",
+                          args: tc.args as Record<string, unknown>,
+                          status: isLoading ? "running" : "completed",
+                          toolCallId: tc.id,
+                        }))}
+                        variant="full"
+                      />
+                    )}
+                  </>
+                ) : (
+                  // Original ToolCalls UI
+                  <>
+                    {(hasToolCalls && toolCallsHaveContents && (
+                      <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                    )) ||
+                      (hasAnthropicToolCalls && (
+                        <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
+                      )) ||
+                      (hasToolCalls && (
+                        <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                      ))}
+                  </>
+                )}
               </>
             )}
 

@@ -4,12 +4,15 @@
  * Assistant Server Actions
  * Server-side operations for assistant config, schemas, and graph data.
  * Uses parallel fetching for optimal performance.
+ *
+ * Authentication: Uses JWT Bearer token for user context (not just apiKey).
  */
 
 import { Client } from "@langchain/langgraph-sdk";
 import { cookies } from "next/headers";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { isValidUUID } from "@/lib/utils/uuid";
+import { getAuthHeaders } from "@/lib/auth/jwt";
 
 // Types
 export interface AssistantConfig {
@@ -77,17 +80,57 @@ async function getConnectionFromCookies() {
   };
 }
 
-// Helper to create server client
-function createServerClient(apiUrl: string, apiKey?: string) {
-  return new Client({ apiKey, apiUrl });
+// Helper to create server client with JWT Bearer token auth
+async function createServerClient(apiUrl: string, apiKey?: string) {
+  const authHeaders = await getAuthHeaders();
+
+  return new Client({
+    apiKey,
+    apiUrl,
+    defaultHeaders: authHeaders,
+  });
+}
+
+// Helper to check if a node is a middleware
+function isMiddlewareNode(nodeName: string): boolean {
+  const lowerName = nodeName.toLowerCase();
+  return lowerName.includes("middleware");
 }
 
 // Helper to extract final node names from graph
+// Logic:
+// 1. Find nodes adjacent to __end__
+// 2. If ALL are middleware, use their input nodes instead
 function extractFinalNodeNames(graph: GraphStructure): string[] {
   if (!graph?.edges) return [];
-  return graph.edges
+
+  // Step 1: Find nodes that go directly to __end__
+  const directToEndNodes = graph.edges
     .filter(edge => edge.target === "__end__")
     .map(edge => edge.source);
+
+  // Step 2: Check if ALL direct-to-end nodes are middleware
+  const allAreMiddleware = directToEndNodes.every(node => isMiddlewareNode(node));
+
+  if (!allAreMiddleware) {
+    // Return non-middleware nodes
+    return directToEndNodes.filter(node => !isMiddlewareNode(node));
+  }
+
+  // Step 3: All are middleware - find their input nodes
+  const inputNodes = new Set<string>();
+
+  for (const middlewareNode of directToEndNodes) {
+    const inputs = graph.edges
+      .filter(edge => edge.target === middlewareNode)
+      .map(edge => edge.source)
+      .filter(node => !node.startsWith("__") && !isMiddlewareNode(node));
+
+    inputs.forEach(node => inputNodes.add(node));
+  }
+
+  // Return input nodes if found, otherwise fallback to direct nodes
+  return inputNodes.size > 0 ? Array.from(inputNodes) : directToEndNodes;
 }
 
 /**
@@ -100,7 +143,7 @@ export async function searchAssistantsAction(): Promise<{ assistants: Assistant[
       return { assistants: [], error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistants = await client.assistants.search({
       limit: 50,
       sortOrder: "asc",
@@ -137,7 +180,7 @@ export async function getAssistantDataAction(
       return { ...emptyResult, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
 
     // Phase 1: Fetch assistants list + resolve assistant ID in parallel
     const [assistantsResult, resolvedId] = await Promise.all([
@@ -242,7 +285,7 @@ export async function updateAssistantConfigAction(
       return { success: false, assistant: null, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistant = await client.assistants.update(assistantId, { config });
 
     return {
@@ -290,7 +333,7 @@ export async function refetchAssistantDataAction(
       return { ...emptyResult, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
 
     // Parallel fetch
     const [assistant, schemas, graph] = await Promise.all([

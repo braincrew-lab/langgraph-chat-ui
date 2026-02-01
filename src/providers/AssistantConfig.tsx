@@ -97,6 +97,12 @@ export const AssistantConfigProvider: React.FC<{
         if (result.graphStructure) {
           setGraphStructure(result.graphStructure);
           setFinalNodeNames(result.finalNodeNames);
+          // DEBUG: Log graph structure and final nodes
+          console.log("[AssistantConfig] Graph structure loaded:", {
+            nodes: result.graphStructure.nodes?.map(n => n.id),
+            edges: result.graphStructure.edges,
+            finalNodeNames: result.finalNodeNames,
+          });
         }
       });
     }

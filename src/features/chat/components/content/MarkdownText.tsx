@@ -196,7 +196,7 @@ const defaultComponents: Record<string, unknown> = {
   pre: ({ className, ...props }: { className?: string }) => (
     <pre
       className={cn(
-        "w-full overflow-x-auto rounded-xl bg-muted/50 dark:bg-zinc-900 text-foreground dark:text-white shadow-md border border-border/30 dark:border-zinc-700",
+        "w-full max-w-full overflow-x-auto rounded-xl bg-muted/50 dark:bg-zinc-900 text-foreground dark:text-white shadow-md border border-border/30 dark:border-zinc-700",
         className,
       )}
       {...props}
@@ -245,7 +245,7 @@ const defaultComponents: Record<string, unknown> = {
 
 const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
   return (
-    <div className="markdown-content">
+    <div className="markdown-content min-w-0 max-w-full">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
