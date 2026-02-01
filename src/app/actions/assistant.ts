@@ -4,12 +4,15 @@
  * Assistant Server Actions
  * Server-side operations for assistant config, schemas, and graph data.
  * Uses parallel fetching for optimal performance.
+ *
+ * Authentication: Uses JWT Bearer token for user context (not just apiKey).
  */
 
 import { Client } from "@langchain/langgraph-sdk";
 import { cookies } from "next/headers";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { isValidUUID } from "@/lib/utils/uuid";
+import { getAuthHeaders } from "@/lib/auth/jwt";
 
 // Types
 export interface AssistantConfig {
@@ -77,9 +80,15 @@ async function getConnectionFromCookies() {
   };
 }
 
-// Helper to create server client
-function createServerClient(apiUrl: string, apiKey?: string) {
-  return new Client({ apiKey, apiUrl });
+// Helper to create server client with JWT Bearer token auth
+async function createServerClient(apiUrl: string, apiKey?: string) {
+  const authHeaders = await getAuthHeaders();
+
+  return new Client({
+    apiKey,
+    apiUrl,
+    defaultHeaders: authHeaders,
+  });
 }
 
 // Helper to extract final node names from graph
@@ -100,7 +109,7 @@ export async function searchAssistantsAction(): Promise<{ assistants: Assistant[
       return { assistants: [], error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistants = await client.assistants.search({
       limit: 50,
       sortOrder: "asc",
@@ -137,7 +146,7 @@ export async function getAssistantDataAction(
       return { ...emptyResult, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
 
     // Phase 1: Fetch assistants list + resolve assistant ID in parallel
     const [assistantsResult, resolvedId] = await Promise.all([
@@ -242,7 +251,7 @@ export async function updateAssistantConfigAction(
       return { success: false, assistant: null, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistant = await client.assistants.update(assistantId, { config });
 
     return {
@@ -290,7 +299,7 @@ export async function refetchAssistantDataAction(
       return { ...emptyResult, error: "No API URL configured" };
     }
 
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
 
     // Parallel fetch
     const [assistant, schemas, graph] = await Promise.all([

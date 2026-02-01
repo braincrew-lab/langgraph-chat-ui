@@ -2,23 +2,27 @@
  * Server-side assistant API functions
  * These functions can be used in Server Components and Server Actions
  *
- * Note: Server-side calls use apiKey for auth. JWT auth is handled via client-side proxy.
+ * Authentication: Uses JWT Bearer token for user context (not just apiKey).
  */
 
 import { Client } from "@langchain/langgraph-sdk";
 import type { Assistant, AssistantSchemas } from "@/app/actions/assistant";
 import { isValidUUID } from "@/lib/utils/uuid";
+import { getAuthHeaders } from "@/lib/auth/jwt";
 
 // Re-export types for backward compatibility
 export type { Assistant, AssistantSchemas };
 
 /**
- * Create a LangGraph client for server-side use
+ * Create a LangGraph client for server-side use with JWT Bearer token auth
  */
-function createServerClient(apiUrl: string, apiKey?: string) {
+async function createServerClient(apiUrl: string, apiKey?: string) {
+  const authHeaders = await getAuthHeaders();
+
   return new Client({
     apiKey,
     apiUrl,
+    defaultHeaders: authHeaders,
   });
 }
 
@@ -35,7 +39,7 @@ export async function resolveAssistantId(
     return null;
   }
 
-  const client = createServerClient(apiUrl, apiKey);
+  const client = await createServerClient(apiUrl, apiKey);
 
   // If it's a valid UUID, check if it exists
   if (isValidUUID(assistantIdOrGraphId)) {
@@ -81,7 +85,7 @@ export async function getAssistantServer(
   }
 
   try {
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistant = await client.assistants.get(assistantId);
     return assistant as Assistant;
   } catch (error) {
@@ -103,7 +107,7 @@ export async function getAssistantSchemasServer(
   }
 
   try {
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const schemas = await client.assistants.getSchemas(assistantId);
     return schemas as AssistantSchemas;
   } catch (error) {
@@ -120,7 +124,7 @@ export async function searchAssistantsServer(
   apiKey?: string
 ): Promise<Assistant[]> {
   try {
-    const client = createServerClient(apiUrl, apiKey);
+    const client = await createServerClient(apiUrl, apiKey);
     const assistants = await client.assistants.search({
       limit: 50,
       sortOrder: "asc",
