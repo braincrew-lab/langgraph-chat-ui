@@ -170,8 +170,8 @@ export function IntermediateLLMOutputList({
     [outputs]
   );
 
-  // 스트리밍 중인 노드 ID들 (primitive string으로 변환하여 안정적인 dependency)
-  const streamingIdsString = useMemo(
+  // 스트리밍 중인 노드 ID들 (unique ID including namespace)
+  const streamingNodeIds = useMemo(
     () => intermediateOutputs
       .filter(o => o.status === "streaming")
       .map(o => o.nodeId)
@@ -180,13 +180,13 @@ export function IntermediateLLMOutputList({
     [intermediateOutputs]
   );
 
-  // 펼쳐진 ID들: 스트리밍 중인 것은 자동 펼침 + 수동 토글된 것 유지
+  // 펼쳐진 노드들: 스트리밍 중인 것은 자동 펼침 + 수동 토글된 것 유지
   // useEffect 대신 렌더링 중에 파생 (rerender-derived-state-no-effect)
-  const expandedIds = useMemo(() => {
+  const expandedNodeIds = useMemo(() => {
     const expanded = new Set<string>();
     // 스트리밍 중인 항목은 자동으로 펼침
-    if (streamingIdsString) {
-      for (const id of streamingIdsString.split(",")) {
+    if (streamingNodeIds) {
+      for (const id of streamingNodeIds.split(",")) {
         if (id) expanded.add(id);
       }
     }
@@ -199,19 +199,30 @@ export function IntermediateLLMOutputList({
       }
     }
     return expanded;
-  }, [streamingIdsString, manuallyToggledIds]);
+  }, [streamingNodeIds, manuallyToggledIds]);
 
   // 하나라도 펼쳐져 있으면 자동 스크롤
-  const hasAnyExpanded = expandedIds.size > 0;
+  const hasAnyExpanded = expandedNodeIds.size > 0;
 
-  // 새 출력이 추가될 때만 자동 스크롤 (primitive dependency 사용)
+  // 스트리밍 중인 출력의 콘텐츠 (스트리밍 상태 변경 감지용)
+  const streamingContentSignature = useMemo(
+    () => intermediateOutputs
+      .filter(o => o.status === "streaming")
+      .map(o => o.fullOutput.length)
+      .join(","),
+    [intermediateOutputs]
+  );
+
+  // 새 출력 추가 또는 스트리밍 콘텐츠 변경 시 자동 스크롤
   const outputsLength = intermediateOutputs.length;
   useEffect(() => {
-    if (outputsLength > prevOutputsLengthRef.current && hasAnyExpanded && !isCollapsed && listContainerRef.current) {
-      listContainerRef.current.scrollTop = listContainerRef.current.scrollHeight;
+    const container = listContainerRef.current;
+    // 새 출력이 추가되었거나 스트리밍 콘텐츠가 변경된 경우 스크롤
+    if (!isCollapsed && container && hasAnyExpanded) {
+      container.scrollTop = container.scrollHeight;
     }
     prevOutputsLengthRef.current = outputsLength;
-  }, [outputsLength, hasAnyExpanded, isCollapsed]);
+  }, [outputsLength, streamingContentSignature, hasAnyExpanded, isCollapsed]);
 
   // 토글 핸들러 - 수동 토글 상태만 관리
   const handleToggle = useCallback((nodeId: string) => {
@@ -258,11 +269,11 @@ export function IntermediateLLMOutputList({
             ref={listContainerRef}
             className="py-1 max-h-[250px] overflow-y-auto"
           >
-            {intermediateOutputs.map((output, idx) => (
+            {intermediateOutputs.map((output) => (
               <IntermediateLLMOutputItem
-                key={`${output.nodeId}-${idx}`}
+                key={output.nodeId}
                 output={output}
-                isExpanded={expandedIds.has(output.nodeId)}
+                isExpanded={expandedNodeIds.has(output.nodeId)}
                 onToggle={() => handleToggle(output.nodeId)}
               />
             ))}

@@ -1,34 +1,35 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { LoaderCircle } from "lucide-react";
 import { type HierarchicalTask, type IntermediateLLMOutput } from "@/types/task-hierarchy";
-import { type HierarchicalTodoItem } from "@/types/task-hierarchy";
-import { HierarchicalTodoList } from "./streaming/HierarchicalTodoList";
+import type { TaskProgressItem } from "@/types/task-progress";
+import { TodoProgressList } from "./streaming/TodoProgressList";
+import { TaskProgressList } from "./streaming/TaskProgressList";
 import { ActiveTasksList } from "./streaming/ActiveTask";
-import { IntermediateLLMOutputList } from "./streaming/IntermediateLLMOutputs";
+// import { IntermediateLLMOutputList } from "./streaming/IntermediateLLMOutputs"; // Disabled: Now integrated into TaskProgressList
 import { cn } from "@/lib/utils";
 
 interface StreamingTaskViewProps {
-  hierarchicalTodos: HierarchicalTodoItem[];
+  progress: TaskProgressItem[];
   activeLeafTasks: HierarchicalTask[];
   isStreaming: boolean;
   className?: string;
-  // TODO ↔ 사이드바 연동
   selectedTaskId?: string | null;
   onSelectTask?: (taskId: string | null) => void;
-  // 중간 노드 출력 (컴팩트 표시)
   intermediateOutputs?: IntermediateLLMOutput[];
   finalNodeId?: string | null;
 }
 
 /**
- * StreamingTaskView - 스트리밍 중 태스크 진행 상황 표시
+ * StreamingTaskView - Streaming task progress display
  *
- * 주의: 이 컴포넌트는 부모에서 hasVisibleContent 조건을 확인한 후에만 렌더링되어야 합니다.
- * 컨텐츠가 없을 때 이 컴포넌트를 렌더링하면 빈 gap이 발생할 수 있습니다.
+ * Shows task progress, active tasks, and a "thinking" indicator when streaming
+ * but no content is available yet. This prevents flickering by always having
+ * content to render during streaming.
  */
 export function StreamingTaskView({
-  hierarchicalTodos,
+  progress,
   activeLeafTasks,
   isStreaming,
   className,
@@ -37,11 +38,17 @@ export function StreamingTaskView({
   intermediateOutputs,
   finalNodeId,
 }: StreamingTaskViewProps) {
-  // 중간 출력이 있는지 확인 (최종 노드가 아닌 출력만)
+  // Check for non-final intermediate outputs
   const hasIntermediateOutputs = intermediateOutputs && intermediateOutputs.filter(o => !o.isFinal).length > 0;
 
-  // 컨텐츠가 없으면 렌더링하지 않음 (이중 체크 - 부모에서도 체크해야 함)
-  if (hierarchicalTodos.length === 0 && activeLeafTasks.length === 0 && !hasIntermediateOutputs) {
+  // Check if there's any actual content to display
+  const hasContent = progress.length > 0 || activeLeafTasks.length > 0 || hasIntermediateOutputs;
+
+  // Show thinking state when streaming but no content yet
+  const showThinkingState = isStreaming && !hasContent;
+
+  // Don't render anything if not streaming and no content
+  if (!isStreaming && !hasContent) {
     return null;
   }
 
@@ -51,23 +58,40 @@ export function StreamingTaskView({
       animate={{ opacity: 1, y: 0 }}
       className={cn("flex flex-col gap-3", className)}
     >
-      {/* 중간 출력 컴팩트 리스트 (NEW) */}
-      {hasIntermediateOutputs && (
-        <IntermediateLLMOutputList outputs={intermediateOutputs} />
+      {/* Thinking state - shown when streaming but no content yet */}
+      {showThinkingState && (
+        <motion.div
+          key="thinking"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center gap-2 text-sm text-muted-foreground py-2"
+        >
+          <LoaderCircle className="h-4 w-4 animate-spin" />
+          <span>Thinking...</span>
+        </motion.div>
       )}
 
-      {/* 계층적 Todo 리스트 (TODO + 서브에이전트 + 도구 통합) */}
-      {hierarchicalTodos.length > 0 && (
-        <HierarchicalTodoList
-          items={hierarchicalTodos}
+      {/* Todo progress list */}
+      {progress.length > 0 && (
+        <TodoProgressList
+          items={progress}
+          isStreaming={isStreaming}
+        />
+      )}
+
+      {/* Task progress list (subagent tasks and running tools) */}
+      {progress.length > 0 && (
+        <TaskProgressList
+          items={progress}
           isStreaming={isStreaming}
           selectedTaskId={selectedTaskId}
           onSelectTask={onSelectTask}
         />
       )}
 
-      {/* 현재 실행 중인 태스크 (TODO 없이 태스크만 있을 때 표시) */}
-      {hierarchicalTodos.length === 0 && activeLeafTasks.length > 0 && (
+      {/* Active leaf tasks (when no progress items but tasks running) */}
+      {progress.length === 0 && activeLeafTasks.length > 0 && (
         <ActiveTasksList tasks={activeLeafTasks} isStreaming={isStreaming} />
       )}
     </motion.div>
