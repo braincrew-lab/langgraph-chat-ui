@@ -34,3 +34,6 @@ tsconfig.tsbuildinfo
 # Database
 *.db
 *.db-journal
+
+# Uploaded files
+public/uploads/

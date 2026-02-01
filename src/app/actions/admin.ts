@@ -308,8 +308,12 @@ export async function updateAdminSettings(
     await updateSettingsService(settings, session.user.id);
     const updatedSettings = await getAllSettings();
 
+    // Revalidate all paths that use settings
+    revalidatePath("/");
     revalidatePath("/admin");
     revalidatePath("/admin/settings");
+    revalidatePath("/login");
+    revalidatePath("/register");
 
     return { success: true, data: updatedSettings };
   } catch (error) {

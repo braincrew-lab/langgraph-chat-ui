@@ -34,13 +34,20 @@ interface SettingsFormProps {
   serverDefaults: GlobalSettings;
 }
 
+import { StringArrayInput } from "./StringArrayInput";
+import { ImagePreview } from "./ImagePreview";
+
 const CATEGORY_LABELS: Record<SettingCategory, string> = {
   auth: "인증 설정",
   ui: "UI 설정",
   features: "기능 설정",
+  branding: "브랜딩 설정",
 };
 
-export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormProps) {
+export function SettingsForm({
+  initialSettings,
+  serverDefaults,
+}: SettingsFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [settings, setSettings] = useState<GlobalSettings>(initialSettings);
@@ -48,7 +55,7 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
 
   const handleChange = <K extends keyof GlobalSettings>(
     key: K,
-    value: GlobalSettings[K]
+    value: GlobalSettings[K],
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
@@ -88,7 +95,7 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor={definition.key}>{definition.label}</Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {definition.description}
               </p>
             </div>
@@ -96,7 +103,10 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
               id={definition.key}
               checked={value as boolean}
               onCheckedChange={(checked) =>
-                handleChange(definition.key, checked as GlobalSettings[typeof definition.key])
+                handleChange(
+                  definition.key,
+                  checked as GlobalSettings[typeof definition.key],
+                )
               }
             />
           </div>
@@ -109,7 +119,10 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
             <Select
               value={value as string}
               onValueChange={(val) =>
-                handleChange(definition.key, val as GlobalSettings[typeof definition.key])
+                handleChange(
+                  definition.key,
+                  val as GlobalSettings[typeof definition.key],
+                )
               }
             >
               <SelectTrigger id={definition.key}>
@@ -117,13 +130,57 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
               </SelectTrigger>
               <SelectContent>
                 {definition.options?.map((option) => (
-                  <SelectItem key={option} value={option}>
+                  <SelectItem
+                    key={option}
+                    value={option}
+                  >
                     {option.charAt(0).toUpperCase() + option.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
+              {definition.description}
+            </p>
+          </div>
+        );
+
+      case "url":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <ImagePreview
+              value={value as string}
+              onChange={(val) =>
+                handleChange(
+                  definition.key,
+                  val as GlobalSettings[typeof definition.key],
+                )
+              }
+              placeholder={(defaultValue as string) || undefined}
+              defaultValue={defaultValue as string}
+            />
+            <p className="text-muted-foreground text-sm">
+              {definition.description}
+            </p>
+          </div>
+        );
+
+      case "array":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <StringArrayInput
+              value={value as string[]}
+              onChange={(val) =>
+                handleChange(
+                  definition.key,
+                  val as GlobalSettings[typeof definition.key],
+                )
+              }
+              maxItems={definition.maxItems}
+            />
+            <p className="text-muted-foreground text-sm">
               {definition.description}
             </p>
           </div>
@@ -137,12 +194,15 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
               id={definition.key}
               type="text"
               value={value as string}
-              placeholder={defaultValue as string || undefined}
+              placeholder={(defaultValue as string) || undefined}
               onChange={(e) =>
-                handleChange(definition.key, e.target.value as GlobalSettings[typeof definition.key])
+                handleChange(
+                  definition.key,
+                  e.target.value as GlobalSettings[typeof definition.key],
+                )
               }
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {definition.description}
             </p>
           </div>
@@ -156,13 +216,15 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
     <div className="space-y-6">
       {categories.map((category) => {
         const categorySettings = SETTING_DEFINITIONS.filter(
-          (d) => d.category === category
+          (d) => d.category === category,
         );
 
         return (
           <Card key={category}>
             <CardHeader>
-              <CardTitle>{CATEGORY_LABELS[category]}</CardTitle>
+              <CardTitle className="text-bold text-xl">
+                {CATEGORY_LABELS[category]}
+              </CardTitle>
               <CardDescription>
                 {CATEGORY_LABELS[category]} 설정을 구성합니다
               </CardDescription>
@@ -177,11 +239,18 @@ export function SettingsForm({ initialSettings, serverDefaults }: SettingsFormPr
       })}
 
       <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={handleReset} disabled={isPending}>
+        <Button
+          variant="outline"
+          onClick={handleReset}
+          disabled={isPending}
+        >
           <RotateCcw className="mr-2 h-4 w-4" />
           기본값으로 초기화
         </Button>
-        <Button onClick={handleSave} disabled={isPending}>
+        <Button
+          onClick={handleSave}
+          disabled={isPending}
+        >
           <Save className="mr-2 h-4 w-4" />
           {isPending ? "저장 중..." : saved ? "저장됨!" : "변경사항 저장"}
         </Button>

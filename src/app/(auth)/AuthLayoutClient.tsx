@@ -4,14 +4,30 @@ import { ReactNode, createContext, useContext } from "react";
 import { motion } from "framer-motion";
 import type { RegistrationPolicy } from "@/types/auth-mode";
 
+interface BrandingConfig {
+  appName: string;
+  logoPath: string;
+  logoWidth: number;
+  logoHeight: number;
+}
+
 interface AuthContextType {
   allowRegistration: boolean;
   registrationPolicy: RegistrationPolicy;
+  branding: BrandingConfig;
 }
+
+const defaultBranding: BrandingConfig = {
+  appName: "TeddyNote Chat",
+  logoPath: "/logo.png",
+  logoWidth: 28,
+  logoHeight: 28,
+};
 
 const AuthContext = createContext<AuthContextType>({
   allowRegistration: true,
   registrationPolicy: "open",
+  branding: defaultBranding,
 });
 
 export function useAuthContext() {
@@ -22,11 +38,12 @@ interface AuthLayoutClientProps {
   children: ReactNode;
   allowRegistration: boolean;
   registrationPolicy: RegistrationPolicy;
+  branding?: BrandingConfig;
 }
 
-export function AuthLayoutClient({ children, allowRegistration, registrationPolicy }: AuthLayoutClientProps) {
+export function AuthLayoutClient({ children, allowRegistration, registrationPolicy, branding = defaultBranding }: AuthLayoutClientProps) {
   return (
-    <AuthContext.Provider value={{ allowRegistration, registrationPolicy }}>
+    <AuthContext.Provider value={{ allowRegistration, registrationPolicy, branding }}>
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 px-4 py-8">
         {/* Subtle background pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.05),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(74,144,226,0.05),transparent_50%)]" />

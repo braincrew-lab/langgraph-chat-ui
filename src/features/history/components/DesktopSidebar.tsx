@@ -77,38 +77,35 @@ export function DesktopSidebar({
         <div className="px-3 mt-4">
           <p className="text-xs font-medium text-muted-foreground px-3 mb-2">관리자</p>
           <nav className="space-y-2">
-            <Link href="/admin/users">
-              <div
-                className={cn(
-                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                  pathname === "/admin/users" && "bg-accent"
-                )}
-              >
-                <Users className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">사용자 관리</span>
-              </div>
+            <Link
+              href="/admin/users"
+              className={cn(
+                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                pathname === "/admin/users" && "bg-accent"
+              )}
+            >
+              <Users className={ICON_SIZE_SM} />
+              <span className="text-sm font-medium">사용자 관리</span>
             </Link>
-            <Link href="/admin/approvals">
-              <div
-                className={cn(
-                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                  pathname === "/admin/approvals" && "bg-accent"
-                )}
-              >
-                <Shield className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">가입 승인</span>
-              </div>
+            <Link
+              href="/admin/approvals"
+              className={cn(
+                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                pathname === "/admin/approvals" && "bg-accent"
+              )}
+            >
+              <Shield className={ICON_SIZE_SM} />
+              <span className="text-sm font-medium">가입 승인</span>
             </Link>
-            <Link href="/admin/settings">
-              <div
-                className={cn(
-                  "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                  pathname === "/admin/settings" && "bg-accent"
-                )}
-              >
-                <Settings className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">설정</span>
-              </div>
+            <Link
+              href="/admin/settings"
+              className={cn(
+                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
+                pathname === "/admin/settings" && "bg-accent"
+              )}
+            >
+              <Settings className={ICON_SIZE_SM} />
+              <span className="text-sm font-medium">설정</span>
             </Link>
           </nav>
         </div>
