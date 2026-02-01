@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
+import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 

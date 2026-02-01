@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban, Clock, CheckCircle } from "lucide-react";
 import { siteConfig } from "@/configs/site";
 import { useAuthContext } from "../AuthLayoutClient";
+import { registerUser } from "@/app/actions/auth";
 import type { UserStatus } from "@/types/auth-mode";
 
 const containerVariants = {
@@ -33,7 +34,8 @@ const itemVariants = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { allowRegistration, registrationPolicy } = useAuthContext();
+  const { allowRegistration } = useAuthContext();
+  const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,7 +43,6 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<UserStatus | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState("");
@@ -79,35 +80,23 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
+    startTransition(async () => {
+      const result = await registerUser({ name, email, password });
 
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 409) {
+      if (!result.success) {
+        if (result.error.includes("already exists")) {
           setError("이미 등록된 이메일입니다.");
         } else {
-          setError(data.error || "회원가입에 실패했습니다.");
+          setError(result.error || "회원가입에 실패했습니다.");
         }
         return;
       }
 
       // Store registration result
-      setRegistrationStatus(data.status as UserStatus);
+      setRegistrationStatus(result.data.status);
       setRegisteredEmail(email);
       setRegistrationComplete(true);
-    } catch {
-      setError("오류가 발생했습니다. 다시 시도해 주세요.");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   // If registration is disabled, show a message
@@ -170,7 +159,7 @@ export default function RegisterPage() {
 
   // Show registration complete screen
   if (registrationComplete) {
-    const isPending = registrationStatus === "pending";
+    const isPendingApproval = registrationStatus === "pending";
 
     return (
       <motion.div
@@ -185,12 +174,12 @@ export default function RegisterPage() {
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
             className={`flex h-16 w-16 items-center justify-center rounded-full ${
-              isPending
+              isPendingApproval
                 ? "bg-amber-100 dark:bg-amber-900/50"
                 : "bg-green-100 dark:bg-green-900/50"
             }`}
           >
-            {isPending ? (
+            {isPendingApproval ? (
               <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             ) : (
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -198,10 +187,10 @@ export default function RegisterPage() {
           </motion.div>
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
-              {isPending ? "가입 신청 완료" : "회원가입 완료"}
+              {isPendingApproval ? "가입 신청 완료" : "회원가입 완료"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isPending
+              {isPendingApproval
                 ? "관리자 승인 후 이용하실 수 있습니다"
                 : "지금 바로 로그인할 수 있습니다"}
             </p>
@@ -212,7 +201,7 @@ export default function RegisterPage() {
           variants={itemVariants}
           className="text-center text-muted-foreground text-sm leading-relaxed"
         >
-          {isPending ? (
+          {isPendingApproval ? (
             <p>
               회원가입 신청이 완료되었습니다.<br />
               관리자가 계정을 검토한 후 승인하면<br />
@@ -231,7 +220,7 @@ export default function RegisterPage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          {isPending ? (
+          {isPendingApproval ? (
             <Button
               variant="outline"
               className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
@@ -315,7 +304,7 @@ export default function RegisterPage() {
             placeholder="홍길동"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={isLoading}
+            disabled={isPending}
             size="lg"
           />
         </motion.div>
@@ -335,7 +324,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={isLoading}
+            disabled={isPending}
             spellCheck={false}
             size="lg"
           />
@@ -355,7 +344,7 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={isLoading}
+            disabled={isPending}
             aria-invalid={!!fieldErrors.password}
             aria-describedby={fieldErrors.password ? "password-error" : undefined}
             size="lg"
@@ -386,7 +375,7 @@ export default function RegisterPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            disabled={isLoading}
+            disabled={isPending}
             aria-invalid={!!fieldErrors.confirmPassword}
             aria-describedby={fieldErrors.confirmPassword ? "confirm-password-error" : undefined}
             size="lg"
@@ -407,9 +396,9 @@ export default function RegisterPage() {
           <Button
             type="submit"
             className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-            disabled={isLoading}
+            disabled={isPending}
           >
-            {isLoading ? (
+            {isPending ? (
               <>
                 <LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                 <span>가입 중…</span>

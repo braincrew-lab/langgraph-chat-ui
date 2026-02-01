@@ -1,5 +1,5 @@
 import { getAllSettings, getServerDefaults } from "@/lib/services/settings.service";
-import { SettingsForm } from "@/components/admin/SettingsForm";
+import { SettingsForm } from "@/features/admin/components/SettingsForm";
 
 export default async function SettingsPage() {
   const settings = await getAllSettings();

@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import { loadServerConfig } from "@/lib/config-server";
-import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
-import { MainLayoutClient } from "@/components/layout/MainLayoutClient";
+import { loadServerConfig } from "@/lib/config/server";
+import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
+import { MainLayoutClient } from "@/shared/components/layout/MainLayoutClient";
 import { getAllSettings } from "@/lib/services/settings.service";
-import { resolveAssistantId } from "@/lib/assistant-api-server";
+import { resolveAssistantId } from "@/lib/api/assistant.server";
 
 export default async function MainLayout({
   children,

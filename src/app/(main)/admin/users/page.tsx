@@ -1,13 +1,13 @@
 import { auth } from "@/lib/auth";
 import { getUsers } from "@/lib/services/user.service";
-import { UserTable } from "@/components/admin/UserTable";
+import { UserTable } from "@/features/admin/components/UserTable";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/components/ui/card";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
 
 interface UsersPageProps {

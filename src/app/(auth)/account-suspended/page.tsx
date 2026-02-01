@@ -3,7 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Ban, LogOut, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 
 const containerVariants = {
   hidden: { opacity: 0 },

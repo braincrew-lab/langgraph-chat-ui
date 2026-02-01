@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/components/ui/card";
 import { Users, UserCheck, UserX, Clock, Shield } from "lucide-react";
 
 export default async function AdminDashboardPage() {
