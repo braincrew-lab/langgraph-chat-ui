@@ -4,7 +4,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config";
+import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config/client";
 import { GlobalSettings, DEFAULT_SETTINGS } from "@/types/global-settings";
 
 // User settings that can be customized in the UI
