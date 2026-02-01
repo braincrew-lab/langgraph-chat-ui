@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { fetchAssistantDataServer } from "@/lib/assistant-api-server";
-import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
-import { ChatContent } from "@/components/chat/ChatContent";
+import { fetchAssistantDataServer } from "@/lib/api/assistant.server";
+import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
+import { ChatContent } from "@/features/chat/components/chat/ChatContent";
 import { getAllSettings } from "@/lib/services/settings.service";
 
 // Force dynamic rendering to avoid build-time errors

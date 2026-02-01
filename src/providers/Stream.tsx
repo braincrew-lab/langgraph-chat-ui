@@ -17,12 +17,12 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { useQueryState } from "nuqs";
-import { useThreads } from "@/hooks/useThreads";
+import { useThreads } from "@/shared/hooks/useThreads";
 import { toast } from "sonner";
 import { AssistantConfigProvider } from "./AssistantConfig";
 import { normalizeApiUrl } from "./client";
 import { TIMING } from "@/lib/constants";
-import type { ServerAssistantData } from "@/lib/assistant-api-server";
+import type { ServerAssistantData } from "./AssistantConfig";
 
 // Connection configuration from server
 export interface ConnectionConfig {

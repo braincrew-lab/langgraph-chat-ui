@@ -5,21 +5,29 @@ import React, {
   useMemo,
   useCallback,
   ReactNode,
+  useTransition,
 } from "react";
 import {
-  getAssistant,
-  searchAssistants,
-  getAssistantSchemas,
-  updateAssistantConfig,
-  getAssistantGraph,
-  extractAllFinalNodeNames,
-  isValidUUID,
+  getAssistantDataAction,
+  updateAssistantConfigAction,
+  searchAssistantsAction,
+  refetchAssistantDataAction,
+  type Assistant,
   type AssistantConfig as AssistantConfigType,
   type AssistantSchemas,
-  type Assistant,
   type GraphStructure,
-} from "@/lib/assistant-api";
-import type { ServerAssistantData } from "@/lib/assistant-api-server";
+} from "@/app/actions/assistant";
+
+// Re-export types for consumers
+export type { Assistant, AssistantConfigType as AssistantConfig, AssistantSchemas, GraphStructure };
+
+// Legacy type for backward compatibility with SSR data
+export interface ServerAssistantData {
+  assistantId: string | null;
+  assistant: Assistant | null;
+  schemas: AssistantSchemas | null;
+  assistants: Assistant[];
+}
 
 export interface AssistantConfigContextType {
   config: AssistantConfigType | null;
@@ -32,9 +40,8 @@ export interface AssistantConfigContextType {
   assistants: Assistant[];
   assistantsLoading: boolean;
   refetchAssistants: () => Promise<void>;
-  // 그래프 구조 정보
   graphStructure: GraphStructure | null;
-  finalNodeNames: string[];  // __end__로 연결되는 노드들
+  finalNodeNames: string[];
 }
 
 export const AssistantConfigContext = createContext<
@@ -49,161 +56,55 @@ export const AssistantConfigProvider: React.FC<{
   initialData?: ServerAssistantData;
   enableGraphSelection?: boolean;
   defaultGraphId?: string;
-}> = ({ children, apiUrl, assistantId: initialAssistantId, apiKey, initialData, enableGraphSelection = true, defaultGraphId = "" }) => {
-  // Use initial data from SSR if available
+}> = ({
+  children,
+  assistantId: initialAssistantId,
+  initialData,
+  enableGraphSelection = true,
+  defaultGraphId = "",
+}) => {
+  // Use Server Action transition for non-blocking updates
+  const [isPending, startTransition] = useTransition();
+
+  // Initialize state from SSR data
   const [config, setConfig] = useState<AssistantConfigType | null>(
     () => initialData?.assistant?.config ?? null
   );
   const [schemas, setSchemas] = useState<AssistantSchemas | null>(
     () => initialData?.schemas ?? null
   );
-  // Use resolved assistant ID from SSR if available
   const [assistantId, setAssistantId] = useState<string | null>(
     () => initialData?.assistantId ?? null
   );
-  // Skip loading if we have initial data
-  const [isLoading, setIsLoading] = useState(() => !initialData?.schemas);
-  const [error, setError] = useState<string | null>(null);
   const [assistants, setAssistants] = useState<Assistant[]>(
     () => initialData?.assistants ?? []
   );
-  const [assistantsLoading, setAssistantsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Graph data (not in SSR, fetched on mount if assistant exists)
   const [graphStructure, setGraphStructure] = useState<GraphStructure | null>(null);
   const [finalNodeNames, setFinalNodeNames] = useState<string[]>([]);
 
-  const fetchAssistants = useCallback(async () => {
-    if (!apiUrl) {
-      return;
-    }
+  // Loading states
+  const [isLoading, setIsLoading] = useState(() => !initialData?.schemas);
+  const [assistantsLoading, setAssistantsLoading] = useState(false);
 
-    setAssistantsLoading(true);
-    try {
-      const list = await searchAssistants(
-        apiUrl,
-        {
-          limit: 50,
-          sort_order: "asc",
-          sort_by: "assistant_id",
-          select: ["assistant_id", "graph_id", "name"],
-        },
-        apiKey || undefined
-      );
-      setAssistants(list);
-    } catch (error) {
-      console.error("Failed to fetch assistants:", error);
-      setAssistants([]);
-    } finally {
-      setAssistantsLoading(false);
-    }
-  }, [apiUrl, apiKey]);
-
-  const fetchConfig = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    // Early return if no assistant ID provided (this is valid - user can select from list)
-    if (!initialAssistantId || initialAssistantId.trim() === "") {
-      console.info("[AssistantConfig] No assistant ID provided - user can select from list");
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      let actualAssistantId = initialAssistantId;
-      let assistant: Assistant | null = null;
-
-      // If it's a valid UUID, try direct lookup first
-      if (isValidUUID(initialAssistantId)) {
-
-        assistant = await getAssistant(
-          apiUrl,
-          actualAssistantId,
-          apiKey || undefined
-        );
-      }
-
-      // If not found or not a UUID, search by graph_id
-      if (!assistant) {
-        const assistants = await searchAssistants(
-          apiUrl,
-          {
-            graph_id: initialAssistantId,
-            limit: 1,
-            sort_order: "asc",
-            sort_by: "assistant_id",
-            select: ["assistant_id"], // Only fetch assistant_id
-          },
-          apiKey || undefined
-        );
-
-        if (assistants.length > 0) {
-          actualAssistantId = assistants[0].assistant_id;
-          assistant = await getAssistant(
-            apiUrl,
-            actualAssistantId,
-            apiKey || undefined
-          );
-        } else {
-          const message = `No assistant found for graph_id: ${initialAssistantId}`;
-          console.error(`[AssistantConfig] ❌ ${message}`);
-          setError(message);
-          setConfig(null);
-          setSchemas(null);
-          setAssistantId(null);
-          setIsLoading(false);
-          return;
+  // Fetch graph data on mount if we have an assistant ID from SSR
+  useEffect(() => {
+    if (initialData?.assistantId && !graphStructure) {
+      startTransition(async () => {
+        const result = await refetchAssistantDataAction(initialData.assistantId!);
+        if (result.graphStructure) {
+          setGraphStructure(result.graphStructure);
+          setFinalNodeNames(result.finalNodeNames);
         }
-      }
-
-      if (!assistant) {
-        const message = `Failed to load assistant configuration for ID: ${actualAssistantId}`;
-        console.error(message);
-        setError(message);
-        setConfig(null);
-        setSchemas(null);
-        setAssistantId(null);
-        return;
-      }
-
-      setAssistantId(actualAssistantId);
-      setConfig(assistant.config);
-
-      const assistantSchemas = await getAssistantSchemas(
-        apiUrl,
-        actualAssistantId,
-        apiKey || undefined
-      );
-
-      setSchemas(assistantSchemas);
-
-      // 그래프 구조 조회하여 마지막 노드 파악
-      const graph = await getAssistantGraph(
-        apiUrl,
-        actualAssistantId,
-        apiKey || undefined
-      );
-
-      if (graph) {
-        setGraphStructure(graph);
-        const finalNodes = extractAllFinalNodeNames(graph);
-        setFinalNodeNames(finalNodes);
-      }
-    } catch (err) {
-      console.error("Error fetching assistant config:", err);
-      setError("Unable to load assistant configuration");
-      setAssistantId(null);
-      setConfig(null);
-      setSchemas(null);
-    } finally {
-      setIsLoading(false);
+      });
     }
-  }, [apiUrl, initialAssistantId, apiKey]);
+  }, [initialData?.assistantId, graphStructure]);
 
-  // Sync state when initialData changes (e.g., after router.refresh() with new SSR data)
+  // Sync state when initialData changes (e.g., after router.refresh())
   useEffect(() => {
     if (initialData) {
-      // Update state from new SSR data
       if (initialData.assistantId) {
         setAssistantId(initialData.assistantId);
       }
@@ -220,20 +121,28 @@ export const AssistantConfigProvider: React.FC<{
     }
   }, [initialData]);
 
-  // Sync state when initialAssistantId prop changes (e.g., after router.refresh())
-  // This is needed because useState only uses initialData for initial render
+  // Handle assistant ID changes (when user selects different assistant)
   const prevInitialAssistantIdRef = React.useRef(initialAssistantId);
   useEffect(() => {
     const prevId = prevInitialAssistantIdRef.current;
-    const newId = initialAssistantId?.trim() || "";
 
-    // Only trigger if the prop actually changed (not on initial mount)
     if (prevId !== initialAssistantId) {
       prevInitialAssistantIdRef.current = initialAssistantId;
 
-      if (newId) {
-        // New assistant selected - refetch config
-        fetchConfig();
+      if (initialAssistantId?.trim()) {
+        // New assistant selected - fetch full data
+        setIsLoading(true);
+        startTransition(async () => {
+          const result = await getAssistantDataAction(initialAssistantId);
+          setAssistantId(result.assistantId);
+          setConfig(result.assistant?.config ?? null);
+          setSchemas(result.schemas);
+          setGraphStructure(result.graphStructure);
+          setFinalNodeNames(result.finalNodeNames);
+          setAssistants(result.assistants);
+          setError(result.error);
+          setIsLoading(false);
+        });
       } else {
         // No assistant selected - clear state
         setAssistantId(null);
@@ -244,101 +153,115 @@ export const AssistantConfigProvider: React.FC<{
         setIsLoading(false);
       }
     }
-  }, [initialAssistantId, fetchConfig]);
+  }, [initialAssistantId]);
 
-  // Skip initial fetch if we have SSR data
+  // Fetch initial data if not provided from SSR
   useEffect(() => {
-    if (initialData?.schemas && initialData?.assistantId) {
-      return;
+    if (!initialData?.schemas && initialAssistantId?.trim()) {
+      setIsLoading(true);
+      startTransition(async () => {
+        const result = await getAssistantDataAction(initialAssistantId);
+        setAssistantId(result.assistantId);
+        setConfig(result.assistant?.config ?? null);
+        setSchemas(result.schemas);
+        setGraphStructure(result.graphStructure);
+        setFinalNodeNames(result.finalNodeNames);
+        setAssistants(result.assistants);
+        setError(result.error);
+        setIsLoading(false);
+      });
     }
-    fetchConfig();
-  }, [fetchConfig, initialData?.schemas, initialData?.assistantId]);
+  }, [initialData?.schemas, initialAssistantId]);
 
+  // Fetch assistants list if not provided from SSR
   useEffect(() => {
-    if (initialData?.assistants && initialData.assistants.length > 0) {
-      return;
+    if (!initialData?.assistants || initialData.assistants.length === 0) {
+      setAssistantsLoading(true);
+      startTransition(async () => {
+        const result = await searchAssistantsAction();
+        setAssistants(result.assistants);
+        setAssistantsLoading(false);
+      });
     }
-    fetchAssistants();
-  }, [fetchAssistants, initialData?.assistants]);
+  }, [initialData?.assistants]);
 
   // Auto-select assistant if no valid selection exists
-  // Priority: 1. Default graph ID (when graph selection is disabled)
-  //           2. First assistant in the list
-  // This also triggers a page reload to sync the cookie with StreamProvider
   const autoSelectTriggeredRef = React.useRef(false);
   useEffect(() => {
-    // Only auto-select if:
-    // 1. No current assistantId (invalid or missing)
-    // 2. Assistants list is loaded
-    // 3. At least one assistant exists
-    // 4. Not currently loading
-    // 5. Haven't already triggered auto-select
     if (!assistantId && !isLoading && assistants.length > 0 && !autoSelectTriggeredRef.current) {
       autoSelectTriggeredRef.current = true;
 
-      // Determine which assistant to select
       let targetAssistantId: string;
 
-      // If graph selection is disabled and a default graph ID is configured, use it
       if (!enableGraphSelection && defaultGraphId) {
-        // Try to find the assistant matching the default graph ID
         const defaultAssistant = assistants.find(
           a => a.assistant_id === defaultGraphId || a.graph_id === defaultGraphId
         );
         targetAssistantId = defaultAssistant?.assistant_id || assistants[0].assistant_id;
       } else {
-        // Otherwise, use the first assistant
         targetAssistantId = assistants[0].assistant_id;
       }
 
       // Import dynamically to avoid server-side issues
       import("@/app/actions").then(({ updateAssistantIdAction }) => {
         updateAssistantIdAction(targetAssistantId).then(() => {
-          // Reload to sync cookie with all providers
           window.location.reload();
         });
       });
     }
   }, [assistantId, isLoading, assistants, enableGraphSelection, defaultGraphId]);
 
-  const updateConfig = useCallback(async (
-    newConfig: AssistantConfigType
-  ): Promise<boolean> => {
+  // Update config using Server Action
+  const updateConfig = useCallback(async (newConfig: AssistantConfigType): Promise<boolean> => {
     if (!assistantId) {
       console.error("No assistant ID available for update");
       return false;
     }
 
-    try {
-      const assistant = await updateAssistantConfig(
-        apiUrl,
-        assistantId,
-        newConfig,
-        apiKey || undefined
-      );
-      if (assistant) {
-        setConfig(assistant.config);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Failed to update config:", err);
-      return false;
+    const result = await updateAssistantConfigAction(assistantId, newConfig);
+    if (result.success && result.assistant) {
+      setConfig(result.assistant.config);
+      return true;
     }
-  }, [apiUrl, assistantId, apiKey]);
+
+    setError(result.error);
+    return false;
+  }, [assistantId]);
+
+  // Refetch config using Server Action
+  const refetchConfig = useCallback(async () => {
+    if (!assistantId) return;
+
+    setIsLoading(true);
+    const result = await refetchAssistantDataAction(assistantId);
+    setConfig(result.assistant?.config ?? null);
+    setSchemas(result.schemas);
+    setGraphStructure(result.graphStructure);
+    setFinalNodeNames(result.finalNodeNames);
+    setError(result.error);
+    setIsLoading(false);
+  }, [assistantId]);
+
+  // Refetch assistants list using Server Action
+  const refetchAssistants = useCallback(async () => {
+    setAssistantsLoading(true);
+    const result = await searchAssistantsAction();
+    setAssistants(result.assistants);
+    setAssistantsLoading(false);
+  }, []);
 
   const contextValue = useMemo(
     () => ({
       config,
       schemas,
       assistantId,
-      isLoading,
+      isLoading: isLoading || isPending,
       error,
       updateConfig,
-      refetchConfig: fetchConfig,
+      refetchConfig,
       assistants,
-      assistantsLoading,
-      refetchAssistants: fetchAssistants,
+      assistantsLoading: assistantsLoading || isPending,
+      refetchAssistants,
       graphStructure,
       finalNodeNames,
     }),
@@ -347,12 +270,13 @@ export const AssistantConfigProvider: React.FC<{
       schemas,
       assistantId,
       isLoading,
+      isPending,
       error,
       updateConfig,
-      fetchConfig,
+      refetchConfig,
       assistants,
       assistantsLoading,
-      fetchAssistants,
+      refetchAssistants,
       graphStructure,
       finalNodeNames,
     ]

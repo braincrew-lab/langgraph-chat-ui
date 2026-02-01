@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { SignJWT } from "jose";
-import { CONNECTION_COOKIE_NAMES } from "@/lib/connection-cookies";
+import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
 
-// Fallback: LANGGRAPH_API_URL (preferred) or NEXT_PUBLIC_API_URL
+// LangGraph server URL (LANGGRAPH_API_URL for internal networks, fallback to NEXT_PUBLIC_API_URL)
 const ENV_LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
 
 function getCorsHeaders() {
