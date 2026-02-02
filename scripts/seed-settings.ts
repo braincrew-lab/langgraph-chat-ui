@@ -4,7 +4,10 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import { SETTING_DEFINITIONS, DEFAULT_SETTINGS } from "../src/types/global-settings";
+import {
+  SETTING_DEFINITIONS,
+  DEFAULT_SETTINGS,
+} from "../src/types/global-settings";
 
 const prisma = new PrismaClient();
 

@@ -3,7 +3,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import { PanelRightOpen, PanelRightClose, BookOpen, Settings, Users, Shield } from "lucide-react";
+import {
+  PanelRightOpen,
+  PanelRightClose,
+  BookOpen,
+  Settings,
+  Users,
+  Shield,
+} from "lucide-react";
 import { NewChatButton } from "./NewChatButton";
 import { ThreadList } from "./ThreadList";
 import { ThreadHistoryLoading } from "./ThreadHistoryLoading";
@@ -37,7 +44,7 @@ export function DesktopSidebar({
   const userIsAdmin = user && isAdmin(user.role as UserRole);
 
   return (
-    <div className="shadow-inner-right h-screen w-[300px] shrink-0 flex-col items-stretch justify-start border-r-[1px] border-border flex">
+    <div className="shadow-inner-right border-border flex h-screen w-[300px] shrink-0 flex-col items-stretch justify-start border-r-[1px]">
       {/* Header with collapse button on right */}
       <div className="flex w-full items-center justify-end px-4 pt-1.5">
         <Button
@@ -55,7 +62,7 @@ export function DesktopSidebar({
       </div>
 
       {/* New Chat button */}
-      <div className="px-3 mb-2">
+      <div className="mb-2 px-3">
         <NewChatButton onClick={onNewChat} />
       </div>
 
@@ -63,7 +70,7 @@ export function DesktopSidebar({
       {onShowGuide && (
         <div className="px-3">
           <div
-            className="h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent"
+            className="hover:bg-accent flex h-10 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors"
             onClick={onShowGuide}
           >
             <BookOpen className={ICON_SIZE_SM} />
@@ -74,14 +81,16 @@ export function DesktopSidebar({
 
       {/* Admin navigation (only for admins) */}
       {userIsAdmin && (
-        <div className="px-3 mt-4">
-          <p className="text-xs font-medium text-muted-foreground px-3 mb-2">관리자</p>
+        <div className="mt-4 px-3">
+          <p className="text-muted-foreground mb-2 px-3 text-xs font-medium">
+            관리자
+          </p>
           <nav className="space-y-2">
             <Link
               href="/admin/users"
               className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/users" && "bg-accent"
+                "hover:bg-accent flex h-10 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors",
+                pathname === "/admin/users" && "bg-accent",
               )}
             >
               <Users className={ICON_SIZE_SM} />
@@ -90,8 +99,8 @@ export function DesktopSidebar({
             <Link
               href="/admin/approvals"
               className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/approvals" && "bg-accent"
+                "hover:bg-accent flex h-10 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors",
+                pathname === "/admin/approvals" && "bg-accent",
               )}
             >
               <Shield className={ICON_SIZE_SM} />
@@ -100,8 +109,8 @@ export function DesktopSidebar({
             <Link
               href="/admin/settings"
               className={cn(
-                "h-10 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent",
-                pathname === "/admin/settings" && "bg-accent"
+                "hover:bg-accent flex h-10 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors",
+                pathname === "/admin/settings" && "bg-accent",
               )}
             >
               <Settings className={ICON_SIZE_SM} />
@@ -123,7 +132,7 @@ export function DesktopSidebar({
         )}
       </div>
 
-      <div className="border-t border-border p-4 space-y-3 bg-transparent">
+      <div className="border-border space-y-3 border-t bg-transparent p-4">
         <UserMenu />
         <SettingsDialog />
       </div>

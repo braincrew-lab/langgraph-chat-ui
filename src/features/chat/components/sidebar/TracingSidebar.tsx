@@ -39,10 +39,10 @@ export function TracingSidebar({
 
   return (
     <div
-      className="fixed top-0 right-0 z-30 flex flex-col border-l h-screen overflow-hidden bg-background"
+      className="bg-background fixed top-0 right-0 z-30 flex h-screen flex-col overflow-hidden border-l"
       style={{ width: UI.TRACING_SIDEBAR_WIDTH }}
     >
-      <div className="flex-shrink-0 flex items-center justify-between border-b px-4 py-3">
+      <div className="flex flex-shrink-0 items-center justify-between border-b px-4 py-3">
         <h2 className="font-semibold">LangSmith Tracing</h2>
         <div className="flex items-center gap-2">
           <TooltipProvider>
@@ -51,12 +51,12 @@ export function TracingSidebar({
                 <button
                   onClick={onRefresh}
                   disabled={langSmithLoading}
-                  className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-accent disabled:opacity-50"
+                  className="hover:bg-accent flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
                 >
                   <RefreshCw
                     className={cn(
                       "h-4 w-4",
-                      langSmithLoading && "animate-spin"
+                      langSmithLoading && "animate-spin",
                     )}
                   />
                 </button>
@@ -68,7 +68,7 @@ export function TracingSidebar({
           </TooltipProvider>
           <button
             onClick={onClose}
-            className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-accent"
+            className="hover:bg-accent flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
           >
             <XIcon className="h-4 w-4" />
           </button>

@@ -22,7 +22,12 @@ import { ConnectionList } from "./ConnectionList";
 import { clearConnectionCookiesAction } from "@/app/actions";
 
 export function SettingsDialog() {
-  const { userSettings, updateUserSettings, resetUserSettings, globalSettings } = useSettings();
+  const {
+    userSettings,
+    updateUserSettings,
+    resetUserSettings,
+    globalSettings,
+  } = useSettings();
   const { threads, getThreads, setThreads, client } = useThreads();
   const router = useRouter();
   const [threadId, setThreadId] = useQueryState("threadId");
@@ -34,11 +39,11 @@ export function SettingsDialog() {
   const handleResetToDefaults = async () => {
     const confirmed = window.confirm(
       "Are you sure you want to reset all settings to defaults?\n\n" +
-      "This will reset:\n" +
-      "- UI settings (font, color scheme, etc.)\n" +
-      "- Connection settings\n" +
-      "- Sidebar states\n\n" +
-      "You will be redirected to the home page."
+        "This will reset:\n" +
+        "- UI settings (font, color scheme, etc.)\n" +
+        "- Connection settings\n" +
+        "- Sidebar states\n\n" +
+        "You will be redirected to the home page.",
     );
 
     if (!confirmed) return;
@@ -87,8 +92,8 @@ export function SettingsDialog() {
     // Show native confirm dialog
     const confirmed = window.confirm(
       `Are you sure you want to delete all conversation history?\n\n` +
-      `All ${threadsToDelete.length} conversation${threadsToDelete.length !== 1 ? 's' : ''} will be permanently deleted.\n\n` +
-      `This action cannot be undone.`
+        `All ${threadsToDelete.length} conversation${threadsToDelete.length !== 1 ? "s" : ""} will be permanently deleted.\n\n` +
+        `This action cannot be undone.`,
     );
 
     if (!confirmed) {
@@ -98,8 +103,8 @@ export function SettingsDialog() {
     setIsDeleting(true);
     try {
       // Delete all threads
-      const deletePromises = threadsToDelete.map(thread =>
-        client.threads.delete(thread.thread_id)
+      const deletePromises = threadsToDelete.map((thread) =>
+        client.threads.delete(thread.thread_id),
       );
 
       await Promise.all(deletePromises);
@@ -112,7 +117,9 @@ export function SettingsDialog() {
         setThreadId(null);
       }
 
-      toast.success(`Successfully deleted ${threadsToDelete.length} conversation${threadsToDelete.length > 1 ? 's' : ''}`);
+      toast.success(
+        `Successfully deleted ${threadsToDelete.length} conversation${threadsToDelete.length > 1 ? "s" : ""}`,
+      );
 
       // Reload the page to reset the chat interface
       window.location.reload();
@@ -129,19 +136,17 @@ export function SettingsDialog() {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start gap-2 hover:bg-accent cursor-pointer"
+          className="hover:bg-accent w-full cursor-pointer justify-start gap-2"
         >
           <SettingsIcon className="size-5" />
           <span>설정</span>
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">Settings</DialogTitle>
-          <DialogDescription>
-            Customize your chat experience
-          </DialogDescription>
+          <DialogDescription>Customize your chat experience</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -156,20 +161,18 @@ export function SettingsDialog() {
                     variant={
                       userSettings.fontFamily === "sans" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontFamily: "sans" })
-                    }
+                    onClick={() => updateUserSettings({ fontFamily: "sans" })}
                     className="flex-1"
                   >
                     Sans Serif
                   </Button>
                   <Button
                     variant={
-                      userSettings.fontFamily === "serif" ? "default" : "outline"
+                      userSettings.fontFamily === "serif"
+                        ? "default"
+                        : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontFamily: "serif" })
-                    }
+                    onClick={() => updateUserSettings({ fontFamily: "serif" })}
                     className="flex-1"
                   >
                     Serif
@@ -178,9 +181,7 @@ export function SettingsDialog() {
                     variant={
                       userSettings.fontFamily === "mono" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontFamily: "mono" })
-                    }
+                    onClick={() => updateUserSettings({ fontFamily: "mono" })}
                     className="flex-1"
                   >
                     Monospace
@@ -195,9 +196,7 @@ export function SettingsDialog() {
                     variant={
                       userSettings.fontSize === "small" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontSize: "small" })
-                    }
+                    onClick={() => updateUserSettings({ fontSize: "small" })}
                     className="flex-1"
                   >
                     Small
@@ -206,9 +205,7 @@ export function SettingsDialog() {
                     variant={
                       userSettings.fontSize === "medium" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontSize: "medium" })
-                    }
+                    onClick={() => updateUserSettings({ fontSize: "medium" })}
                     className="flex-1"
                   >
                     Medium
@@ -217,9 +214,7 @@ export function SettingsDialog() {
                     variant={
                       userSettings.fontSize === "large" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ fontSize: "large" })
-                    }
+                    onClick={() => updateUserSettings({ fontSize: "large" })}
                     className="flex-1"
                   >
                     Large
@@ -232,33 +227,33 @@ export function SettingsDialog() {
                 <div className="flex gap-2">
                   <Button
                     variant={
-                      userSettings.colorScheme === "light" ? "default" : "outline"
+                      userSettings.colorScheme === "light"
+                        ? "default"
+                        : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ colorScheme: "light" })
-                    }
+                    onClick={() => updateUserSettings({ colorScheme: "light" })}
                     className="flex-1"
                   >
                     Light
                   </Button>
                   <Button
                     variant={
-                      userSettings.colorScheme === "dark" ? "default" : "outline"
+                      userSettings.colorScheme === "dark"
+                        ? "default"
+                        : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ colorScheme: "dark" })
-                    }
+                    onClick={() => updateUserSettings({ colorScheme: "dark" })}
                     className="flex-1"
                   >
                     Dark
                   </Button>
                   <Button
                     variant={
-                      userSettings.colorScheme === "auto" ? "default" : "outline"
+                      userSettings.colorScheme === "auto"
+                        ? "default"
+                        : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ colorScheme: "auto" })
-                    }
+                    onClick={() => updateUserSettings({ colorScheme: "auto" })}
                     className="flex-1"
                   >
                     Auto
@@ -274,9 +269,12 @@ export function SettingsDialog() {
             <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="auto-collapse">Auto-collapse Tool Calls</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically collapse tool call details after response completes
+                  <Label htmlFor="auto-collapse">
+                    Auto-collapse Tool Calls
+                  </Label>
+                  <p className="text-muted-foreground text-sm">
+                    Automatically collapse tool call details after response
+                    completes
                   </p>
                 </div>
                 <Switch
@@ -293,11 +291,11 @@ export function SettingsDialog() {
                 <div className="flex gap-2">
                   <Button
                     variant={
-                      userSettings.chatWidth === "default" ? "default" : "outline"
+                      userSettings.chatWidth === "default"
+                        ? "default"
+                        : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ chatWidth: "default" })
-                    }
+                    onClick={() => updateUserSettings({ chatWidth: "default" })}
                     className="flex-1"
                   >
                     Default
@@ -306,9 +304,7 @@ export function SettingsDialog() {
                     variant={
                       userSettings.chatWidth === "wide" ? "default" : "outline"
                     }
-                    onClick={() =>
-                      updateUserSettings({ chatWidth: "wide" })
-                    }
+                    onClick={() => updateUserSettings({ chatWidth: "wide" })}
                     className="flex-1"
                   >
                     Wide
@@ -328,13 +324,16 @@ export function SettingsDialog() {
 
           {/* Delete All Conversations Section */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
-            <div className="rounded-lg border border-destructive/50 p-4">
+            <h3 className="text-destructive text-lg font-semibold">
+              Danger Zone
+            </h3>
+            <div className="border-destructive/50 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label className="text-base">Delete All Conversations</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Permanently delete all conversation history. This action cannot be undone.
+                  <p className="text-muted-foreground text-sm">
+                    Permanently delete all conversation history. This action
+                    cannot be undone.
                   </p>
                 </div>
                 <Button

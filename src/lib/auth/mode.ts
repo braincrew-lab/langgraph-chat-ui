@@ -163,7 +163,10 @@ export const ROUTE_CONFIG = {
 /**
  * Check if a path matches any of the given prefixes
  */
-export function matchesRoute(pathname: string, prefixes: readonly string[]): boolean {
+export function matchesRoute(
+  pathname: string,
+  prefixes: readonly string[],
+): boolean {
   return prefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -171,7 +174,7 @@ export function matchesRoute(pathname: string, prefixes: readonly string[]): boo
  * Determine route type
  */
 export function getRouteType(
-  pathname: string
+  pathname: string,
 ): "public" | "admin" | "api" | "protected" {
   if (matchesRoute(pathname, ROUTE_CONFIG.public)) return "public";
   if (matchesRoute(pathname, ROUTE_CONFIG.admin)) return "admin";

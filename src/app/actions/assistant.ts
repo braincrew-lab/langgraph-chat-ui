@@ -75,8 +75,14 @@ export interface AssistantData {
 async function getConnectionFromCookies() {
   const cookieStore = await cookies();
   return {
-    apiUrl: cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value || process.env.NEXT_PUBLIC_API_URL || "",
-    apiKey: cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "",
+    apiUrl:
+      cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "",
+    apiKey:
+      cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value ||
+      process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY ||
+      "",
   };
 }
 
@@ -106,15 +112,17 @@ function extractFinalNodeNames(graph: GraphStructure): string[] {
 
   // Step 1: Find nodes that go directly to __end__
   const directToEndNodes = graph.edges
-    .filter(edge => edge.target === "__end__")
-    .map(edge => edge.source);
+    .filter((edge) => edge.target === "__end__")
+    .map((edge) => edge.source);
 
   // Step 2: Check if ALL direct-to-end nodes are middleware
-  const allAreMiddleware = directToEndNodes.every(node => isMiddlewareNode(node));
+  const allAreMiddleware = directToEndNodes.every((node) =>
+    isMiddlewareNode(node),
+  );
 
   if (!allAreMiddleware) {
     // Return non-middleware nodes
-    return directToEndNodes.filter(node => !isMiddlewareNode(node));
+    return directToEndNodes.filter((node) => !isMiddlewareNode(node));
   }
 
   // Step 3: All are middleware - find their input nodes
@@ -122,11 +130,11 @@ function extractFinalNodeNames(graph: GraphStructure): string[] {
 
   for (const middlewareNode of directToEndNodes) {
     const inputs = graph.edges
-      .filter(edge => edge.target === middlewareNode)
-      .map(edge => edge.source)
-      .filter(node => !node.startsWith("__") && !isMiddlewareNode(node));
+      .filter((edge) => edge.target === middlewareNode)
+      .map((edge) => edge.source)
+      .filter((node) => !node.startsWith("__") && !isMiddlewareNode(node));
 
-    inputs.forEach(node => inputNodes.add(node));
+    inputs.forEach((node) => inputNodes.add(node));
   }
 
   // Return input nodes if found, otherwise fallback to direct nodes
@@ -136,7 +144,10 @@ function extractFinalNodeNames(graph: GraphStructure): string[] {
 /**
  * Search assistants
  */
-export async function searchAssistantsAction(): Promise<{ assistants: Assistant[]; error: string | null }> {
+export async function searchAssistantsAction(): Promise<{
+  assistants: Assistant[];
+  error: string | null;
+}> {
   try {
     const { apiUrl, apiKey } = await getConnectionFromCookies();
     if (!apiUrl) {
@@ -162,7 +173,7 @@ export async function searchAssistantsAction(): Promise<{ assistants: Assistant[
  * Fetches: assistant, schemas, graph, and assistants list in parallel
  */
 export async function getAssistantDataAction(
-  assistantIdOrGraphId?: string
+  assistantIdOrGraphId?: string,
 ): Promise<AssistantData> {
   const emptyResult: AssistantData = {
     assistantId: null,
@@ -184,11 +195,13 @@ export async function getAssistantDataAction(
 
     // Phase 1: Fetch assistants list + resolve assistant ID in parallel
     const [assistantsResult, resolvedId] = await Promise.all([
-      client.assistants.search({
-        limit: 50,
-        sortOrder: "asc",
-        sortBy: "assistant_id",
-      }).catch(() => []),
+      client.assistants
+        .search({
+          limit: 50,
+          sortOrder: "asc",
+          sortBy: "assistant_id",
+        })
+        .catch(() => []),
       resolveAssistantIdInternal(client, assistantIdOrGraphId),
     ]);
 
@@ -209,7 +222,9 @@ export async function getAssistantDataAction(
     ]);
 
     const graphStructure = graph as GraphStructure | null;
-    const finalNodeNames = graphStructure ? extractFinalNodeNames(graphStructure) : [];
+    const finalNodeNames = graphStructure
+      ? extractFinalNodeNames(graphStructure)
+      : [];
 
     return {
       assistantId: resolvedId,
@@ -231,7 +246,7 @@ export async function getAssistantDataAction(
  */
 async function resolveAssistantIdInternal(
   client: Client,
-  assistantIdOrGraphId?: string
+  assistantIdOrGraphId?: string,
 ): Promise<string | null> {
   if (!assistantIdOrGraphId?.trim()) {
     return null;
@@ -273,16 +288,28 @@ async function resolveAssistantIdInternal(
  */
 export async function updateAssistantConfigAction(
   assistantId: string,
-  config: AssistantConfig
-): Promise<{ success: boolean; assistant: Assistant | null; error: string | null }> {
+  config: AssistantConfig,
+): Promise<{
+  success: boolean;
+  assistant: Assistant | null;
+  error: string | null;
+}> {
   if (!assistantId?.trim()) {
-    return { success: false, assistant: null, error: "Assistant ID is required" };
+    return {
+      success: false,
+      assistant: null,
+      error: "Assistant ID is required",
+    };
   }
 
   try {
     const { apiUrl, apiKey } = await getConnectionFromCookies();
     if (!apiUrl) {
-      return { success: false, assistant: null, error: "No API URL configured" };
+      return {
+        success: false,
+        assistant: null,
+        error: "No API URL configured",
+      };
     }
 
     const client = await createServerClient(apiUrl, apiKey);
@@ -306,9 +333,7 @@ export async function updateAssistantConfigAction(
 /**
  * Refetch assistant data (for explicit refresh)
  */
-export async function refetchAssistantDataAction(
-  assistantId: string
-): Promise<{
+export async function refetchAssistantDataAction(assistantId: string): Promise<{
   assistant: Assistant | null;
   schemas: AssistantSchemas | null;
   graphStructure: GraphStructure | null;
@@ -343,7 +368,9 @@ export async function refetchAssistantDataAction(
     ]);
 
     const graphStructure = graph as GraphStructure | null;
-    const finalNodeNames = graphStructure ? extractFinalNodeNames(graphStructure) : [];
+    const finalNodeNames = graphStructure
+      ? extractFinalNodeNames(graphStructure)
+      : [];
 
     return {
       assistant: assistant as Assistant | null,

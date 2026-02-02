@@ -1,4 +1,7 @@
-import { getAllSettings, getServerDefaults } from "@/lib/services/settings.service";
+import {
+  getAllSettings,
+  getServerDefaults,
+} from "@/lib/services/settings.service";
 import { SettingsForm } from "@/features/admin/components/SettingsForm";
 
 export default async function SettingsPage() {
@@ -14,7 +17,10 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <SettingsForm initialSettings={settings} serverDefaults={serverDefaults} />
+      <SettingsForm
+        initialSettings={settings}
+        serverDefaults={serverDefaults}
+      />
     </div>
   );
 }

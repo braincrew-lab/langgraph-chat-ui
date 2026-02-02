@@ -11,7 +11,10 @@
  */
 
 import { useMemo } from "react";
-import type { TaskProgressItem, LangSmithEnrichment } from "@/types/task-progress";
+import type {
+  TaskProgressItem,
+  LangSmithEnrichment,
+} from "@/types/task-progress";
 import type { LangSmithRun } from "@/types/langsmith";
 
 // ============================================
@@ -61,11 +64,17 @@ function extractToolCallIdFromRun(run: LangSmithRun): string | null {
       for (const msg of inputs.messages) {
         if (msg && typeof msg === "object") {
           const message = msg as Record<string, unknown>;
-          if (typeof message.tool_call_id === "string" && message.tool_call_id) {
+          if (
+            typeof message.tool_call_id === "string" &&
+            message.tool_call_id
+          ) {
             return message.tool_call_id;
           }
           // Check tool_calls array for AI messages
-          if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+          if (
+            Array.isArray(message.tool_calls) &&
+            message.tool_calls.length > 0
+          ) {
             const toolCall = message.tool_calls[0] as Record<string, unknown>;
             if (typeof toolCall.id === "string" && toolCall.id) {
               return toolCall.id;
@@ -85,7 +94,10 @@ function extractToolCallIdFromRun(run: LangSmithRun): string | null {
     }
 
     // Check LangGraph-specific field
-    if (typeof metadata.langgraph_tool_call_id === "string" && metadata.langgraph_tool_call_id) {
+    if (
+      typeof metadata.langgraph_tool_call_id === "string" &&
+      metadata.langgraph_tool_call_id
+    ) {
       return metadata.langgraph_tool_call_id;
     }
   }
@@ -96,7 +108,9 @@ function extractToolCallIdFromRun(run: LangSmithRun): string | null {
 /**
  * Extract token usage from LangSmith run outputs
  */
-function extractTokenUsage(run: LangSmithRun): LangSmithEnrichment["tokenUsage"] | undefined {
+function extractTokenUsage(
+  run: LangSmithRun,
+): LangSmithEnrichment["tokenUsage"] | undefined {
   if (!run.outputs) return undefined;
 
   const outputs = run.outputs as Record<string, unknown>;
@@ -148,7 +162,10 @@ function extractModelName(run: LangSmithRun): string | undefined {
   if (run.inputs && typeof run.inputs === "object") {
     const inputs = run.inputs as Record<string, unknown>;
 
-    if (inputs.invocation_params && typeof inputs.invocation_params === "object") {
+    if (
+      inputs.invocation_params &&
+      typeof inputs.invocation_params === "object"
+    ) {
       const params = inputs.invocation_params as Record<string, unknown>;
       if (params.model_name) return params.model_name as string;
       if (params.model) return params.model as string;
@@ -219,7 +236,7 @@ function createEnrichment(run: LangSmithRun): LangSmithEnrichment {
  * This keeps the logic simple and predictable.
  */
 export function useLangSmithEnrichment(
-  options: UseLangSmithEnrichmentOptions
+  options: UseLangSmithEnrichmentOptions,
 ): UseLangSmithEnrichmentReturn {
   const { progress, runs, isLoading = false } = options;
 
@@ -260,7 +277,7 @@ export function useLangSmithEnrichment(
  */
 export function getRunsForTask(
   toolCallId: string,
-  runs: LangSmithRun[]
+  runs: LangSmithRun[],
 ): LangSmithRun[] {
   // Find the run with this toolCallId
   const taskRun = runs.find((run) => {
@@ -291,7 +308,7 @@ export function getRunsForTask(
  */
 export function calculateTotalLatency(
   toolCallId: string,
-  runs: LangSmithRun[]
+  runs: LangSmithRun[],
 ): number | undefined {
   const taskRun = runs.find((run) => {
     const id = extractToolCallIdFromRun(run);
@@ -308,7 +325,7 @@ export function calculateTotalLatency(
  */
 export function getActiveRunForTask(
   toolCallId: string,
-  runs: LangSmithRun[]
+  runs: LangSmithRun[],
 ): LangSmithRun | undefined {
   const childRuns = getRunsForTask(toolCallId, runs);
   const activeRuns = childRuns.filter((r) => r.status === "running");

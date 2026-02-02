@@ -2,7 +2,13 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { ImageIcon, AlertCircle, Upload, Loader2, RotateCcw } from "lucide-react";
+import {
+  ImageIcon,
+  AlertCircle,
+  Upload,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -57,9 +63,18 @@ export function ImagePreview({
     e.target.value = "";
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "image/x-icon"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+      "image/x-icon",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("지원하지 않는 파일 형식입니다. (JPEG, PNG, GIF, WEBP, SVG, ICO)");
+      toast.error(
+        "지원하지 않는 파일 형식입니다. (JPEG, PNG, GIF, WEBP, SVG, ICO)",
+      );
       return;
     }
 
@@ -89,7 +104,9 @@ export function ImagePreview({
       toast.success("이미지가 업로드되었습니다.");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error(err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.");
+      toast.error(
+        err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.",
+      );
     } finally {
       setUploading(false);
     }
@@ -154,7 +171,7 @@ export function ImagePreview({
         {value && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="h-9 w-9 shrink-0 rounded-md border border-input bg-background flex items-center justify-center overflow-hidden">
+              <div className="border-input bg-background flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border">
                 {showPreview ? (
                   <Image
                     src={value}
@@ -166,13 +183,16 @@ export function ImagePreview({
                     unoptimized
                   />
                 ) : error ? (
-                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <AlertCircle className="text-destructive h-4 w-4" />
                 ) : (
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  <ImageIcon className="text-muted-foreground h-4 w-4" />
                 )}
               </div>
             </TooltipTrigger>
-            <TooltipContent side="top" className="p-0 bg-background border">
+            <TooltipContent
+              side="top"
+              className="bg-background border p-0"
+            >
               {showPreview ? (
                 <div className="p-2">
                   <Image
@@ -180,12 +200,12 @@ export function ImagePreview({
                     alt="Preview"
                     width={128}
                     height={128}
-                    className="max-w-[128px] max-h-[128px] object-contain"
+                    className="max-h-[128px] max-w-[128px] object-contain"
                     unoptimized
                   />
                 </div>
               ) : (
-                <div className="p-2 text-sm text-destructive">
+                <div className="text-destructive p-2 text-sm">
                   이미지를 로드할 수 없습니다
                 </div>
               )}
@@ -195,7 +215,7 @@ export function ImagePreview({
       </div>
 
       {error && (
-        <p className="text-xs text-destructive">
+        <p className="text-destructive text-xs">
           이미지를 로드할 수 없습니다. URL을 확인해주세요.
         </p>
       )}

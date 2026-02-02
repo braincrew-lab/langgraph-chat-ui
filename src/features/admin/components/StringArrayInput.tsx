@@ -51,7 +51,10 @@ export function StringArrayInput({
       {value.length > 0 && (
         <div className="space-y-2">
           {value.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div
+              key={index}
+              className="flex items-center gap-2"
+            >
               <Input
                 value={item}
                 onChange={(e) => handleItemChange(index, e.target.value)}
@@ -61,7 +64,7 @@ export function StringArrayInput({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive h-9 w-9 shrink-0"
                 onClick={() => handleRemove(index)}
               >
                 <X className="h-4 w-4" />
@@ -95,7 +98,7 @@ export function StringArrayInput({
       )}
 
       {/* Item count */}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         {value.length} / {maxItems} 항목
       </p>
     </div>

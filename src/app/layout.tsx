@@ -11,7 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
     const settings = await getAllSettings();
 
     // Branding fallback chain
-    const logoUrl = settings["branding.logoUrl"] || siteConfig.branding.logoPath;
+    const logoUrl =
+      settings["branding.logoUrl"] || siteConfig.branding.logoPath;
     const faviconUrl = settings["branding.faviconUrl"] || logoUrl;
     const appTitle = settings["branding.appTitle"] || siteConfig.meta.title;
 
@@ -36,7 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Default favicon path for immediate rendering (prevents flickering)
-const defaultFaviconPath = siteConfig.meta.favicon || siteConfig.branding.logoPath;
+const defaultFaviconPath =
+  siteConfig.meta.favicon || siteConfig.branding.logoPath;
 
 export default function RootLayout({
   children,
@@ -44,10 +46,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html
+      lang="ko"
+      suppressHydrationWarning
+    >
       <head>
         {/* Static default favicon to prevent flickering during async metadata loading */}
-        <link rel="icon" href={defaultFaviconPath} />
+        <link
+          rel="icon"
+          href={defaultFaviconPath}
+        />
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>

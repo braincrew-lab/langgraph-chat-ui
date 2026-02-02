@@ -96,7 +96,9 @@ export function getActiveConnectionFromCookies(): ActiveConnectionCookies {
 /**
  * Parse cookies from a cookie header string (server-side)
  */
-export function parseConnectionCookies(cookieHeader: string | null): ActiveConnectionCookies {
+export function parseConnectionCookies(
+  cookieHeader: string | null,
+): ActiveConnectionCookies {
   if (!cookieHeader) {
     return {
       apiUrl: null,

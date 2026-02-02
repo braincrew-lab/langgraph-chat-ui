@@ -42,21 +42,17 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">사용자 관리</h1>
-        <p className="text-muted-foreground">
-          등록된 모든 사용자를 관리합니다
-        </p>
+        <p className="text-muted-foreground">등록된 모든 사용자를 관리합니다</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>전체 사용자</CardTitle>
-          <CardDescription>
-            총 {result.total}명의 사용자
-          </CardDescription>
+          <CardDescription>총 {result.total}명의 사용자</CardDescription>
         </CardHeader>
         <CardContent>
           {result.users.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-muted-foreground py-8 text-center">
               사용자가 없습니다
             </p>
           ) : (

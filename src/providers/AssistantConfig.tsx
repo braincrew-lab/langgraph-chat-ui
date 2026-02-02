@@ -19,7 +19,12 @@ import {
 } from "@/app/actions/assistant";
 
 // Re-export types for consumers
-export type { Assistant, AssistantConfigType as AssistantConfig, AssistantSchemas, GraphStructure };
+export type {
+  Assistant,
+  AssistantConfigType as AssistantConfig,
+  AssistantSchemas,
+  GraphStructure,
+};
 
 // Legacy type for backward compatibility with SSR data
 export interface ServerAssistantData {
@@ -68,21 +73,23 @@ export const AssistantConfigProvider: React.FC<{
 
   // Initialize state from SSR data
   const [config, setConfig] = useState<AssistantConfigType | null>(
-    () => initialData?.assistant?.config ?? null
+    () => initialData?.assistant?.config ?? null,
   );
   const [schemas, setSchemas] = useState<AssistantSchemas | null>(
-    () => initialData?.schemas ?? null
+    () => initialData?.schemas ?? null,
   );
   const [assistantId, setAssistantId] = useState<string | null>(
-    () => initialData?.assistantId ?? null
+    () => initialData?.assistantId ?? null,
   );
   const [assistants, setAssistants] = useState<Assistant[]>(
-    () => initialData?.assistants ?? []
+    () => initialData?.assistants ?? [],
   );
   const [error, setError] = useState<string | null>(null);
 
   // Graph data (not in SSR, fetched on mount if assistant exists)
-  const [graphStructure, setGraphStructure] = useState<GraphStructure | null>(null);
+  const [graphStructure, setGraphStructure] = useState<GraphStructure | null>(
+    null,
+  );
   const [finalNodeNames, setFinalNodeNames] = useState<string[]>([]);
 
   // Loading states
@@ -93,13 +100,15 @@ export const AssistantConfigProvider: React.FC<{
   useEffect(() => {
     if (initialData?.assistantId && !graphStructure) {
       startTransition(async () => {
-        const result = await refetchAssistantDataAction(initialData.assistantId!);
+        const result = await refetchAssistantDataAction(
+          initialData.assistantId!,
+        );
         if (result.graphStructure) {
           setGraphStructure(result.graphStructure);
           setFinalNodeNames(result.finalNodeNames);
           // DEBUG: Log graph structure and final nodes
           console.log("[AssistantConfig] Graph structure loaded:", {
-            nodes: result.graphStructure.nodes?.map(n => n.id),
+            nodes: result.graphStructure.nodes?.map((n) => n.id),
             edges: result.graphStructure.edges,
             finalNodeNames: result.finalNodeNames,
           });
@@ -194,16 +203,23 @@ export const AssistantConfigProvider: React.FC<{
   // Auto-select assistant if no valid selection exists
   const autoSelectTriggeredRef = React.useRef(false);
   useEffect(() => {
-    if (!assistantId && !isLoading && assistants.length > 0 && !autoSelectTriggeredRef.current) {
+    if (
+      !assistantId &&
+      !isLoading &&
+      assistants.length > 0 &&
+      !autoSelectTriggeredRef.current
+    ) {
       autoSelectTriggeredRef.current = true;
 
       let targetAssistantId: string;
 
       if (!enableGraphSelection && defaultGraphId) {
         const defaultAssistant = assistants.find(
-          a => a.assistant_id === defaultGraphId || a.graph_id === defaultGraphId
+          (a) =>
+            a.assistant_id === defaultGraphId || a.graph_id === defaultGraphId,
         );
-        targetAssistantId = defaultAssistant?.assistant_id || assistants[0].assistant_id;
+        targetAssistantId =
+          defaultAssistant?.assistant_id || assistants[0].assistant_id;
       } else {
         targetAssistantId = assistants[0].assistant_id;
       }
@@ -215,24 +231,33 @@ export const AssistantConfigProvider: React.FC<{
         });
       });
     }
-  }, [assistantId, isLoading, assistants, enableGraphSelection, defaultGraphId]);
+  }, [
+    assistantId,
+    isLoading,
+    assistants,
+    enableGraphSelection,
+    defaultGraphId,
+  ]);
 
   // Update config using Server Action
-  const updateConfig = useCallback(async (newConfig: AssistantConfigType): Promise<boolean> => {
-    if (!assistantId) {
-      console.error("No assistant ID available for update");
+  const updateConfig = useCallback(
+    async (newConfig: AssistantConfigType): Promise<boolean> => {
+      if (!assistantId) {
+        console.error("No assistant ID available for update");
+        return false;
+      }
+
+      const result = await updateAssistantConfigAction(assistantId, newConfig);
+      if (result.success && result.assistant) {
+        setConfig(result.assistant.config);
+        return true;
+      }
+
+      setError(result.error);
       return false;
-    }
-
-    const result = await updateAssistantConfigAction(assistantId, newConfig);
-    if (result.success && result.assistant) {
-      setConfig(result.assistant.config);
-      return true;
-    }
-
-    setError(result.error);
-    return false;
-  }, [assistantId]);
+    },
+    [assistantId],
+  );
 
   // Refetch config using Server Action
   const refetchConfig = useCallback(async () => {
@@ -285,7 +310,7 @@ export const AssistantConfigProvider: React.FC<{
       refetchAssistants,
       graphStructure,
       finalNodeNames,
-    ]
+    ],
   );
 
   return (

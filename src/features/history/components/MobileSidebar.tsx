@@ -27,8 +27,14 @@ export function MobileSidebar({
 }: MobileSidebarProps) {
   return (
     <div className="lg:hidden">
-      <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="flex flex-col gap-4 lg:hidden">
+      <Sheet
+        open={isOpen}
+        onOpenChange={onOpenChange}
+      >
+        <SheetContent
+          side="left"
+          className="flex flex-col gap-4 lg:hidden"
+        >
           <VisuallyHidden>
             <SheetTitle>Chat History</SheetTitle>
           </VisuallyHidden>
@@ -40,7 +46,7 @@ export function MobileSidebar({
           {onShowGuide && (
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2 px-3 py-2 text-sm font-medium hover:bg-accent"
+              className="hover:bg-accent w-full justify-start gap-2 px-3 py-2 text-sm font-medium"
               onClick={() => {
                 onShowGuide();
                 onOpenChange(false);
@@ -55,7 +61,10 @@ export function MobileSidebar({
           <Separator />
 
           {/* Thread list */}
-          <ThreadList threads={threads} onThreadClick={onThreadClick} />
+          <ThreadList
+            threads={threads}
+            onThreadClick={onThreadClick}
+          />
         </SheetContent>
       </Sheet>
     </div>

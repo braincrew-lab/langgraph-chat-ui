@@ -47,9 +47,9 @@ export class ThreadErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-          <AlertCircle className="h-16 w-16 text-destructive mb-6" />
-          <h2 className="text-xl font-semibold mb-2">
+        <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+          <AlertCircle className="text-destructive mb-6 h-16 w-16" />
+          <h2 className="mb-2 text-xl font-semibold">
             Unable to load conversation
           </h2>
           <p className="text-muted-foreground mb-6 max-w-md">
@@ -57,23 +57,26 @@ export class ThreadErrorBoundary extends Component<Props, State> {
             a network issue or invalid data.
           </p>
           <div className="flex gap-3">
-            <Button onClick={this.handleRetry} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button
+              onClick={this.handleRetry}
+              variant="outline"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
               Retry
             </Button>
             {this.props.onNewConversation && (
               <Button onClick={this.handleNewConversation}>
-                <MessageSquarePlus className="h-4 w-4 mr-2" />
+                <MessageSquarePlus className="mr-2 h-4 w-4" />
                 New Conversation
               </Button>
             )}
           </div>
           {this.state.error && (
-            <details className="mt-6 text-left w-full max-w-lg">
-              <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+            <details className="mt-6 w-full max-w-lg text-left">
+              <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm">
                 Technical details
               </summary>
-              <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-auto">
+              <pre className="bg-muted mt-2 overflow-auto rounded-md p-3 text-xs">
                 {this.state.error.message}
                 {this.state.error.stack && (
                   <>

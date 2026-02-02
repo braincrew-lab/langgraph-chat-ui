@@ -12,7 +12,10 @@ import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import { StreamingTaskView } from "./StreamingTaskView";
 import { shouldRenderMessage, buildSubagentContext } from "./utils";
-import type { HierarchicalTask, IntermediateLLMOutput } from "@/types/task-hierarchy";
+import type {
+  HierarchicalTask,
+  IntermediateLLMOutput,
+} from "@/types/task-hierarchy";
 import type { TaskProgressItem } from "@/types/task-progress";
 import type { TodoLifecycleState } from "@/features/chat/hooks/useStreamingView";
 import { FormSubmissionMessage } from "./schema-ui";
@@ -82,7 +85,7 @@ export function MessageList({
 
   // Check if there are no AI or tool messages
   const hasNoAIOrToolMessages = !messages.find(
-    (m) => m.type === "ai" || m.type === "tool"
+    (m) => m.type === "ai" || m.type === "tool",
   );
 
   // Check if a message is from an intermediate node (not final)
@@ -92,7 +95,8 @@ export function MessageList({
       if (message.type !== "ai") return false;
 
       const meta = stream.getMessagesMetadata(message);
-      const nodeName = (meta?.streamMetadata as Record<string, unknown>)?.langgraph_node as string | undefined;
+      const nodeName = (meta?.streamMetadata as Record<string, unknown>)
+        ?.langgraph_node as string | undefined;
 
       // DEBUG: 실제 값 확인
       console.log("[isIntermediateNodeMessage]", {
@@ -110,20 +114,20 @@ export function MessageList({
 
       // Check if this node is in the final node list
       const isFinal = finalNodeNames.some(
-        (name) => nodeName.toLowerCase() === name.toLowerCase()
+        (name) => nodeName.toLowerCase() === name.toLowerCase(),
       );
 
       console.log("[isIntermediateNodeMessage] isFinal:", isFinal);
 
       return !isFinal;
     },
-    [stream, finalNodeNames]
+    [stream, finalNodeNames],
   );
 
   // Render the message list
   const renderMessages = () => {
     const filteredMessages = messages.filter(
-      (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
+      (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX),
     );
 
     // Find last human message index
@@ -163,7 +167,7 @@ export function MessageList({
                     (c as { type: string }).type === "text" &&
                     "text" in c &&
                     typeof (c as { text: unknown }).text === "string" &&
-                    (c as { text: string }).text.trim().length > 0
+                    (c as { text: string }).text.trim().length > 0,
                 );
           if (hasTextContent) {
             lastAiMessageId = msg.id ?? null;
@@ -188,7 +192,7 @@ export function MessageList({
           onSelectTask={onSelectTask}
           intermediateOutputs={intermediateOutputs}
           finalNodeId={finalNodeId}
-        />
+        />,
       );
     }
 
@@ -203,7 +207,7 @@ export function MessageList({
             key={messageKey}
             message={message}
             isLoading={isLoading}
-          />
+          />,
         );
 
         // Insert StreamingTaskView after last human message
@@ -219,12 +223,11 @@ export function MessageList({
               onSelectTask={onSelectTask}
               intermediateOutputs={intermediateOutputs}
               finalNodeId={finalNodeId}
-            />
+            />,
           );
         }
       } else {
-        const isAfterLastHuman =
-          lastHumanIndex >= 0 && index > lastHumanIndex;
+        const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
         // Apply compact filter during streaming (isLoading) OR when there's visible content
         // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
         const shouldApplyCompactFilter =
@@ -266,7 +269,7 @@ export function MessageList({
               compactView,
               false,
               subagentContext,
-              filteredMessages
+              filteredMessages,
             )
           ) {
             return;
@@ -280,7 +283,7 @@ export function MessageList({
             isLoading={isLoading}
             handleRegenerate={handleRegenerate}
             compactView={compactView}
-          />
+          />,
         );
       }
     });
@@ -289,14 +292,18 @@ export function MessageList({
   };
 
   // Show loading spinner when on chat detail page and no messages yet
-  const showHistoryLoading = threadId && messages.length === 0 && formSubmissions.length === 0 && (isHistoryLoading || !firstTokenReceived);
+  const showHistoryLoading =
+    threadId &&
+    messages.length === 0 &&
+    formSubmissions.length === 0 &&
+    (isHistoryLoading || !firstTokenReceived);
 
   return (
     <>
       {/* Loading spinner for conversation history */}
       {showHistoryLoading && (
         <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-3">
             <LoaderCircle className="h-5 w-5 animate-spin" />
             <span className="text-sm">대화를 불러오는 중...</span>
           </div>

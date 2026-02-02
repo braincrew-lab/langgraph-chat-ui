@@ -61,7 +61,7 @@ export function OpenGitHubRepo() {
           <a
             href="https://github.com/teddylee777/agent-chat-ui"
             target="_blank"
-            className="flex items-center justify-center pr-3 h-9"
+            className="flex h-9 items-center justify-center pr-3"
           >
             <GitHubSVG
               width="24"

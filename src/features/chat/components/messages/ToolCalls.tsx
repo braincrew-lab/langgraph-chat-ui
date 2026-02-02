@@ -20,9 +20,17 @@ export function ToolCalls({
   if (!toolCalls || toolCalls.length === 0) return null;
 
   return (
-    <div className={`mx-auto grid ${userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"} grid-rows-[1fr_auto] gap-4`}>
+    <div
+      className={`mx-auto grid ${userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"} grid-rows-[1fr_auto] gap-4`}
+    >
       {toolCalls.map((tc, idx) => {
-        return <ToolCallItem key={idx} toolCall={tc} isLoading={isLoading} />;
+        return (
+          <ToolCallItem
+            key={idx}
+            toolCall={tc}
+            isLoading={isLoading}
+          />
+        );
       })}
     </div>
   );
@@ -30,7 +38,7 @@ export function ToolCalls({
 
 function ToolCallItem({
   toolCall,
-  isLoading
+  isLoading,
 }: {
   toolCall: NonNullable<AIMessage["tool_calls"]>[number];
   isLoading?: boolean;
@@ -54,37 +62,42 @@ function ToolCallItem({
       className={cn(
         "overflow-hidden rounded-lg border-l-2 transition-all duration-150",
         isLoading
-          ? "border-purple-300 dark:border-purple-700/50 bg-purple-50/30 dark:bg-purple-950/10"
-          : "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10"
+          ? "border-purple-300 bg-purple-50/30 dark:border-purple-700/50 dark:bg-purple-950/10"
+          : "border-green-300 bg-green-50/30 dark:border-green-700/50 dark:bg-green-950/10",
       )}
     >
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
+        className="hover:bg-muted/30 w-full px-3 py-2 text-left transition-colors"
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Wrench className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="font-medium text-sm text-foreground truncate">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Wrench className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+            <span className="text-foreground truncate text-sm font-medium">
               {toolCall.name}
             </span>
             {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 text-purple-500 animate-spin flex-shrink-0" />
+              <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-purple-500" />
             ) : (
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
             )}
             {/* Show args preview when collapsed */}
             {!isExpanded && hasArgs && (
-              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                ({argEntries.map(([k, v]) =>
-                  `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`
-                ).join(", ")})
+              <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                (
+                {argEntries
+                  .map(
+                    ([k, v]) =>
+                      `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`,
+                  )
+                  .join(", ")}
+                )
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex flex-shrink-0 items-center gap-1.5">
             {toolCall.id && (
-              <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+              <code className="bg-muted/50 text-muted-foreground/70 hidden rounded px-1.5 py-0.5 font-mono text-[10px] sm:inline">
                 {toolCall.id.slice(0, 6)}
               </code>
             )}
@@ -92,7 +105,7 @@ function ToolCallItem({
               animate={{ rotate: isExpanded ? 0 : -90 }}
               transition={{ duration: 0.15, ease: "easeInOut" }}
             >
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <ChevronDown className="text-muted-foreground/60 h-3.5 w-3.5" />
             </motion.div>
           </div>
         </div>
@@ -104,27 +117,29 @@ function ToolCallItem({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden border-t border-border/30"
+            className="border-border/30 overflow-hidden border-t"
           >
             {hasArgs ? (
               <div className="bg-muted/10">
                 <table className="min-w-full">
-                  <tbody className="divide-y divide-border/40">
+                  <tbody className="divide-border/40 divide-y">
                     {argEntries.map(([key, value], argIdx) => (
                       <tr
                         key={argIdx}
-                        className="transition-colors duration-150 hover:bg-muted/30"
+                        className="hover:bg-muted/30 transition-colors duration-150"
                       >
-                        <td className="px-3 py-2 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
+                        <td className="text-foreground/70 bg-muted/20 w-1/4 px-3 py-2 text-xs font-semibold whitespace-nowrap">
                           {key}
                         </td>
-                        <td className="px-3 py-2 text-sm text-foreground/85">
+                        <td className="text-foreground/85 px-3 py-2 text-sm">
                           {isComplexValue(value) ? (
-                            <code className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-xs break-all border border-border/30 whitespace-pre-wrap">
+                            <code className="bg-muted/40 border-border/30 block rounded border px-2 py-1.5 font-mono text-xs break-all whitespace-pre-wrap">
                               {JSON.stringify(value, null, 2)}
                             </code>
                           ) : (
-                            <span className="font-normal break-words">{String(value)}</span>
+                            <span className="font-normal break-words">
+                              {String(value)}
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -134,7 +149,7 @@ function ToolCallItem({
               </div>
             ) : (
               <div className="px-3 py-2">
-                <span className="text-xs text-muted-foreground/60 italic">
+                <span className="text-muted-foreground/60 text-xs italic">
                   No arguments
                 </span>
               </div>
@@ -148,7 +163,7 @@ function ToolCallItem({
 
 export function ToolResult({
   message,
-  isLoading
+  isLoading,
 }: {
   message: ToolMessage;
   isLoading?: boolean;
@@ -181,41 +196,45 @@ export function ToolResult({
     ? JSON.stringify(parsedContent, null, 2)
     : String(message.content);
   const shouldTruncate = contentStr.length > 300;
-  const displayedContent = shouldTruncate && !showFullContent
-    ? contentStr.slice(0, 300) + "..."
-    : contentStr;
+  const displayedContent =
+    shouldTruncate && !showFullContent
+      ? contentStr.slice(0, 300) + "..."
+      : contentStr;
 
   // Preview for collapsed state
   const previewContent = contentStr.slice(0, 60).replace(/\n/g, " ");
 
   return (
-    <div className={`mx-auto grid ${userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"} grid-rows-[1fr_auto] gap-0`}>
+    <div
+      className={`mx-auto grid ${userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"} grid-rows-[1fr_auto] gap-0`}
+    >
       <div
         className={cn(
           "overflow-hidden rounded-lg border-l-2 transition-all duration-150",
-          "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10"
+          "border-green-300 bg-green-50/30 dark:border-green-700/50 dark:bg-green-950/10",
         )}
       >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
+          className="hover:bg-muted/30 w-full px-3 py-2 text-left transition-colors"
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-              <span className="font-medium text-sm text-foreground">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
+              <span className="text-foreground text-sm font-medium">
                 {message.name || "Result"}
               </span>
               {/* Preview when collapsed */}
               {!isExpanded && (
-                <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                  {previewContent}{previewContent.length >= 60 ? "..." : ""}
+                <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                  {previewContent}
+                  {previewContent.length >= 60 ? "..." : ""}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex flex-shrink-0 items-center gap-1.5">
               {message.tool_call_id && (
-                <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+                <code className="bg-muted/50 text-muted-foreground/70 hidden rounded px-1.5 py-0.5 font-mono text-[10px] sm:inline">
                   {message.tool_call_id.slice(0, 6)}
                 </code>
               )}
@@ -223,7 +242,7 @@ export function ToolResult({
                 animate={{ rotate: isExpanded ? 0 : -90 }}
                 transition={{ duration: 0.15, ease: "easeInOut" }}
               >
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <ChevronDown className="text-muted-foreground/60 h-3.5 w-3.5" />
               </motion.div>
             </div>
           </div>
@@ -231,21 +250,23 @@ export function ToolResult({
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              className="min-w-full overflow-hidden border-t border-border/30"
+              className="border-border/30 min-w-full overflow-hidden border-t"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             >
-              <div className="p-3 bg-muted/10">
+              <div className="bg-muted/10 p-3">
                 {isJsonContent ? (
                   <table className="min-w-full">
-                    <tbody className="divide-y divide-border/40">
+                    <tbody className="divide-border/40 divide-y">
                       {(Array.isArray(parsedContent)
                         ? showFullContent
                           ? parsedContent
                           : parsedContent.slice(0, 5)
-                        : Object.entries(parsedContent as Record<string, unknown>)
+                        : Object.entries(
+                            parsedContent as Record<string, unknown>,
+                          )
                       ).map((item, argIdx) => {
                         const [key, value] = Array.isArray(parsedContent)
                           ? [argIdx, item]
@@ -253,18 +274,20 @@ export function ToolResult({
                         return (
                           <tr
                             key={argIdx}
-                            className="transition-colors duration-150 hover:bg-muted/30"
+                            className="hover:bg-muted/30 transition-colors duration-150"
                           >
-                            <td className="px-3 py-2 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
+                            <td className="text-foreground/70 bg-muted/20 w-1/4 px-3 py-2 text-xs font-semibold whitespace-nowrap">
                               {key}
                             </td>
-                            <td className="px-3 py-2 text-sm text-foreground/85">
+                            <td className="text-foreground/85 px-3 py-2 text-sm">
                               {isComplexValue(value) ? (
-                                <code className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-xs break-all border border-border/30 whitespace-pre-wrap">
+                                <code className="bg-muted/40 border-border/30 block rounded border px-2 py-1.5 font-mono text-xs break-all whitespace-pre-wrap">
                                   {JSON.stringify(value, null, 2)}
                                 </code>
                               ) : (
-                                <span className="font-normal break-words">{String(value)}</span>
+                                <span className="font-normal break-words">
+                                  {String(value)}
+                                </span>
                               )}
                             </td>
                           </tr>
@@ -273,7 +296,7 @@ export function ToolResult({
                     </tbody>
                   </table>
                 ) : (
-                  <code className="block rounded bg-muted/40 px-2 py-1.5 text-xs font-mono border border-border/30 leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                  <code className="bg-muted/40 border-border/30 block max-h-[200px] overflow-y-auto rounded border px-2 py-1.5 font-mono text-xs leading-relaxed whitespace-pre-wrap">
                     {displayedContent}
                   </code>
                 )}
@@ -287,9 +310,14 @@ export function ToolResult({
                     e.stopPropagation();
                     setShowFullContent(!showFullContent);
                   }}
-                  className="flex w-full items-center justify-center gap-1.5 border-t border-border/30 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/30 transition-colors"
+                  className="border-border/30 text-muted-foreground hover:bg-muted/30 flex w-full items-center justify-center gap-1.5 border-t py-2 text-xs font-medium transition-colors"
                 >
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", showFullContent && "rotate-180")} />
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 transition-transform",
+                      showFullContent && "rotate-180",
+                    )}
+                  />
                   <span>{showFullContent ? "Show less" : "Show more"}</span>
                 </button>
               )}

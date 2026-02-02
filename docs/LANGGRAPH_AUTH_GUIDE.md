@@ -75,10 +75,10 @@ sequenceDiagram
 
 ### 역할 분리
 
-| 구성 요소 | 역할 | DB 접근 |
-|----------|------|---------|
-| **Next.js** | 사용자 인증, DB 관리, JWT 발급 | ✅ 필요 |
-| **LangGraph** | JWT 검증, 에이전트 실행 | ❌ 불필요 |
+| 구성 요소     | 역할                           | DB 접근   |
+| ------------- | ------------------------------ | --------- |
+| **Next.js**   | 사용자 인증, DB 관리, JWT 발급 | ✅ 필요   |
+| **LangGraph** | JWT 검증, 에이전트 실행        | ❌ 불필요 |
 
 ### 핵심 원칙
 
@@ -92,11 +92,11 @@ sequenceDiagram
 
 ### 지원 데이터베이스
 
-| DB | 지원 상태 | 용도 |
-|----|----------|------|
-| **SQLite** | ✅ 현재 지원 | 개발, 소규모 배포 |
-| **PostgreSQL** | 🔜 추후 지원 예정 | 프로덕션 확장 |
-| **MySQL** | 🔜 추후 지원 예정 | 프로덕션 확장 |
+| DB             | 지원 상태         | 용도              |
+| -------------- | ----------------- | ----------------- |
+| **SQLite**     | ✅ 현재 지원      | 개발, 소규모 배포 |
+| **PostgreSQL** | 🔜 추후 지원 예정 | 프로덕션 확장     |
+| **MySQL**      | 🔜 추후 지원 예정 | 프로덕션 확장     |
 
 > **참고**: 현재 버전은 SQLite만 지원합니다. Prisma ORM을 사용하므로 추후 PostgreSQL, MySQL 등 다른 RDB로 쉽게 확장할 수 있습니다.
 
@@ -114,7 +114,7 @@ import { SignJWT } from "jose";
 
 // JWT 시크릿 (LangGraph와 공유)
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "your-secret-key"
+  process.env.AUTH_SECRET || "your-secret-key",
 );
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -134,7 +134,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const isValid = await bcrypt.compare(
           credentials.password as string,
-          user.password
+          user.password,
         );
 
         if (!isValid) return null;

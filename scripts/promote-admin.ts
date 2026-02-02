@@ -11,7 +11,9 @@ async function main() {
   const [, , email, roleArg] = process.argv;
 
   if (!email) {
-    console.error("Usage: npx tsx scripts/promote-admin.ts <email> [admin|super_admin]");
+    console.error(
+      "Usage: npx tsx scripts/promote-admin.ts <email> [admin|super_admin]",
+    );
     process.exit(1);
   }
 

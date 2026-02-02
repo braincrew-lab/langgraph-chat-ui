@@ -1,5 +1,9 @@
 // 타임라인 이벤트 타입들
-export type TimelineEventType = "middleware" | "llm_end" | "tool_call" | "tool_result";
+export type TimelineEventType =
+  | "middleware"
+  | "llm_end"
+  | "tool_call"
+  | "tool_result";
 
 // 데이터 출처 표시
 export type TimelineEventSource = "langsmith";
@@ -11,8 +15,8 @@ export interface BaseTimelineEvent {
   source?: TimelineEventSource;
   latency?: number;
   // 계층적 표시를 위한 필드 (선택적)
-  parentRunId?: string;  // 부모 run ID (서브에이전트 그룹핑용)
-  depth?: number;        // 계층 깊이 (들여쓰기용, 0 = 루트)
+  parentRunId?: string; // 부모 run ID (서브에이전트 그룹핑용)
+  depth?: number; // 계층 깊이 (들여쓰기용, 0 = 루트)
 }
 
 export interface MiddlewareTimelineEvent extends BaseTimelineEvent {
@@ -71,7 +75,7 @@ export interface LangSmithTimelineEvents {
 
 // LangSmith 이벤트만 사용하여 타임라인 구축
 export function buildTimeline(
-  langSmithEvents: LangSmithTimelineEvents
+  langSmithEvents: LangSmithTimelineEvents,
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 

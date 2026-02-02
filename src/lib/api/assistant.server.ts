@@ -33,7 +33,7 @@ async function createServerClient(apiUrl: string, apiKey?: string) {
 export async function resolveAssistantId(
   apiUrl: string,
   assistantIdOrGraphId: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<string | null> {
   if (!assistantIdOrGraphId?.trim()) {
     return null;
@@ -66,7 +66,10 @@ export async function resolveAssistantId(
       return assistants[0].assistant_id;
     }
   } catch (error) {
-    console.error(`[Server] Failed to resolve assistant ID for "${assistantIdOrGraphId}":`, error);
+    console.error(
+      `[Server] Failed to resolve assistant ID for "${assistantIdOrGraphId}":`,
+      error,
+    );
   }
 
   return null;
@@ -78,7 +81,7 @@ export async function resolveAssistantId(
 export async function getAssistantServer(
   apiUrl: string,
   assistantId: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<Assistant | null> {
   if (!assistantId?.trim()) {
     return null;
@@ -89,7 +92,10 @@ export async function getAssistantServer(
     const assistant = await client.assistants.get(assistantId);
     return assistant as Assistant;
   } catch (error) {
-    console.error(`[Server] Failed to fetch assistant "${assistantId}":`, error);
+    console.error(
+      `[Server] Failed to fetch assistant "${assistantId}":`,
+      error,
+    );
     return null;
   }
 }
@@ -100,7 +106,7 @@ export async function getAssistantServer(
 export async function getAssistantSchemasServer(
   apiUrl: string,
   assistantId: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<AssistantSchemas | null> {
   if (!assistantId?.trim()) {
     return null;
@@ -111,7 +117,10 @@ export async function getAssistantSchemasServer(
     const schemas = await client.assistants.getSchemas(assistantId);
     return schemas as AssistantSchemas;
   } catch (error) {
-    console.error(`[Server] Failed to fetch assistant schemas for "${assistantId}":`, error);
+    console.error(
+      `[Server] Failed to fetch assistant schemas for "${assistantId}":`,
+      error,
+    );
     return null;
   }
 }
@@ -121,7 +130,7 @@ export async function getAssistantSchemasServer(
  */
 export async function searchAssistantsServer(
   apiUrl: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<Assistant[]> {
   try {
     const client = await createServerClient(apiUrl, apiKey);
@@ -151,7 +160,7 @@ export interface ServerAssistantData {
 export async function fetchAssistantDataServer(
   apiUrl: string,
   assistantIdOrGraphId: string | undefined,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<ServerAssistantData> {
   const emptyResult: ServerAssistantData = {
     assistantId: null,

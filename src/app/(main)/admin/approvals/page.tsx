@@ -41,9 +41,9 @@ export default async function ApprovalsPage() {
         <CardContent>
           {result.users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="font-medium text-lg">대기 중인 요청이 없습니다</h3>
-              <p className="text-muted-foreground text-sm mt-1">
+              <AlertCircle className="text-muted-foreground/50 mb-4 h-12 w-12" />
+              <h3 className="text-lg font-medium">대기 중인 요청이 없습니다</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
                 모든 가입 요청이 처리되었습니다
               </p>
             </div>

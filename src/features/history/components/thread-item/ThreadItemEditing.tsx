@@ -22,7 +22,7 @@ export function ThreadItemEditing({
   };
 
   return (
-    <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-2">
+    <div className="border-border bg-background flex items-center gap-1 rounded-lg border p-2">
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}

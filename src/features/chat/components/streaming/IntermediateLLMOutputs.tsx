@@ -21,14 +21,14 @@ import { type IntermediateLLMOutput } from "@/types/task-hierarchy";
 function humanizeNodeName(nodeName: string): string {
   // 1. snake_case와 camelCase를 공백으로 분리
   const words = nodeName
-    .replace(/_/g, " ")  // snake_case → spaces
-    .replace(/([a-z])([A-Z])/g, "$1 $2")  // camelCase → spaces
+    .replace(/_/g, " ") // snake_case → spaces
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase → spaces
     .toLowerCase()
     .split(" ")
-    .filter(w => w.length > 0);
+    .filter((w) => w.length > 0);
 
   // 2. 각 단어 처리
-  const processed = words.map(word => {
+  const processed = words.map((word) => {
     // 특수 약어는 대문자로
     const acronyms: Record<string, string> = {
       llm: "LLM",
@@ -55,7 +55,11 @@ interface IntermediateLLMOutputItemProps {
 }
 
 // 중간 노드 LLM 출력 아이템 (컴팩트 표시)
-function IntermediateLLMOutputItem({ output, isExpanded, onToggle }: IntermediateLLMOutputItemProps) {
+function IntermediateLLMOutputItem({
+  output,
+  isExpanded,
+  onToggle,
+}: IntermediateLLMOutputItemProps) {
   const isStreaming = output.status === "streaming";
   const hasOutput = output.fullOutput.length > 0;
 
@@ -79,39 +83,39 @@ function IntermediateLLMOutputItem({ output, isExpanded, onToggle }: Intermediat
     <div className="ml-2">
       <div
         className={cn(
-          "flex items-start gap-2 py-1.5 px-2 text-xs",
-          "border-l-2 border-border",
+          "flex items-start gap-2 px-2 py-1.5 text-xs",
+          "border-border border-l-2",
           "bg-muted/20 rounded-r",
-          canExpand && "cursor-pointer hover:bg-muted/40"
+          canExpand && "hover:bg-muted/40 cursor-pointer",
         )}
         onClick={canExpand ? onToggle : undefined}
       >
         {/* 확장/축소 아이콘 */}
         {canExpand ? (
           isExpanded ? (
-            <ChevronDown className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <ChevronDown className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
           ) : (
-            <ChevronRight className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <ChevronRight className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
           )
         ) : (
-          <MessageSquare className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <MessageSquare className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
         )}
 
         {/* 노드 이름 및 상태 */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="font-medium text-foreground">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="text-foreground font-medium">
             {humanizeNodeName(output.nodeName)}
           </span>
           {isStreaming ? (
-            <Loader2 className="h-3 w-3 text-blue-500 animate-spin flex-shrink-0" />
+            <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-blue-500" />
           ) : (
-            <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+            <CheckCircle2 className="h-3 w-3 flex-shrink-0 text-green-500" />
           )}
         </div>
 
         {/* 미리보기 (접힌 상태일 때) */}
         {!isExpanded && hasOutput && (
-          <span className="text-muted-foreground truncate max-w-[300px]">
+          <span className="text-muted-foreground max-w-[300px] truncate">
             {output.outputSnippet}
           </span>
         )}
@@ -129,17 +133,17 @@ function IntermediateLLMOutputItem({ output, isExpanded, onToggle }: Intermediat
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.15 }}
-            className="ml-5 mt-1 mb-2"
+            className="mt-1 mb-2 ml-5"
           >
             <div
               ref={contentRef}
-              className="text-xs bg-muted/30 rounded p-2 max-h-[300px] overflow-y-auto"
+              className="bg-muted/30 max-h-[300px] overflow-y-auto rounded p-2 text-xs"
             >
-              <div className="whitespace-pre-wrap break-words text-foreground/80">
+              <div className="text-foreground/80 break-words whitespace-pre-wrap">
                 {output.fullOutput || (isStreaming ? "Generating..." : "")}
                 {/* 스트리밍 중이면 커서 표시 */}
                 {isStreaming && (
-                  <span className="inline-block w-1.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-middle" />
+                  <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-blue-500 align-middle" />
                 )}
               </div>
             </div>
@@ -160,24 +164,27 @@ export function IntermediateLLMOutputList({
   outputs,
 }: IntermediateLLMOutputListProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [manuallyToggledIds, setManuallyToggledIds] = useState<Set<string>>(new Set());
+  const [manuallyToggledIds, setManuallyToggledIds] = useState<Set<string>>(
+    new Set(),
+  );
   const listContainerRef = useRef<HTMLDivElement>(null);
   const prevOutputsLengthRef = useRef(0);
 
   // 최종 노드가 아닌 출력만 필터링 (memoize로 안정적인 참조 유지)
   const intermediateOutputs = useMemo(
-    () => outputs.filter(o => !o.isFinal),
-    [outputs]
+    () => outputs.filter((o) => !o.isFinal),
+    [outputs],
   );
 
   // 스트리밍 중인 노드 ID들 (unique ID including namespace)
   const streamingNodeIds = useMemo(
-    () => intermediateOutputs
-      .filter(o => o.status === "streaming")
-      .map(o => o.nodeId)
-      .sort()
-      .join(","),
-    [intermediateOutputs]
+    () =>
+      intermediateOutputs
+        .filter((o) => o.status === "streaming")
+        .map((o) => o.nodeId)
+        .sort()
+        .join(","),
+    [intermediateOutputs],
   );
 
   // 펼쳐진 노드들: 스트리밍 중인 것은 자동 펼침 + 수동 토글된 것 유지
@@ -206,11 +213,12 @@ export function IntermediateLLMOutputList({
 
   // 스트리밍 중인 출력의 콘텐츠 (스트리밍 상태 변경 감지용)
   const streamingContentSignature = useMemo(
-    () => intermediateOutputs
-      .filter(o => o.status === "streaming")
-      .map(o => o.fullOutput.length)
-      .join(","),
-    [intermediateOutputs]
+    () =>
+      intermediateOutputs
+        .filter((o) => o.status === "streaming")
+        .map((o) => o.fullOutput.length)
+        .join(","),
+    [intermediateOutputs],
   );
 
   // 새 출력 추가 또는 스트리밍 콘텐츠 변경 시 자동 스크롤
@@ -226,7 +234,7 @@ export function IntermediateLLMOutputList({
 
   // 토글 핸들러 - 수동 토글 상태만 관리
   const handleToggle = useCallback((nodeId: string) => {
-    setManuallyToggledIds(prev => {
+    setManuallyToggledIds((prev) => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
         next.delete(nodeId);
@@ -242,18 +250,18 @@ export function IntermediateLLMOutputList({
   const SectionChevron = isCollapsed ? ChevronRight : ChevronDown;
 
   return (
-    <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+    <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
       {/* 헤더 */}
       <div
-        className="px-3 py-2 bg-muted/30 border-b border-border/50 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="bg-muted/30 border-border/50 hover:bg-muted/50 flex cursor-pointer items-center gap-2 border-b px-3 py-2 transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <SectionChevron className="h-4 w-4 text-muted-foreground" />
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">
+        <SectionChevron className="text-muted-foreground h-4 w-4" />
+        <MessageSquare className="text-muted-foreground h-4 w-4" />
+        <span className="text-foreground text-sm font-medium">
           Background activity
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           ({intermediateOutputs.length})
         </span>
       </div>
@@ -267,7 +275,7 @@ export function IntermediateLLMOutputList({
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             ref={listContainerRef}
-            className="py-1 max-h-[250px] overflow-y-auto"
+            className="max-h-[250px] overflow-y-auto py-1"
           >
             {intermediateOutputs.map((output) => (
               <IntermediateLLMOutputItem

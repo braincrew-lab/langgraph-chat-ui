@@ -23,13 +23,17 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ filename: string }> },
 ) {
   try {
     const { filename } = await params;
 
     // Security: prevent directory traversal
-    if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    if (
+      filename.includes("..") ||
+      filename.includes("/") ||
+      filename.includes("\\")
+    ) {
       return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
     }
 
@@ -59,6 +63,9 @@ export async function GET(
     });
   } catch (error) {
     console.error("File serve error:", error);
-    return NextResponse.json({ error: "Failed to serve file" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to serve file" },
+      { status: 500 },
+    );
   }
 }

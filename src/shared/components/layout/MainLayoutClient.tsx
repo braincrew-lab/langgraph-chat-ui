@@ -60,20 +60,22 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
   const chatHistoryOpen = userSettings.chatHistoryOpen;
   const setChatHistoryOpen = useCallback(
     (value: boolean | ((prev: boolean) => boolean)) => {
-      const newValue = typeof value === "function" ? value(chatHistoryOpen) : value;
+      const newValue =
+        typeof value === "function" ? value(chatHistoryOpen) : value;
       updateUserSettings({ chatHistoryOpen: newValue });
     },
-    [chatHistoryOpen, updateUserSettings]
+    [chatHistoryOpen, updateUserSettings],
   );
 
   // Tracing panel state from settings (persisted)
   const tracingPanelOpen = userSettings.tracingPanelOpen;
   const setTracingPanelOpen = useCallback(
     (value: boolean | ((prev: boolean) => boolean)) => {
-      const newValue = typeof value === "function" ? value(tracingPanelOpen) : value;
+      const newValue =
+        typeof value === "function" ? value(tracingPanelOpen) : value;
       updateUserSettings({ tracingPanelOpen: newValue });
     },
-    [tracingPanelOpen, updateUserSettings]
+    [tracingPanelOpen, updateUserSettings],
   );
 
   // Guide modal state
@@ -142,7 +144,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
       {config.threads.showHistory && (
         <div className="relative hidden lg:flex">
           <motion.div
-            className="absolute z-20 h-full overflow-hidden border-r border-border bg-sidebar"
+            className="border-border bg-sidebar absolute z-20 h-full overflow-hidden border-r"
             style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
             initial={false}
             animate={{ x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }}
@@ -153,7 +155,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
             }
           >
             <div
-              className="relative h-full flex flex-col"
+              className="relative flex h-full flex-col"
               style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
             >
               <div className="flex-1 overflow-hidden">
@@ -187,8 +189,8 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
       {/* Main Content Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col overflow-hidden transition-all",
-          isLargeScreen ? "duration-300" : "duration-0"
+          "flex flex-1 flex-col overflow-hidden transition-all",
+          isLargeScreen ? "duration-300" : "duration-0",
         )}
         style={{
           marginLeft:
@@ -200,25 +202,28 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         }}
       >
         {/* Shared Header */}
-        <header className="relative flex-shrink-0 flex items-center justify-between gap-3 p-4">
+        <header className="relative flex flex-shrink-0 items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-2">
-            {config.threads.showHistory && (!chatHistoryOpen || !isLargeScreen) && (
-              <Button
-                className="hover:bg-accent"
-                variant="ghost"
-                onClick={handleToggleChatHistory}
-                aria-label={chatHistoryOpen ? "Close sidebar" : "Open sidebar"}
-              >
-                {chatHistoryOpen ? (
-                  <PanelRightOpen className="size-5" />
-                ) : (
-                  <PanelRightClose className="size-5" />
-                )}
-              </Button>
-            )}
+            {config.threads.showHistory &&
+              (!chatHistoryOpen || !isLargeScreen) && (
+                <Button
+                  className="hover:bg-accent"
+                  variant="ghost"
+                  onClick={handleToggleChatHistory}
+                  aria-label={
+                    chatHistoryOpen ? "Close sidebar" : "Open sidebar"
+                  }
+                >
+                  {chatHistoryOpen ? (
+                    <PanelRightOpen className="size-5" />
+                  ) : (
+                    <PanelRightClose className="size-5" />
+                  )}
+                </Button>
+              )}
             {showHeaderLogo && (
               <button
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex cursor-pointer items-center gap-2"
                 onClick={handleLogoClick}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -245,16 +250,17 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => setTracingPanelOpen((prev) => !prev)}
-                      className={cn(
-                        "h-9 w-9",
-                        tracingPanelOpen && "bg-accent"
-                      )}
+                      className={cn("h-9 w-9", tracingPanelOpen && "bg-accent")}
                     >
                       <PanelRight className="size-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    <p>{tracingPanelOpen ? "Close tracing panel" : "Open tracing panel"}</p>
+                    <p>
+                      {tracingPanelOpen
+                        ? "Close tracing panel"
+                        : "Open tracing panel"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -266,10 +272,13 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                     href="https://github.com/teddylee777/agent-chat-ui"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent transition-colors"
+                    className="hover:bg-accent flex h-9 w-9 items-center justify-center rounded-md transition-colors"
                     aria-label="Open GitHub repository"
                   >
-                    <GitHubSVG width="24" height="24" />
+                    <GitHubSVG
+                      width="24"
+                      height="24"
+                    />
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
@@ -279,12 +288,14 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
             </TooltipProvider>
           </div>
           {/* Gradient fade */}
-          <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b pointer-events-none" />
+          <div className="from-background to-background/0 pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
         </header>
 
         {/* Page Content */}
         <div className="flex-1 overflow-hidden">
-          <TracingPanelContext.Provider value={{ isOpen: tracingPanelOpen, setIsOpen: setTracingPanelOpen }}>
+          <TracingPanelContext.Provider
+            value={{ isOpen: tracingPanelOpen, setIsOpen: setTracingPanelOpen }}
+          >
             {children}
           </TracingPanelContext.Provider>
         </div>
@@ -311,8 +322,14 @@ export function MainLayoutClient({
   return (
     <React.Suspense fallback={<div></div>}>
       <Toaster />
-      <SettingsProvider initialConfig={initialConfig} initialGlobalSettings={globalSettings}>
-        <ThreadProvider key={connectionKey} connection={initialConnection}>
+      <SettingsProvider
+        initialConfig={initialConfig}
+        initialGlobalSettings={globalSettings}
+      >
+        <ThreadProvider
+          key={connectionKey}
+          connection={initialConnection}
+        >
           <MainLayoutContent assistantId={initialConnection.assistantId}>
             {children}
           </MainLayoutContent>

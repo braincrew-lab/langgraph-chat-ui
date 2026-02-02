@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
 
   // Check if user is active
   if (session.user.status !== "active") {
-    return NextResponse.json({ error: "Account is not active" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Account is not active" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -61,12 +64,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       token: result.token,
       info: result.info,
-      message: "Token created successfully. Save this token - it won't be shown again!",
+      message:
+        "Token created successfully. Save this token - it won't be shown again!",
     });
   } catch {
     return NextResponse.json(
       { error: "Failed to create token" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -89,7 +93,7 @@ export async function DELETE(request: NextRequest) {
     if (!tokenId || typeof tokenId !== "string") {
       return NextResponse.json(
         { error: "Token ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -98,7 +102,7 @@ export async function DELETE(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error },
-        { status: result.error === "Unauthorized" ? 403 : 404 }
+        { status: result.error === "Unauthorized" ? 403 : 404 },
       );
     }
 
@@ -106,7 +110,7 @@ export async function DELETE(request: NextRequest) {
   } catch {
     return NextResponse.json(
       { error: "Failed to delete token" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -16,7 +16,8 @@ function isFileField(field: SchemaFieldConfig): boolean {
   const schema = field.resolvedSchema;
   const fieldType = Array.isArray(schema.type) ? schema.type[0] : schema.type;
   const isStringType = fieldType === "string";
-  const isStringArrayType = fieldType === "array" && schema.items?.type === "string";
+  const isStringArrayType =
+    fieldType === "array" && schema.items?.type === "string";
   return nameContainsFile && (isStringType || isStringArrayType);
 }
 
@@ -58,22 +59,22 @@ export function FormSubmissionMessage({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-muted rounded-3xl px-5 py-3 shadow-sm border border-border/30 max-w-2xl"
+          className="bg-muted border-border/30 max-w-2xl rounded-3xl border px-5 py-3 shadow-sm"
         >
           {/* Header */}
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 text-sm font-medium text-foreground w-full text-left"
+            className="text-foreground flex w-full items-center gap-2 text-left text-sm font-medium"
           >
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="text-muted-foreground h-4 w-4" />
             <span>폼 데이터 제출</span>
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
               className="ml-auto"
             >
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="text-muted-foreground h-4 w-4" />
             </motion.span>
           </button>
 
@@ -84,7 +85,7 @@ export function FormSubmissionMessage({
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="mt-3 pt-3 border-t border-border/30 space-y-2"
+              className="border-border/30 mt-3 space-y-2 border-t pt-3"
             >
               {filledFields.map((field) => (
                 <FieldDisplay
@@ -95,10 +96,11 @@ export function FormSubmissionMessage({
               ))}
             </motion.div>
           ) : (
-            <div className="mt-2 text-sm text-muted-foreground">
+            <div className="text-muted-foreground mt-2 text-sm">
               {summaryFields.map((field, idx) => (
                 <span key={field.name}>
-                  {getFieldLabel(field)}: {formatValue(formData[field.name], field)}
+                  {getFieldLabel(field)}:{" "}
+                  {formatValue(formData[field.name], field)}
                   {idx < summaryFields.length - 1 && ", "}
                 </span>
               ))}
@@ -113,7 +115,7 @@ export function FormSubmissionMessage({
 
           {/* Timestamp */}
           {timestamp && (
-            <div className="mt-2 text-xs text-muted-foreground/60">
+            <div className="text-muted-foreground/60 mt-2 text-xs">
               {timestamp.toLocaleTimeString()}
             </div>
           )}
@@ -132,29 +134,37 @@ function FieldDisplay({
   value: unknown;
 }) {
   const label = getFieldLabel(field);
-  const isObject = typeof value === "object" && value !== null && !Array.isArray(value);
+  const isObject =
+    typeof value === "object" && value !== null && !Array.isArray(value);
   const isFile = isFileField(field);
 
   // File field - special UI
   if (isFile) {
     const files = Array.isArray(value) ? value : [value];
-    const validFiles = files.filter((f): f is string => typeof f === "string" && f.trim() !== "");
+    const validFiles = files.filter(
+      (f): f is string => typeof f === "string" && f.trim() !== "",
+    );
 
     if (validFiles.length === 0) return null;
 
     return (
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-muted-foreground text-xs font-medium">
+          {label}
+        </span>
         <div className="flex flex-col gap-1">
           {validFiles.map((filePath, idx) => {
             const fileName = filePath.split("/").pop() || filePath;
             return (
               <div
                 key={idx}
-                className="flex items-center gap-2 text-sm text-foreground bg-background/50 rounded-md px-2 py-1.5 border border-border/30"
+                className="text-foreground bg-background/50 border-border/30 flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
               >
-                <File className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                <span className="truncate" title={filePath}>
+                <File className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                <span
+                  className="truncate"
+                  title={filePath}
+                >
                   {fileName}
                 </span>
               </div>
@@ -172,10 +182,15 @@ function FieldDisplay({
 
     return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
-        <div className="text-sm text-foreground bg-background/50 rounded-md p-2 space-y-1">
+        <span className="text-muted-foreground text-xs font-medium">
+          {label}
+        </span>
+        <div className="text-foreground bg-background/50 space-y-1 rounded-md p-2 text-sm">
           {stringArray.map((item, idx) => (
-            <div key={idx} className="break-words">
+            <div
+              key={idx}
+              className="break-words"
+            >
               {item}
             </div>
           ))}
@@ -188,13 +203,13 @@ function FieldDisplay({
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-muted-foreground font-medium">{label}</span>
+      <span className="text-muted-foreground text-xs font-medium">{label}</span>
       {isObject && Object.keys(value).length > 0 ? (
-        <pre className="text-sm text-foreground bg-background/50 rounded-md p-2 overflow-x-auto font-mono whitespace-pre-wrap">
+        <pre className="text-foreground bg-background/50 overflow-x-auto rounded-md p-2 font-mono text-sm whitespace-pre-wrap">
           {formattedValue}
         </pre>
       ) : (
-        <span className="text-sm text-foreground break-words">
+        <span className="text-foreground text-sm break-words">
           {formattedValue}
         </span>
       )}

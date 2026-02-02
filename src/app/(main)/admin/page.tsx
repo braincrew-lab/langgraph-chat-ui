@@ -92,7 +92,10 @@ export default async function AdminDashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {statCards.map((stat) => (
-          <Card key={stat.title} className="overflow-hidden">
+          <Card
+            key={stat.title}
+            className="overflow-hidden"
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
                 {stat.title}
@@ -103,7 +106,7 @@ export default async function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {stat.description}
               </p>
             </CardContent>
@@ -115,14 +118,12 @@ export default async function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>시스템 설정</CardTitle>
-          <CardDescription>
-            현재 인증 및 회원가입 설정
-          </CardDescription>
+          <CardDescription>현재 인증 및 회원가입 설정</CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <dt className="text-sm font-medium text-muted-foreground">
+              <dt className="text-muted-foreground text-sm font-medium">
                 인증 모드
               </dt>
               <dd className="text-sm font-semibold">
@@ -130,7 +131,7 @@ export default async function AdminDashboardPage() {
               </dd>
             </div>
             <div className="space-y-1">
-              <dt className="text-sm font-medium text-muted-foreground">
+              <dt className="text-muted-foreground text-sm font-medium">
                 회원가입 정책
               </dt>
               <dd className="text-sm font-semibold">
@@ -139,7 +140,7 @@ export default async function AdminDashboardPage() {
             </div>
             {config.initialAdminEmail && (
               <div className="space-y-1 sm:col-span-2">
-                <dt className="text-sm font-medium text-muted-foreground">
+                <dt className="text-muted-foreground text-sm font-medium">
                   초기 관리자 이메일
                 </dt>
                 <dd className="text-sm font-semibold">

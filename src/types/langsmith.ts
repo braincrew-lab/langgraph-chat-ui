@@ -26,18 +26,20 @@ export interface LangSmithRun {
 
 // 계층 구조 정보 (parentRunId 기반)
 export interface RunHierarchy {
-  roots: string[];  // 루트 run IDs (parentRunId가 없는 runs)
-  children: Record<string, string[]>;  // parentId -> childIds 매핑
+  roots: string[]; // 루트 run IDs (parentRunId가 없는 runs)
+  children: Record<string, string[]>; // parentId -> childIds 매핑
 }
 
 export interface LangSmithRunsResponse {
   runs: LangSmithRun[];
-  hierarchy?: RunHierarchy;  // 계층 구조 정보 (선택적)
+  hierarchy?: RunHierarchy; // 계층 구조 정보 (선택적)
   error?: string;
 }
 
 // LangSmith Run을 MiddlewareTraceEvent로 매핑
-export function mapRunToMiddlewareTrace(run: LangSmithRun): MiddlewareTraceEvent {
+export function mapRunToMiddlewareTrace(
+  run: LangSmithRun,
+): MiddlewareTraceEvent {
   let status: "running" | "completed" | "error";
 
   if (run.status === "success") {
@@ -61,17 +63,15 @@ export function mapRunToMiddlewareTrace(run: LangSmithRun): MiddlewareTraceEvent
 // Run 타입별 필터링 헬퍼
 // 미들웨어: 이름에 "middleware"가 포함된 것만 필터링 (chain 전체를 포함하면 LLM/Tool과 중복됨)
 export function filterMiddlewareRuns(runs: LangSmithRun[]): LangSmithRun[] {
-  return runs.filter(run =>
-    run.name.toLowerCase().includes("middleware")
-  );
+  return runs.filter((run) => run.name.toLowerCase().includes("middleware"));
 }
 
 export function filterToolRuns(runs: LangSmithRun[]): LangSmithRun[] {
-  return runs.filter(run => run.runType === "tool");
+  return runs.filter((run) => run.runType === "tool");
 }
 
 export function filterLLMRuns(runs: LangSmithRun[]): LangSmithRun[] {
-  return runs.filter(run => run.runType === "llm");
+  return runs.filter((run) => run.runType === "llm");
 }
 
 // 헬퍼 함수들
@@ -95,12 +95,19 @@ function formatRunOutput(outputs: Record<string, unknown> | undefined): string {
 type ContentArrayItem = { type: string; text?: string } | string;
 
 // LLM 출력에서 콘텐츠 추출
-function extractLLMContent(outputs: Record<string, unknown> | undefined): string {
+function extractLLMContent(
+  outputs: Record<string, unknown> | undefined,
+): string {
   if (!outputs) return "";
 
   // ChatOpenAI/ChatAnthropic 등의 출력 형식
   if ("generations" in outputs && Array.isArray(outputs.generations)) {
-    const generations = outputs.generations as Array<Array<{ text?: string; message?: { content?: string | ContentArrayItem[] } }>>;
+    const generations = outputs.generations as Array<
+      Array<{
+        text?: string;
+        message?: { content?: string | ContentArrayItem[] };
+      }>
+    >;
     if (generations[0]?.[0]) {
       const gen = generations[0][0];
       if (gen.text) return gen.text;
@@ -110,10 +117,15 @@ function extractLLMContent(outputs: Record<string, unknown> | undefined): string
         // 배열 형식의 content 처리
         if (Array.isArray(content)) {
           return (content as ContentArrayItem[])
-            .filter((c): c is { type: "text"; text: string } =>
-              typeof c === "object" && c !== null && "type" in c && c.type === "text" && "text" in c
+            .filter(
+              (c): c is { type: "text"; text: string } =>
+                typeof c === "object" &&
+                c !== null &&
+                "type" in c &&
+                c.type === "text" &&
+                "text" in c,
             )
-            .map(c => c.text)
+            .map((c) => c.text)
             .join(" ");
         }
       }
@@ -134,15 +146,25 @@ function extractLLMContent(outputs: Record<string, unknown> | undefined): string
 }
 
 // LLM 출력에서 토큰 사용량 추출
-function extractTokenUsage(outputs: Record<string, unknown> | undefined): LLMEndTimelineEvent["tokenUsage"] {
+function extractTokenUsage(
+  outputs: Record<string, unknown> | undefined,
+): LLMEndTimelineEvent["tokenUsage"] {
   if (!outputs) return undefined;
 
   // llm_output에서 토큰 정보 추출
-  if ("llm_output" in outputs && typeof outputs.llm_output === "object" && outputs.llm_output) {
+  if (
+    "llm_output" in outputs &&
+    typeof outputs.llm_output === "object" &&
+    outputs.llm_output
+  ) {
     const llmOutput = outputs.llm_output as Record<string, unknown>;
 
     // OpenAI 형식
-    if ("token_usage" in llmOutput && typeof llmOutput.token_usage === "object" && llmOutput.token_usage) {
+    if (
+      "token_usage" in llmOutput &&
+      typeof llmOutput.token_usage === "object" &&
+      llmOutput.token_usage
+    ) {
       const tokenUsage = llmOutput.token_usage as Record<string, number>;
       return {
         inputTokens: tokenUsage.prompt_tokens,
@@ -152,7 +174,11 @@ function extractTokenUsage(outputs: Record<string, unknown> | undefined): LLMEnd
     }
 
     // Anthropic 형식
-    if ("usage" in llmOutput && typeof llmOutput.usage === "object" && llmOutput.usage) {
+    if (
+      "usage" in llmOutput &&
+      typeof llmOutput.usage === "object" &&
+      llmOutput.usage
+    ) {
       const usage = llmOutput.usage as Record<string, number>;
       return {
         inputTokens: usage.input_tokens,
@@ -163,12 +189,19 @@ function extractTokenUsage(outputs: Record<string, unknown> | undefined): LLMEnd
   }
 
   // 직접 usage가 있는 경우
-  if ("usage" in outputs && typeof outputs.usage === "object" && outputs.usage) {
+  if (
+    "usage" in outputs &&
+    typeof outputs.usage === "object" &&
+    outputs.usage
+  ) {
     const usage = outputs.usage as Record<string, number>;
     return {
       inputTokens: usage.input_tokens || usage.prompt_tokens,
       outputTokens: usage.output_tokens || usage.completion_tokens,
-      totalTokens: usage.total_tokens || ((usage.input_tokens || usage.prompt_tokens || 0) + (usage.output_tokens || usage.completion_tokens || 0)),
+      totalTokens:
+        usage.total_tokens ||
+        (usage.input_tokens || usage.prompt_tokens || 0) +
+          (usage.output_tokens || usage.completion_tokens || 0),
     };
   }
 
@@ -200,7 +233,9 @@ function extractModelName(run: LangSmithRun): string | undefined {
 }
 
 // Middleware Run → MiddlewareTimelineEvent 매핑
-export function mapRunToMiddlewareEvent(run: LangSmithRun): MiddlewareTimelineEvent {
+export function mapRunToMiddlewareEvent(
+  run: LangSmithRun,
+): MiddlewareTimelineEvent {
   let status: "running" | "completed" | "error";
 
   if (run.status === "success") {
@@ -230,15 +265,18 @@ export function mapRunToMiddlewareEvent(run: LangSmithRun): MiddlewareTimelineEv
 }
 
 // Tool Run → ToolCallTimelineEvent 매핑
-export function mapRunToToolCallEvent(run: LangSmithRun): ToolCallTimelineEvent {
+export function mapRunToToolCallEvent(
+  run: LangSmithRun,
+): ToolCallTimelineEvent {
   // inputs에서 args 추출
   let args: Record<string, unknown> = {};
   if (run.inputs) {
     // input 키가 있으면 사용
     if ("input" in run.inputs) {
-      args = typeof run.inputs.input === "object" && run.inputs.input !== null
-        ? run.inputs.input as Record<string, unknown>
-        : { input: run.inputs.input };
+      args =
+        typeof run.inputs.input === "object" && run.inputs.input !== null
+          ? (run.inputs.input as Record<string, unknown>)
+          : { input: run.inputs.input };
     } else {
       args = run.inputs;
     }
@@ -255,7 +293,12 @@ export function mapRunToToolCallEvent(run: LangSmithRun): ToolCallTimelineEvent 
     toolName: run.name,
     toolId: run.id,
     args,
-    status: run.status === "success" ? "success" : run.status === "error" ? "error" : "running",
+    status:
+      run.status === "success"
+        ? "success"
+        : run.status === "error"
+          ? "error"
+          : "running",
     error: run.error,
     parentRunId: run.parentRunId,
     depth,
@@ -263,14 +306,18 @@ export function mapRunToToolCallEvent(run: LangSmithRun): ToolCallTimelineEvent 
 }
 
 // Tool Run → ToolResultTimelineEvent 매핑
-export function mapRunToToolResultEvent(run: LangSmithRun): ToolResultTimelineEvent {
+export function mapRunToToolResultEvent(
+  run: LangSmithRun,
+): ToolResultTimelineEvent {
   const result = formatRunOutput(run.outputs);
   const { depth } = parseDottedOrder(run.dotted_order);
 
   return {
     id: `${run.id}-result`,
     type: "tool_result",
-    timestamp: run.endTime ? new Date(run.endTime).getTime() : new Date(run.startTime).getTime(),
+    timestamp: run.endTime
+      ? new Date(run.endTime).getTime()
+      : new Date(run.startTime).getTime(),
     source: "langsmith",
     latency: run.latency,
     toolName: run.name,
@@ -293,7 +340,9 @@ export function mapRunToLLMEvent(run: LangSmithRun): LLMEndTimelineEvent {
   return {
     id: run.id,
     type: "llm_end",
-    timestamp: run.endTime ? new Date(run.endTime).getTime() : new Date(run.startTime).getTime(),
+    timestamp: run.endTime
+      ? new Date(run.endTime).getTime()
+      : new Date(run.startTime).getTime(),
     source: "langsmith",
     latency: run.latency,
     content: content.length > 200 ? content.substring(0, 200) + "..." : content,
@@ -344,11 +393,17 @@ export function extractToolCallIdFromRun(run: LangSmithRun): string | null {
         if (msg && typeof msg === "object") {
           const message = msg as Record<string, unknown>;
           // Tool 메시지의 tool_call_id
-          if (typeof message.tool_call_id === "string" && message.tool_call_id) {
+          if (
+            typeof message.tool_call_id === "string" &&
+            message.tool_call_id
+          ) {
             return message.tool_call_id;
           }
           // AI 메시지의 tool_calls에서 찾기
-          if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+          if (
+            Array.isArray(message.tool_calls) &&
+            message.tool_calls.length > 0
+          ) {
             const toolCall = message.tool_calls[0] as Record<string, unknown>;
             if (typeof toolCall.id === "string" && toolCall.id) {
               return toolCall.id;
@@ -368,7 +423,10 @@ export function extractToolCallIdFromRun(run: LangSmithRun): string | null {
     }
 
     // 4. metadata.langgraph_tool_call_id (LangGraph 특화)
-    if (typeof metadata.langgraph_tool_call_id === "string" && metadata.langgraph_tool_call_id) {
+    if (
+      typeof metadata.langgraph_tool_call_id === "string" &&
+      metadata.langgraph_tool_call_id
+    ) {
       return metadata.langgraph_tool_call_id;
     }
   }
@@ -398,7 +456,10 @@ export function buildRunHierarchy(runs: LangSmithRun[]): RunHierarchy {
 }
 
 // dotted_order 파싱하여 depth 계산
-export function parseDottedOrder(dottedOrder: string | undefined): { depth: number; parts: string[] } {
+export function parseDottedOrder(dottedOrder: string | undefined): {
+  depth: number;
+  parts: string[];
+} {
   if (!dottedOrder) {
     return { depth: 0, parts: [] };
   }
@@ -440,25 +501,29 @@ function mapRunStatus(status: string): HierarchicalTask["status"] {
 // LangSmithRun을 HierarchicalTask로 변환
 function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
   const { depth } = parseDottedOrder(run.dotted_order);
-  const tokenUsage = run.runType === "llm" ? extractTokenUsage(run.outputs) : undefined;
+  const tokenUsage =
+    run.runType === "llm" ? extractTokenUsage(run.outputs) : undefined;
   const model = run.runType === "llm" ? extractModelName(run) : undefined;
   // LLM 출력 텍스트 추출
-  const llmOutput = run.runType === "llm" ? extractLLMContent(run.outputs) : undefined;
+  const llmOutput =
+    run.runType === "llm" ? extractLLMContent(run.outputs) : undefined;
 
   // Tool args 추출
   let toolArgs: Record<string, unknown> | undefined;
   if (run.runType === "tool" && run.inputs) {
     if ("input" in run.inputs) {
-      toolArgs = typeof run.inputs.input === "object" && run.inputs.input !== null
-        ? run.inputs.input as Record<string, unknown>
-        : { input: run.inputs.input };
+      toolArgs =
+        typeof run.inputs.input === "object" && run.inputs.input !== null
+          ? (run.inputs.input as Record<string, unknown>)
+          : { input: run.inputs.input };
     } else {
       toolArgs = run.inputs;
     }
   }
 
   // Tool result 추출
-  const toolResult = run.runType === "tool" ? formatRunOutput(run.outputs) : undefined;
+  const toolResult =
+    run.runType === "tool" ? formatRunOutput(run.outputs) : undefined;
 
   // tool_call_id 추출 (메시지 매칭용)
   const toolCallId = extractToolCallIdFromRun(run);
@@ -467,7 +532,11 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
   let taskSubagentType: string | undefined;
   let taskDescription: string | undefined;
 
-  if (run.runType === "tool" && run.name.toLowerCase() === "task" && run.inputs) {
+  if (
+    run.runType === "tool" &&
+    run.name.toLowerCase() === "task" &&
+    run.inputs
+  ) {
     const inputStr = run.inputs.input;
     if (typeof inputStr === "string") {
       // Python dict 문자열 파싱: {'key': 'value', ...}
@@ -496,7 +565,10 @@ function runToHierarchicalTask(run: LangSmithRun): HierarchicalTask {
     endTime: run.endTime ? new Date(run.endTime).getTime() : undefined,
     latency: run.latency,
     toolArgs,
-    toolResult: toolResult && toolResult.length > 500 ? toolResult.substring(0, 500) + "..." : toolResult,
+    toolResult:
+      toolResult && toolResult.length > 500
+        ? toolResult.substring(0, 500) + "..."
+        : toolResult,
     model,
     tokenUsage,
     llmOutput,
@@ -626,8 +698,14 @@ export function calculateTaskStats(tasks: HierarchicalTask[]): TaskStats {
 }
 
 // 깊이로 태스크 필터링 (예: 최상위 레벨만)
-export function filterTasksByDepth(tasks: HierarchicalTask[], maxDepth: number): HierarchicalTask[] {
-  function filterRecursive(task: HierarchicalTask, currentDepth: number): HierarchicalTask | null {
+export function filterTasksByDepth(
+  tasks: HierarchicalTask[],
+  maxDepth: number,
+): HierarchicalTask[] {
+  function filterRecursive(
+    task: HierarchicalTask,
+    currentDepth: number,
+  ): HierarchicalTask | null {
     if (currentDepth > maxDepth) {
       return null;
     }
@@ -658,11 +736,13 @@ export function filterTasksByDepth(tasks: HierarchicalTask[], maxDepth: number):
 }
 
 // 실행 중인 리프 태스크 찾기 (가장 깊은 실행 중인 태스크)
-export function findActiveLeafTasks(tasks: HierarchicalTask[]): HierarchicalTask[] {
+export function findActiveLeafTasks(
+  tasks: HierarchicalTask[],
+): HierarchicalTask[] {
   const activeLeaves: HierarchicalTask[] = [];
 
   function traverse(task: HierarchicalTask) {
-    const runningChildren = task.children.filter(c => c.status === "running");
+    const runningChildren = task.children.filter((c) => c.status === "running");
 
     if (task.status === "running") {
       if (runningChildren.length === 0) {

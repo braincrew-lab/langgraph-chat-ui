@@ -5,7 +5,7 @@ import { useState } from "react";
  */
 export function useThreadItemEdit(
   initialText: string,
-  onSave: (newTitle: string) => void
+  onSave: (newTitle: string) => void,
 ) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(initialText);

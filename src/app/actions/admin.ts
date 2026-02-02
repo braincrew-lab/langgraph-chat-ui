@@ -1,4 +1,4 @@
-'use server'
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
@@ -89,7 +89,7 @@ export async function getAdminStats(): Promise<ActionResult<AdminStatsData>> {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get stats"
+      error: error instanceof Error ? error.message : "Failed to get stats",
     };
   }
 }
@@ -97,22 +97,24 @@ export async function getAdminStats(): Promise<ActionResult<AdminStatsData>> {
 /**
  * Get admin users with optional filtering
  */
-export async function getAdminUsers(filters?: AdminUserFilters): Promise<ActionResult<{
-  users: Array<{
-    id: string;
-    email: string;
-    name: string | null;
-    role: string;
-    status: string;
-    createdAt: string;
-    approvedAt: string | null;
-    approvedBy: { name: string | null; email: string } | null;
-  }>;
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}>> {
+export async function getAdminUsers(filters?: AdminUserFilters): Promise<
+  ActionResult<{
+    users: Array<{
+      id: string;
+      email: string;
+      name: string | null;
+      role: string;
+      status: string;
+      createdAt: string;
+      approvedAt: string | null;
+      approvedBy: { name: string | null; email: string } | null;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>
+> {
   try {
     await requireAdmin();
 
@@ -128,17 +130,17 @@ export async function getAdminUsers(filters?: AdminUserFilters): Promise<ActionR
       success: true,
       data: {
         ...result,
-        users: result.users.map(u => ({
+        users: result.users.map((u) => ({
           ...u,
           createdAt: u.createdAt.toISOString(),
           approvedAt: u.approvedAt?.toISOString() || null,
         })),
-      }
+      },
     };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get users"
+      error: error instanceof Error ? error.message : "Failed to get users",
     };
   }
 }
@@ -152,7 +154,10 @@ export async function approveUser(userId: string): Promise<ActionResult> {
     const result = await approveUserService(userId, session.user.id);
 
     if (!result.success) {
-      return { success: false, error: result.error || "Failed to approve user" };
+      return {
+        success: false,
+        error: result.error || "Failed to approve user",
+      };
     }
 
     revalidatePath("/admin");
@@ -163,7 +168,7 @@ export async function approveUser(userId: string): Promise<ActionResult> {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to approve user"
+      error: error instanceof Error ? error.message : "Failed to approve user",
     };
   }
 }
@@ -171,13 +176,19 @@ export async function approveUser(userId: string): Promise<ActionResult> {
 /**
  * Suspend a user
  */
-export async function suspendUser(userId: string, reason?: string): Promise<ActionResult> {
+export async function suspendUser(
+  userId: string,
+  reason?: string,
+): Promise<ActionResult> {
   try {
     const session = await requireAdmin();
     const result = await suspendUserService(userId, session.user.id, reason);
 
     if (!result.success) {
-      return { success: false, error: result.error || "Failed to suspend user" };
+      return {
+        success: false,
+        error: result.error || "Failed to suspend user",
+      };
     }
 
     revalidatePath("/admin");
@@ -187,7 +198,7 @@ export async function suspendUser(userId: string, reason?: string): Promise<Acti
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to suspend user"
+      error: error instanceof Error ? error.message : "Failed to suspend user",
     };
   }
 }
@@ -201,7 +212,10 @@ export async function reactivateUser(userId: string): Promise<ActionResult> {
     const result = await reactivateUserService(userId, session.user.id);
 
     if (!result.success) {
-      return { success: false, error: result.error || "Failed to reactivate user" };
+      return {
+        success: false,
+        error: result.error || "Failed to reactivate user",
+      };
     }
 
     revalidatePath("/admin");
@@ -211,7 +225,8 @@ export async function reactivateUser(userId: string): Promise<ActionResult> {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to reactivate user"
+      error:
+        error instanceof Error ? error.message : "Failed to reactivate user",
     };
   }
 }
@@ -236,7 +251,7 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to delete user"
+      error: error instanceof Error ? error.message : "Failed to delete user",
     };
   }
 }
@@ -244,13 +259,19 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
 /**
  * Update a user's role (super_admin only)
  */
-export async function updateUserRole(userId: string, role: UserRole): Promise<ActionResult> {
+export async function updateUserRole(
+  userId: string,
+  role: UserRole,
+): Promise<ActionResult> {
   try {
     const session = await requireSuperAdmin();
     const result = await updateUserRoleService(userId, role, session.user.id);
 
     if (!result.success) {
-      return { success: false, error: result.error || "Failed to update user role" };
+      return {
+        success: false,
+        error: result.error || "Failed to update user role",
+      };
     }
 
     revalidatePath("/admin");
@@ -260,7 +281,8 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<Ac
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update user role"
+      error:
+        error instanceof Error ? error.message : "Failed to update user role",
     };
   }
 }
@@ -272,10 +294,12 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<Ac
 /**
  * Get admin settings
  */
-export async function getAdminSettings(): Promise<ActionResult<{
-  settings: GlobalSettings;
-  serverDefaults: GlobalSettings;
-}>> {
+export async function getAdminSettings(): Promise<
+  ActionResult<{
+    settings: GlobalSettings;
+    serverDefaults: GlobalSettings;
+  }>
+> {
   try {
     await requireAdmin();
 
@@ -286,12 +310,12 @@ export async function getAdminSettings(): Promise<ActionResult<{
 
     return {
       success: true,
-      data: { settings, serverDefaults }
+      data: { settings, serverDefaults },
     };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get settings"
+      error: error instanceof Error ? error.message : "Failed to get settings",
     };
   }
 }
@@ -300,7 +324,7 @@ export async function getAdminSettings(): Promise<ActionResult<{
  * Update admin settings
  */
 export async function updateAdminSettings(
-  settings: Partial<GlobalSettings>
+  settings: Partial<GlobalSettings>,
 ): Promise<ActionResult<GlobalSettings>> {
   try {
     const session = await requireAdmin();
@@ -319,7 +343,8 @@ export async function updateAdminSettings(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update settings"
+      error:
+        error instanceof Error ? error.message : "Failed to update settings",
     };
   }
 }

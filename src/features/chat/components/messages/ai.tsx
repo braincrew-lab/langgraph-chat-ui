@@ -53,7 +53,9 @@ interface ToolUseContent {
   input?: string | object;
 }
 
-function isToolUseContent(content: MessageContentComplex): content is ToolUseContent {
+function isToolUseContent(
+  content: MessageContentComplex,
+): content is ToolUseContent {
   return content.type === "tool_use" && "id" in content;
 }
 
@@ -66,9 +68,8 @@ function parseAnthropicStreamedToolCalls(
     let args: Record<string, unknown> = {};
     if (tc.input) {
       try {
-        const parsedInput = typeof tc.input === "string"
-          ? parsePartialJson(tc.input)
-          : tc.input;
+        const parsedInput =
+          typeof tc.input === "string" ? parsePartialJson(tc.input) : tc.input;
         args = parsedInput ?? {};
       } catch {
         // Pass
@@ -103,7 +104,13 @@ function Interrupt({
       {interruptValue &&
       !isAgentInboxInterruptSchema(interruptValue) &&
       (isLastMessage || hasNoAIOrToolMessages) ? (
-        <GenericInterruptView interrupt={interruptValue as Record<string, unknown> | Record<string, unknown>[]} />
+        <GenericInterruptView
+          interrupt={
+            interruptValue as
+              | Record<string, unknown>
+              | Record<string, unknown>[]
+          }
+        />
       ) : null}
     </>
   );
@@ -138,27 +145,32 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
   const anthropicStreamedToolCalls = useMemo(
-    () => Array.isArray(content) ? parseAnthropicStreamedToolCalls(content) : undefined,
-    [content]
+    () =>
+      Array.isArray(content)
+        ? parseAnthropicStreamedToolCalls(content)
+        : undefined,
+    [content],
   );
 
   // Task/TodoWrite 도구는 TODO 박스에서 통합 표시하므로 필터링
   const filterIntegratedTools = (toolCalls: AIMessage["tool_calls"]) => {
-    return toolCalls?.filter(tc => {
+    return toolCalls?.filter((tc) => {
       const name = tc.name?.toLowerCase() || "";
       return name !== "task" && !name.includes("todo");
     });
   };
 
-  const filteredToolCalls = filterIntegratedTools(message && "tool_calls" in message ? message.tool_calls : undefined);
-  const filteredAnthropicToolCalls = filterIntegratedTools(anthropicStreamedToolCalls);
+  const filteredToolCalls = filterIntegratedTools(
+    message && "tool_calls" in message ? message.tool_calls : undefined,
+  );
+  const filteredAnthropicToolCalls = filterIntegratedTools(
+    anthropicStreamedToolCalls,
+  );
 
   const hasToolCalls = filteredToolCalls && filteredToolCalls.length > 0;
   const toolCallsHaveContents =
     hasToolCalls &&
-    filteredToolCalls?.some(
-      (tc) => tc.args && Object.keys(tc.args).length > 0,
-    );
+    filteredToolCalls?.some((tc) => tc.args && Object.keys(tc.args).length > 0);
   const hasAnthropicToolCalls = !!filteredAnthropicToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
@@ -175,14 +187,22 @@ export const AssistantMessage = memo(function AssistantMessage({
   }
 
   // 빈 메시지 체크: 내용, 도구 호출, 인터럽트가 모두 없으면 렌더링하지 않음
-  const hasInterrupt = threadInterrupt?.value && (isLastMessage || hasNoAIOrToolMessages);
+  const hasInterrupt =
+    threadInterrupt?.value && (isLastMessage || hasNoAIOrToolMessages);
   const hasContent = contentString.length > 0;
-  const hasVisibleToolCalls = !hideToolCalls && !compactView && (hasToolCalls || hasAnthropicToolCalls);
+  const hasVisibleToolCalls =
+    !hideToolCalls && !compactView && (hasToolCalls || hasAnthropicToolCalls);
 
   // During streaming, show loading indicator for last message even without content
   const isStreamingEmptyMessage = isLoading && isLastMessage && !hasContent;
 
-  if (!isToolResult && !hasContent && !hasVisibleToolCalls && !hasInterrupt && !isStreamingEmptyMessage) {
+  if (
+    !isToolResult &&
+    !hasContent &&
+    !hasVisibleToolCalls &&
+    !hasInterrupt &&
+    !isStreamingEmptyMessage
+  ) {
     return null;
   }
 
@@ -191,7 +211,10 @@ export const AssistantMessage = memo(function AssistantMessage({
       <div className="flex flex-col gap-3">
         {isToolResult ? (
           <>
-            <ToolResult message={message} isLoading={isLoading} />
+            <ToolResult
+              message={message}
+              isLoading={isLoading}
+            />
             <Interrupt
               interruptValue={threadInterrupt?.value}
               isLastMessage={isLastMessage}
@@ -201,13 +224,13 @@ export const AssistantMessage = memo(function AssistantMessage({
         ) : (
           <>
             {contentString.length > 0 ? (
-              <div className="py-1 leading-relaxed min-w-0 overflow-hidden">
+              <div className="min-w-0 overflow-hidden py-1 leading-relaxed">
                 <MarkdownText>{contentString}</MarkdownText>
               </div>
             ) : isStreamingEmptyMessage ? (
               // Show typing indicator for streaming empty message
               <div className="py-1">
-                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-2 shadow-sm border border-border/20">
+                <div className="bg-muted border-border/20 inline-flex items-center gap-1.5 rounded-2xl border px-4 py-2 shadow-sm">
                   <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
                   <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>
                   <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_1s_infinite] rounded-full"></div>
@@ -232,30 +255,41 @@ export const AssistantMessage = memo(function AssistantMessage({
                         variant="full"
                       />
                     )}
-                    {!hasToolCalls && hasAnthropicToolCalls && filteredAnthropicToolCalls && (
-                      <ToolCardList
-                        tools={filteredAnthropicToolCalls.map((tc) => ({
-                          id: tc.id || `tool-${tc.name}`,
-                          name: tc.name || "Unknown",
-                          args: tc.args as Record<string, unknown>,
-                          status: isLoading ? "running" : "completed",
-                          toolCallId: tc.id,
-                        }))}
-                        variant="full"
-                      />
-                    )}
+                    {!hasToolCalls &&
+                      hasAnthropicToolCalls &&
+                      filteredAnthropicToolCalls && (
+                        <ToolCardList
+                          tools={filteredAnthropicToolCalls.map((tc) => ({
+                            id: tc.id || `tool-${tc.name}`,
+                            name: tc.name || "Unknown",
+                            args: tc.args as Record<string, unknown>,
+                            status: isLoading ? "running" : "completed",
+                            toolCallId: tc.id,
+                          }))}
+                          variant="full"
+                        />
+                      )}
                   </>
                 ) : (
                   // Original ToolCalls UI
                   <>
                     {(hasToolCalls && toolCallsHaveContents && (
-                      <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                      <ToolCalls
+                        toolCalls={filteredToolCalls}
+                        isLoading={isLoading}
+                      />
                     )) ||
                       (hasAnthropicToolCalls && (
-                        <ToolCalls toolCalls={filteredAnthropicToolCalls} isLoading={isLoading} />
+                        <ToolCalls
+                          toolCalls={filteredAnthropicToolCalls}
+                          isLoading={isLoading}
+                        />
                       )) ||
                       (hasToolCalls && (
-                        <ToolCalls toolCalls={filteredToolCalls} isLoading={isLoading} />
+                        <ToolCalls
+                          toolCalls={filteredToolCalls}
+                          isLoading={isLoading}
+                        />
                       ))}
                   </>
                 )}
@@ -302,7 +336,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 export function AssistantMessageLoading() {
   return (
     <div className="mr-auto flex items-start gap-3">
-      <div className="bg-muted flex h-9 items-center gap-1.5 rounded-2xl px-5 py-2.5 shadow-sm border border-border/20">
+      <div className="bg-muted border-border/20 flex h-9 items-center gap-1.5 rounded-2xl border px-5 py-2.5 shadow-sm">
         <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
         <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>
         <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_1s_infinite] rounded-full"></div>

@@ -82,13 +82,14 @@ function extractTodosArraySafe(obj: unknown): unknown[] | null {
  * Task tools send both intermediate updates and final completion as `type: "tool"` messages.
  * This function distinguishes between them based on content analysis.
  */
-function analyzeToolResponse(msg: LangGraphMessage): ToolResponseAnalysis | null {
+function analyzeToolResponse(
+  msg: LangGraphMessage,
+): ToolResponseAnalysis | null {
   if (msg.type !== "tool" || !msg.tool_call_id) return null;
   if (!isTaskToolName(msg.name)) return null;
 
-  const content = typeof msg.content === "string"
-    ? msg.content
-    : JSON.stringify(msg.content);
+  const content =
+    typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
 
   const lowerContent = content.toLowerCase();
 
@@ -102,7 +103,8 @@ function analyzeToolResponse(msg: LangGraphMessage): ToolResponseAnalysis | null
   // - Longer content (full results vs short status updates)
   // - Contains completion indicators
   // Intermediate updates are typically shorter status messages
-  const isLikelyFinal = content.length > 100 ||
+  const isLikelyFinal =
+    content.length > 100 ||
     lowerContent.includes("completed") ||
     lowerContent.includes("result") ||
     lowerContent.includes("finished") ||
@@ -129,13 +131,23 @@ function humanizeNodeName(nodeName: string): string {
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .toLowerCase()
     .split(" ")
-    .filter(w => w.length > 0);
+    .filter((w) => w.length > 0);
 
   const acronyms: Record<string, string> = {
-    llm: "LLM", api: "API", ai: "AI", id: "ID", url: "URL", ui: "UI", ux: "UX",
+    llm: "LLM",
+    api: "API",
+    ai: "AI",
+    id: "ID",
+    url: "URL",
+    ui: "UI",
+    ux: "UX",
   };
 
-  return words.map(word => acronyms[word] || (word.charAt(0).toUpperCase() + word.slice(1))).join(" ");
+  return words
+    .map(
+      (word) => acronyms[word] || word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(" ");
 }
 
 /**
@@ -144,7 +156,7 @@ function humanizeNodeName(nodeName: string): string {
  */
 function getStreamingContentFromMessages(
   messages: LangGraphMessage[],
-  isStreaming: boolean
+  isStreaming: boolean,
 ): { content: string; isActive: boolean } | null {
   if (!isStreaming || messages.length === 0) return null;
 
@@ -172,7 +184,9 @@ function getStreamingContentFromMessages(
     }
 
     // DEBUG: Log AI message content
-    console.log(`[getStreamingContent] AI message found at index ${i}, content length=${textContent.length}, preview="${textContent.slice(0, 100)}"`);
+    console.log(
+      `[getStreamingContent] AI message found at index ${i}, content length=${textContent.length}, preview="${textContent.slice(0, 100)}"`,
+    );
 
     if (textContent.length > 0) {
       return { content: textContent, isActive: true };
@@ -192,20 +206,26 @@ function getStreamingContentFromMessages(
 function extractTasksFromNodeUpdates(
   nodeUpdates: NodeUpdateInfo[] | undefined,
   isStreaming: boolean,
-  messages: LangGraphMessage[] = []
+  messages: LangGraphMessage[] = [],
 ): TaskProgressItem[] {
   if (!nodeUpdates || nodeUpdates.length === 0) return [];
 
   // Get streaming content from messages as fallback
-  const streamingMessage = getStreamingContentFromMessages(messages, isStreaming);
+  const streamingMessage = getStreamingContentFromMessages(
+    messages,
+    isStreaming,
+  );
 
   // Group nodes by their top-level subgraph
   // namespace format: ["subgraph_name:uuid"] or ["parent:uuid", "child:uuid"]
-  const subgraphMap = new Map<string, {
-    name: string;
-    nodes: NodeUpdateInfo[];
-    hasActiveNode: boolean;
-  }>();
+  const subgraphMap = new Map<
+    string,
+    {
+      name: string;
+      nodes: NodeUpdateInfo[];
+      hasActiveNode: boolean;
+    }
+  >();
 
   for (const node of nodeUpdates) {
     if (node.namespace.length === 0) continue; // Root-level node, not a subgraph
@@ -213,7 +233,7 @@ function extractTasksFromNodeUpdates(
     // Extract top-level subgraph name from namespace
     // Format: "subgraph_name:uuid"
     const topLevelNamespace = node.namespace[0];
-    const subgraphName = topLevelNamespace.split(':')[0];
+    const subgraphName = topLevelNamespace.split(":")[0];
 
     if (!subgraphMap.has(topLevelNamespace)) {
       subgraphMap.set(topLevelNamespace, {
@@ -236,7 +256,9 @@ function extractTasksFromNodeUpdates(
 
   for (const [namespaceKey, subgraph] of subgraphMap) {
     // Determine status based on active nodes
-    const status: TaskStatus = subgraph.hasActiveNode ? "in_progress" : "completed";
+    const status: TaskStatus = subgraph.hasActiveNode
+      ? "in_progress"
+      : "completed";
 
     // Build child nodes with LLM output
     const childNodes: TaskProgressItem["childNodes"] = subgraph.nodes
@@ -258,7 +280,9 @@ function extractTasksFromNodeUpdates(
           nodeName: node.nodeName,
           displayName: humanizeNodeName(node.nodeName),
           content,
-          status: node.isActive ? "streaming" as const : "completed" as const,
+          status: node.isActive
+            ? ("streaming" as const)
+            : ("completed" as const),
           isActive: node.isActive,
         };
       });
@@ -300,8 +324,16 @@ function extractTodos(messages: LangGraphMessage[]): TaskProgressItem[] {
           // Find end of this task scope
           let endIndex = messages.length;
           for (let j = i + 1; j < messages.length; j++) {
-            const endMsg = messages[j] as { type?: string; tool_call_id?: string; name?: string };
-            if (endMsg.type === "tool" && endMsg.name?.toLowerCase() === "task" && endMsg.tool_call_id === tc.id) {
+            const endMsg = messages[j] as {
+              type?: string;
+              tool_call_id?: string;
+              name?: string;
+            };
+            if (
+              endMsg.type === "tool" &&
+              endMsg.name?.toLowerCase() === "task" &&
+              endMsg.tool_call_id === tc.id
+            ) {
               endIndex = j;
               break;
             }
@@ -313,7 +345,9 @@ function extractTodos(messages: LangGraphMessage[]): TaskProgressItem[] {
   }
 
   function isInsideTaskScope(index: number): boolean {
-    return taskScopeRanges.some((range) => index > range.start && index < range.end);
+    return taskScopeRanges.some(
+      (range) => index > range.start && index < range.end,
+    );
   }
 
   // Find latest TodoWrite outside task scopes
@@ -343,7 +377,10 @@ function extractTodos(messages: LangGraphMessage[]): TaskProgressItem[] {
 
       // Map to TaskProgressItem
       latestTodoItems = todosArr
-        .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+        .filter(
+          (item): item is Record<string, unknown> =>
+            item !== null && typeof item === "object",
+        )
         .map((item, idx) => ({
           id: `todo-${idx}`,
           content: String(item.content ?? item.text ?? item.title ?? ""),
@@ -373,8 +410,18 @@ function extractTodos(messages: LangGraphMessage[]): TaskProgressItem[] {
     if (msg.type !== "ai" || !Array.isArray(msg.content)) continue;
 
     const toolUseContents = msg.content.filter(
-      (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
-        typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
+      (
+        c,
+      ): c is {
+        type: "tool_use";
+        id: string;
+        name?: string;
+        input?: unknown;
+      } =>
+        typeof c === "object" &&
+        c !== null &&
+        "type" in c &&
+        (c as { type: string }).type === "tool_use",
     );
 
     for (const tc of toolUseContents) {
@@ -394,7 +441,10 @@ function extractTodos(messages: LangGraphMessage[]): TaskProgressItem[] {
       if (!todosArr) continue;
 
       latestTodoItems = todosArr
-        .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+        .filter(
+          (item): item is Record<string, unknown> =>
+            item !== null && typeof item === "object",
+        )
         .map((item, idx) => ({
           id: `todo-${idx}`,
           content: String(item.content ?? item.text ?? item.title ?? ""),
@@ -467,7 +517,13 @@ function extractTasks(messages: LangGraphMessage[]): TaskProgressItem[] {
           }
         }
 
-        const taskItem = parseTaskArgs(args, taskIndex, tc.id, msg.name, toolCallStatusMap);
+        const taskItem = parseTaskArgs(
+          args,
+          taskIndex,
+          tc.id,
+          msg.name,
+          toolCallStatusMap,
+        );
         if (taskItem) {
           items.push(taskItem);
           taskIndex++;
@@ -479,8 +535,18 @@ function extractTasks(messages: LangGraphMessage[]): TaskProgressItem[] {
     // Check tool_use content blocks
     if (Array.isArray(msg.content)) {
       const toolUseContents = msg.content.filter(
-        (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
-          typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
+        (
+          c,
+        ): c is {
+          type: "tool_use";
+          id: string;
+          name?: string;
+          input?: unknown;
+        } =>
+          typeof c === "object" &&
+          c !== null &&
+          "type" in c &&
+          (c as { type: string }).type === "tool_use",
       );
 
       for (const tc of toolUseContents) {
@@ -496,7 +562,13 @@ function extractTasks(messages: LangGraphMessage[]): TaskProgressItem[] {
           }
         }
 
-        const taskItem = parseTaskArgs(args, taskIndex, tc.id, msg.name, toolCallStatusMap);
+        const taskItem = parseTaskArgs(
+          args,
+          taskIndex,
+          tc.id,
+          msg.name,
+          toolCallStatusMap,
+        );
         if (taskItem) {
           items.push(taskItem);
           taskIndex++;
@@ -514,7 +586,7 @@ function parseTaskArgs(
   index: number,
   toolCallId: string | undefined,
   nodeName: string | undefined,
-  statusMap: Map<string, "in_progress" | "completed">
+  statusMap: Map<string, "in_progress" | "completed">,
 ): TaskProgressItem | null {
   if (!args || typeof args !== "object") return null;
   let o = args as Record<string, unknown>;
@@ -556,7 +628,8 @@ function parseTaskArgs(
   if (typeof description !== "string" || description.length === 0) return null;
 
   const subagentType = o.subagent_type || o.subagentType || o.type;
-  const subagentTypeStr = typeof subagentType === "string" ? subagentType : undefined;
+  const subagentTypeStr =
+    typeof subagentType === "string" ? subagentType : undefined;
 
   return {
     id: `task-${index}`,
@@ -576,7 +649,10 @@ function parseTaskArgs(
 /**
  * Extract running tool calls (non-task, non-todo)
  */
-function extractRunningTools(messages: LangGraphMessage[], isStreaming: boolean): TaskProgressItem[] {
+function extractRunningTools(
+  messages: LangGraphMessage[],
+  isStreaming: boolean,
+): TaskProgressItem[] {
   if (!isStreaming) return [];
 
   const items: TaskProgressItem[] = [];
@@ -584,7 +660,11 @@ function extractRunningTools(messages: LangGraphMessage[], isStreaming: boolean)
   // Find the last AI message with tool calls
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
-    if (msg.type !== "ai" || !Array.isArray(msg.tool_calls) || msg.tool_calls.length === 0) {
+    if (
+      msg.type !== "ai" ||
+      !Array.isArray(msg.tool_calls) ||
+      msg.tool_calls.length === 0
+    ) {
       continue;
     }
 
@@ -631,20 +711,23 @@ function extractRunningTools(messages: LangGraphMessage[], isStreaming: boolean)
 function extractStreamingOutput(
   nodeUpdates: NodeUpdateInfo[] | undefined,
   isStreaming: boolean,
-  finalNodeNames?: string[]
+  finalNodeNames?: string[],
 ): StreamingOutput | null {
   if (!isStreaming || !nodeUpdates || nodeUpdates.length === 0) return null;
 
   // Find the most recent active node with streaming content
-  const activeNodes = nodeUpdates.filter((n) => n.isActive && n.streamingContent);
+  const activeNodes = nodeUpdates.filter(
+    (n) => n.isActive && n.streamingContent,
+  );
   if (activeNodes.length === 0) return null;
 
   const latest = activeNodes[activeNodes.length - 1];
 
   // Determine if this is a final node
-  const isFinal = finalNodeNames?.some(
-    (name) => latest.nodeName.toLowerCase() === name.toLowerCase()
-  ) ?? false;
+  const isFinal =
+    finalNodeNames?.some(
+      (name) => latest.nodeName.toLowerCase() === name.toLowerCase(),
+    ) ?? false;
 
   return {
     nodeId: latest.nodeName,
@@ -662,7 +745,7 @@ function extractStreamingOutput(
 function mergeProgress(
   todos: TaskProgressItem[],
   tasks: TaskProgressItem[],
-  runningTools: TaskProgressItem[]
+  runningTools: TaskProgressItem[],
 ): TaskProgressItem[] {
   // Combine all items
   const all = [...todos, ...tasks, ...runningTools];
@@ -680,13 +763,16 @@ function mergeProgress(
  * Calculate lifecycle state
  */
 function calculateLifecycle(
-  progress: TaskProgressItem[]
+  progress: TaskProgressItem[],
 ): "inactive" | "active" | "all_completed" {
   // Only consider todos and tasks (not running tools)
-  const relevantItems = progress.filter((p) => p.source === "todo" || p.source === "task");
+  const relevantItems = progress.filter(
+    (p) => p.source === "todo" || p.source === "task",
+  );
 
   if (relevantItems.length === 0) return "inactive";
-  if (relevantItems.every((p) => p.status === "completed")) return "all_completed";
+  if (relevantItems.every((p) => p.status === "completed"))
+    return "all_completed";
   return "active";
 }
 
@@ -694,40 +780,47 @@ function calculateLifecycle(
 // Main Hook
 // ============================================
 
-export function useTaskProgress(options: UseTaskProgressOptions): UseTaskProgressReturn {
+export function useTaskProgress(
+  options: UseTaskProgressOptions,
+): UseTaskProgressReturn {
   const { messages, nodeUpdates, isStreaming, finalNodeNames } = options;
   const typedMessages = messages as LangGraphMessage[];
 
   // DEBUG: Track messages and nodeUpdates during streaming
   if (isStreaming) {
-    console.log(`[useTaskProgress] isStreaming=true, messages=${messages.length}, nodeUpdates=${nodeUpdates?.length ?? 0}`);
+    console.log(
+      `[useTaskProgress] isStreaming=true, messages=${messages.length}, nodeUpdates=${nodeUpdates?.length ?? 0}`,
+    );
     if (nodeUpdates && nodeUpdates.length > 0) {
-      const activeNodes = nodeUpdates.filter(n => n.isActive);
-      console.log(`[useTaskProgress] Active nodes:`, activeNodes.map(n => ({
-        name: n.nodeName,
-        hasStreamingContent: !!n.streamingContent,
-        hasCompletedOutput: !!n.completedOutput,
-        contentPreview: (n.streamingContent || n.completedOutput || "").slice(0, 50)
-      })));
+      const activeNodes = nodeUpdates.filter((n) => n.isActive);
+      console.log(
+        `[useTaskProgress] Active nodes:`,
+        activeNodes.map((n) => ({
+          name: n.nodeName,
+          hasStreamingContent: !!n.streamingContent,
+          hasCompletedOutput: !!n.completedOutput,
+          contentPreview: (n.streamingContent || n.completedOutput || "").slice(
+            0,
+            50,
+          ),
+        })),
+      );
     }
   }
 
   // Extract TODOs from TodoWrite calls
-  const todos = useMemo(
-    () => extractTodos(typedMessages),
-    [typedMessages]
-  );
+  const todos = useMemo(() => extractTodos(typedMessages), [typedMessages]);
 
   // Extract Tasks from Task tool calls in messages
   const tasksFromMessages = useMemo(
     () => extractTasks(typedMessages),
-    [typedMessages]
+    [typedMessages],
   );
 
   // Extract Tasks from nodeUpdates (subgraph executions)
   const tasksFromNodeUpdates = useMemo(
     () => extractTasksFromNodeUpdates(nodeUpdates, isStreaming, typedMessages),
-    [nodeUpdates, isStreaming, typedMessages]
+    [nodeUpdates, isStreaming, typedMessages],
   );
 
   // Merge tasks: prefer nodeUpdates (real-time) over messages
@@ -742,26 +835,23 @@ export function useTaskProgress(options: UseTaskProgressOptions): UseTaskProgres
   // Extract running tools (non-task, non-todo)
   const runningTools = useMemo(
     () => extractRunningTools(typedMessages, isStreaming),
-    [typedMessages, isStreaming]
+    [typedMessages, isStreaming],
   );
 
   // Merge into flat list
   const progress = useMemo(
     () => mergeProgress(todos, tasks, runningTools),
-    [todos, tasks, runningTools]
+    [todos, tasks, runningTools],
   );
 
   // Get streaming output
   const streamingOutput = useMemo(
     () => extractStreamingOutput(nodeUpdates, isStreaming, finalNodeNames),
-    [nodeUpdates, isStreaming, finalNodeNames]
+    [nodeUpdates, isStreaming, finalNodeNames],
   );
 
   // Calculate lifecycle
-  const lifecycle = useMemo(
-    () => calculateLifecycle(progress),
-    [progress]
-  );
+  const lifecycle = useMemo(() => calculateLifecycle(progress), [progress]);
 
   // Check if there's content to display
   const hasContent = progress.length > 0 || streamingOutput !== null;
@@ -782,7 +872,7 @@ export function useTaskProgress(options: UseTaskProgressOptions): UseTaskProgres
  * Group progress items by their group property
  */
 export function groupProgressItems(
-  items: TaskProgressItem[]
+  items: TaskProgressItem[],
 ): Map<string, TaskProgressItem[]> {
   const groups = new Map<string, TaskProgressItem[]>();
 

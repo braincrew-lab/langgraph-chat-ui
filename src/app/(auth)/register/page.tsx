@@ -6,7 +6,17 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { LoaderCircle, User, Mail, Lock, KeyRound, ArrowRight, Ban, Clock, CheckCircle } from "lucide-react";
+import {
+  LoaderCircle,
+  User,
+  Mail,
+  Lock,
+  KeyRound,
+  ArrowRight,
+  Ban,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 import { useAuthContext } from "../AuthLayoutClient";
 import { registerUser } from "@/app/actions/auth";
 import type { UserStatus } from "@/types/auth-mode";
@@ -27,7 +37,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const }
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
 
@@ -43,7 +53,8 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [registrationComplete, setRegistrationComplete] = useState(false);
-  const [registrationStatus, setRegistrationStatus] = useState<UserStatus | null>(null);
+  const [registrationStatus, setRegistrationStatus] =
+    useState<UserStatus | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState("");
 
   const errorRef = useRef<HTMLDivElement>(null);
@@ -107,7 +118,10 @@ export default function RegisterPage() {
         animate="visible"
         className="space-y-6"
       >
-        <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col items-center gap-4 pb-2"
+        >
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -122,7 +136,7 @@ export default function RegisterPage() {
               className="flex-shrink-0"
             />
           </motion.div>
-          <div className="text-center space-y-1">
+          <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
               {branding.appName}
             </h1>
@@ -131,23 +145,31 @@ export default function RegisterPage() {
 
         <motion.div
           variants={itemVariants}
-          className="flex flex-col items-center gap-4 p-6 rounded-xl bg-muted/50 border border-border"
+          className="bg-muted/50 border-border flex flex-col items-center gap-4 rounded-xl border p-6"
         >
-          <Ban className="h-12 w-12 text-muted-foreground" />
-          <div className="text-center space-y-2">
-            <h2 className="text-lg font-semibold">회원가입이 비활성화되어 있습니다</h2>
-            <p className="text-sm text-muted-foreground">
-              현재 새로운 회원가입을 받지 않고 있습니다.<br />
+          <Ban className="text-muted-foreground h-12 w-12" />
+          <div className="space-y-2 text-center">
+            <h2 className="text-lg font-semibold">
+              회원가입이 비활성화되어 있습니다
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              현재 새로운 회원가입을 받지 않고 있습니다.
+              <br />
               관리자에게 문의해 주세요.
             </p>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="text-center text-sm">
-          <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
+        <motion.div
+          variants={itemVariants}
+          className="text-center text-sm"
+        >
+          <span className="text-muted-foreground">
+            이미 계정이 있으신가요?{" "}
+          </span>
           <Link
             href="/login"
-            className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             로그인
           </Link>
@@ -167,7 +189,10 @@ export default function RegisterPage() {
         animate="visible"
         className="space-y-6"
       >
-        <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col items-center gap-4 pb-2"
+        >
           <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
@@ -184,11 +209,11 @@ export default function RegisterPage() {
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
             )}
           </motion.div>
-          <div className="text-center space-y-1">
+          <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
               {isPendingApproval ? "가입 신청 완료" : "회원가입 완료"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {isPendingApproval
                 ? "관리자 승인 후 이용하실 수 있습니다"
                 : "지금 바로 로그인할 수 있습니다"}
@@ -198,23 +223,28 @@ export default function RegisterPage() {
 
         <motion.div
           variants={itemVariants}
-          className="text-center text-muted-foreground text-sm leading-relaxed"
+          className="text-muted-foreground text-center text-sm leading-relaxed"
         >
           {isPendingApproval ? (
             <p>
-              회원가입 신청이 완료되었습니다.<br />
-              관리자가 계정을 검토한 후 승인하면<br />
+              회원가입 신청이 완료되었습니다.
+              <br />
+              관리자가 계정을 검토한 후 승인하면
+              <br />
               서비스를 이용하실 수 있습니다.
             </p>
           ) : (
             <p>
-              회원가입이 완료되었습니다.<br />
+              회원가입이 완료되었습니다.
+              <br />
               아래 버튼을 클릭하여 로그인해 주세요.
             </p>
           )}
           <p className="mt-4">
             등록 이메일:{" "}
-            <span className="font-medium text-foreground">{registeredEmail}</span>
+            <span className="text-foreground font-medium">
+              {registeredEmail}
+            </span>
           </p>
         </motion.div>
 
@@ -222,14 +252,14 @@ export default function RegisterPage() {
           {isPendingApproval ? (
             <Button
               variant="outline"
-              className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => router.push("/login")}
             >
               로그인 페이지로 이동
             </Button>
           ) : (
             <Button
-              className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => router.push("/login")}
             >
               로그인하기
@@ -249,7 +279,10 @@ export default function RegisterPage() {
       className="space-y-6"
     >
       {/* Branding */}
-      <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col items-center gap-4 pb-2"
+      >
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -264,24 +297,28 @@ export default function RegisterPage() {
             className="flex-shrink-0"
           />
         </motion.div>
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
             {branding.appName}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             새 계정을 만들어 시작하세요
           </p>
         </div>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        noValidate
+      >
         {/* General error message */}
         {error && (
           <motion.div
             ref={errorRef}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-xl"
+            className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
             role="alert"
             aria-live="assertive"
             tabIndex={-1}
@@ -290,10 +327,20 @@ export default function RegisterPage() {
           </motion.div>
         )}
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            이름 <span className="text-muted-foreground font-normal">(선택)</span>
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="name"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <User
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
+            이름{" "}
+            <span className="text-muted-foreground font-normal">(선택)</span>
           </label>
           <Input
             id="name"
@@ -308,9 +355,18 @@ export default function RegisterPage() {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
-            <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="email"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Mail
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             이메일
           </label>
           <Input
@@ -329,9 +385,18 @@ export default function RegisterPage() {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
-            <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="password"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Lock
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             비밀번호
           </label>
           <Input
@@ -345,7 +410,9 @@ export default function RegisterPage() {
             required
             disabled={isPending}
             aria-invalid={!!fieldErrors.password}
-            aria-describedby={fieldErrors.password ? "password-error" : undefined}
+            aria-describedby={
+              fieldErrors.password ? "password-error" : undefined
+            }
             size="lg"
           />
           {fieldErrors.password && (
@@ -360,9 +427,18 @@ export default function RegisterPage() {
           )}
         </motion.div>
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="confirmPassword" className="text-sm font-medium flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="confirmPassword"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <KeyRound
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             비밀번호 확인
           </label>
           <Input
@@ -376,7 +452,9 @@ export default function RegisterPage() {
             required
             disabled={isPending}
             aria-invalid={!!fieldErrors.confirmPassword}
-            aria-describedby={fieldErrors.confirmPassword ? "confirm-password-error" : undefined}
+            aria-describedby={
+              fieldErrors.confirmPassword ? "confirm-password-error" : undefined
+            }
             size="lg"
           />
           {fieldErrors.confirmPassword && (
@@ -394,38 +472,50 @@ export default function RegisterPage() {
         <motion.div variants={itemVariants}>
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             disabled={isPending}
           >
             {isPending ? (
               <>
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <LoaderCircle
+                  className="mr-2 h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                />
                 <span>가입 중…</span>
               </>
             ) : (
               <>
                 <span>회원가입</span>
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ArrowRight
+                  className="ml-2 h-4 w-4"
+                  aria-hidden="true"
+                />
               </>
             )}
           </Button>
         </motion.div>
       </form>
 
-      <motion.div variants={itemVariants} className="relative">
+      <motion.div
+        variants={itemVariants}
+        className="relative"
+      >
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
+          <span className="border-border w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-card px-3 text-muted-foreground">또는</span>
+          <span className="bg-card text-muted-foreground px-3">또는</span>
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="text-center text-sm">
+      <motion.div
+        variants={itemVariants}
+        className="text-center text-sm"
+      >
         <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
         <Link
           href="/login"
-          className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+          className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           로그인
         </Link>

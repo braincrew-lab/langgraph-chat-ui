@@ -2,7 +2,10 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { LoaderCircle } from "lucide-react";
-import { type HierarchicalTask, type IntermediateLLMOutput } from "@/types/task-hierarchy";
+import {
+  type HierarchicalTask,
+  type IntermediateLLMOutput,
+} from "@/types/task-hierarchy";
 import type { TaskProgressItem } from "@/types/task-progress";
 import { TodoProgressList } from "./streaming/TodoProgressList";
 import { TaskProgressList } from "./streaming/TaskProgressList";
@@ -39,10 +42,13 @@ export function StreamingTaskView({
   finalNodeId,
 }: StreamingTaskViewProps) {
   // Check for non-final intermediate outputs
-  const hasIntermediateOutputs = intermediateOutputs && intermediateOutputs.filter(o => !o.isFinal).length > 0;
+  const hasIntermediateOutputs =
+    intermediateOutputs &&
+    intermediateOutputs.filter((o) => !o.isFinal).length > 0;
 
   // Check if there's any actual content to display
-  const hasContent = progress.length > 0 || activeLeafTasks.length > 0 || hasIntermediateOutputs;
+  const hasContent =
+    progress.length > 0 || activeLeafTasks.length > 0 || hasIntermediateOutputs;
 
   // Show thinking state when streaming but no content yet
   const showThinkingState = isStreaming && !hasContent;
@@ -65,7 +71,7 @@ export function StreamingTaskView({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-2 text-sm text-muted-foreground py-2"
+          className="text-muted-foreground flex items-center gap-2 py-2 text-sm"
         >
           <LoaderCircle className="h-4 w-4 animate-spin" />
           <span>Thinking...</span>
@@ -92,7 +98,10 @@ export function StreamingTaskView({
 
       {/* Active leaf tasks (when no progress items but tasks running) */}
       {progress.length === 0 && activeLeafTasks.length > 0 && (
-        <ActiveTasksList tasks={activeLeafTasks} isStreaming={isStreaming} />
+        <ActiveTasksList
+          tasks={activeLeafTasks}
+          isStreaming={isStreaming}
+        />
       )}
     </motion.div>
   );

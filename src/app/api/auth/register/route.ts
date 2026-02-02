@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/auth/prisma";
-import {
-  getInitialAdminEmail,
-  isPublicMode,
-} from "@/lib/auth/mode";
+import { getInitialAdminEmail, isPublicMode } from "@/lib/auth/mode";
 import { getSetting } from "@/lib/services/settings.service";
-import type { UserRole, UserStatus, RegistrationPolicy } from "@/types/auth-mode";
+import type {
+  UserRole,
+  UserStatus,
+  RegistrationPolicy,
+} from "@/types/auth-mode";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     if (isPublicMode()) {
       return NextResponse.json(
         { error: "Registration is not available in public mode" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!allowRegistration) {
       return NextResponse.json(
         { error: "Registration is currently disabled" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters long" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -61,21 +62,25 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { error: "User with this email already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     // Get registration policy from admin settings
-    const registrationPolicy = await getSetting("auth.registrationPolicy") as RegistrationPolicy;
+    const registrationPolicy = (await getSetting(
+      "auth.registrationPolicy",
+    )) as RegistrationPolicy;
 
     // Determine user status based on registration policy
     const initialAdminEmail = getInitialAdminEmail();
     const isInitialAdmin =
-      initialAdminEmail && email.toLowerCase() === initialAdminEmail.toLowerCase();
+      initialAdminEmail &&
+      email.toLowerCase() === initialAdminEmail.toLowerCase();
 
     let role: UserRole = "user";
     // Use admin setting to determine if approval is required
-    let status: UserStatus = registrationPolicy === "approval" ? "pending" : "active";
+    let status: UserStatus =
+      registrationPolicy === "approval" ? "pending" : "active";
 
     // Initial admin gets admin role and active status
     if (isInitialAdmin) {
@@ -122,7 +127,7 @@ export async function POST(req: NextRequest) {
     console.error("Registration error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

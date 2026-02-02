@@ -14,10 +14,11 @@ function convertRun(run: Run): LangSmithRun {
   // latency 계산 (end_time - start_time)
   const calculateLatency = (
     start: string | number | undefined | null,
-    end: string | number | undefined | null
+    end: string | number | undefined | null,
   ): number | undefined => {
     if (!start || !end) return undefined;
-    const startMs = typeof start === "string" ? new Date(start).getTime() : start;
+    const startMs =
+      typeof start === "string" ? new Date(start).getTime() : start;
     const endMs = typeof end === "string" ? new Date(end).getTime() : end;
     return endMs - startMs;
   };
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
   if (!threadId && !traceId) {
     return NextResponse.json(
       { error: "threadId or traceId required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -57,14 +58,14 @@ export async function GET(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json(
       { error: "LANGSMITH_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   if (!projectName) {
     return NextResponse.json(
       { error: "LANGSMITH_PROJECT not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -112,7 +113,7 @@ export async function GET(req: NextRequest) {
     console.error("Failed to fetch LangSmith runs:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

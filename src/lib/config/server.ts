@@ -8,7 +8,7 @@ import type { GlobalSettings } from "@/types/global-settings";
  */
 function applyGlobalSettings(
   config: typeof fullConfig,
-  settings: GlobalSettings
+  settings: GlobalSettings,
 ): ChatConfig {
   // Branding fallback chain
   const logoUrl = settings["branding.logoUrl"] || config.branding.logoPath;
@@ -43,18 +43,25 @@ function applyGlobalSettings(
       ...config.buttons,
       // ui.chatInputPlaceholder → buttons.chatInputPlaceholder
       chatInputPlaceholder:
-        settings["ui.chatInputPlaceholder"] || config.buttons.chatInputPlaceholder,
+        settings["ui.chatInputPlaceholder"] ||
+        config.buttons.chatInputPlaceholder,
       // features.enableFileUpload → buttons.enableFileUpload
-      enableFileUpload: settings["features.enableFileUpload"] ?? config.buttons.enableFileUpload,
+      enableFileUpload:
+        settings["features.enableFileUpload"] ??
+        config.buttons.enableFileUpload,
     },
     threads: {
       ...config.threads,
       // features.showHistory → threads.showHistory
-      showHistory: settings["features.showHistory"] ?? config.threads.showHistory,
+      showHistory:
+        settings["features.showHistory"] ?? config.threads.showHistory,
       // features.enableDeletion → threads.enableDeletion
-      enableDeletion: settings["features.enableDeletion"] ?? config.threads.enableDeletion,
+      enableDeletion:
+        settings["features.enableDeletion"] ?? config.threads.enableDeletion,
       // features.autoGenerateTitles → threads.autoGenerateTitles
-      autoGenerateTitles: settings["features.autoGenerateTitles"] ?? config.threads.autoGenerateTitles,
+      autoGenerateTitles:
+        settings["features.autoGenerateTitles"] ??
+        config.threads.autoGenerateTitles,
     },
   };
 }

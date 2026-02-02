@@ -41,7 +41,11 @@ export function isDuplicate(
     );
   }
 
-  if (SUPPORTED_FILE_TYPES.includes(file.type as (typeof SUPPORTED_FILE_TYPES)[number])) {
+  if (
+    SUPPORTED_FILE_TYPES.includes(
+      file.type as (typeof SUPPORTED_FILE_TYPES)[number],
+    )
+  ) {
     return existingBlocks.some(
       (block) =>
         block.type === "image" &&
@@ -71,10 +75,15 @@ export function validateFiles(
   existingBlocks: Base64ContentBlock[],
 ): FileValidationResult {
   const validFiles = files.filter((file) =>
-    SUPPORTED_FILE_TYPES.includes(file.type as (typeof SUPPORTED_FILE_TYPES)[number]),
+    SUPPORTED_FILE_TYPES.includes(
+      file.type as (typeof SUPPORTED_FILE_TYPES)[number],
+    ),
   );
   const invalidFiles = files.filter(
-    (file) => !SUPPORTED_FILE_TYPES.includes(file.type as (typeof SUPPORTED_FILE_TYPES)[number]),
+    (file) =>
+      !SUPPORTED_FILE_TYPES.includes(
+        file.type as (typeof SUPPORTED_FILE_TYPES)[number],
+      ),
   );
   const duplicateFiles = validFiles.filter((file) =>
     isDuplicate(file, existingBlocks),

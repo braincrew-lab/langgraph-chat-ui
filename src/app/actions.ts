@@ -23,11 +23,15 @@ export async function updateConnectionAction(connection: {
   });
 
   if (connection.assistantId) {
-    cookieStore.set(CONNECTION_COOKIE_NAMES.assistantId, connection.assistantId, {
-      path: "/",
-      maxAge: COOKIE_MAX_AGE,
-      sameSite: "lax",
-    });
+    cookieStore.set(
+      CONNECTION_COOKIE_NAMES.assistantId,
+      connection.assistantId,
+      {
+        path: "/",
+        maxAge: COOKIE_MAX_AGE,
+        sameSite: "lax",
+      },
+    );
   } else {
     cookieStore.delete(CONNECTION_COOKIE_NAMES.assistantId);
   }
@@ -70,7 +74,8 @@ export async function getConnectionAction() {
 
   return {
     apiUrl: cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value || null,
-    assistantId: cookieStore.get(CONNECTION_COOKIE_NAMES.assistantId)?.value || null,
+    assistantId:
+      cookieStore.get(CONNECTION_COOKIE_NAMES.assistantId)?.value || null,
     apiKey: cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value || null,
   };
 }

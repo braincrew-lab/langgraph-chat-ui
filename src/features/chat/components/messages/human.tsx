@@ -110,7 +110,7 @@ export const HumanMessage = memo(function HumanMessage({
             )}
             {/* Render text if present, otherwise fallback to file/image name */}
             {contentString ? (
-              <p className="bg-muted w-fit max-w-2xl rounded-3xl px-5 py-3 text-left whitespace-pre-wrap shadow-sm border border-border/30 transition-all duration-200 hover:shadow-md">
+              <p className="bg-muted border-border/30 w-fit max-w-2xl rounded-3xl border px-5 py-3 text-left whitespace-pre-wrap shadow-sm transition-all duration-200 hover:shadow-md">
                 {contentString}
               </p>
             ) : null}

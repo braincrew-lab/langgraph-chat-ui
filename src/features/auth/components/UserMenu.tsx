@@ -14,9 +14,7 @@ export function UserMenu() {
   const { user, isLoading, signOut } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
-    );
+    return <div className="bg-muted h-9 w-9 animate-pulse rounded-full" />;
   }
 
   if (!user) {
@@ -29,8 +27,8 @@ export function UserMenu() {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground max-w-[160px] truncate">
+              <User className="text-muted-foreground h-4 w-4" />
+              <span className="text-muted-foreground max-w-[160px] truncate text-sm">
                 {user.name || user.email}
               </span>
             </div>

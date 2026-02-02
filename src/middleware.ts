@@ -26,9 +26,7 @@ export default auth((req) => {
   const routeType = getRouteType(pathname);
 
   // Get user info from session
-  const user = req.auth?.user as
-    | { role?: string; status?: string }
-    | undefined;
+  const user = req.auth?.user as { role?: string; status?: string } | undefined;
   const userRole = (user?.role || "user") as UserRole;
   const userStatus = (user?.status || "active") as UserStatus;
 
@@ -47,10 +45,7 @@ export default auth((req) => {
   // Public routes are always accessible
   if (routeType === "public") {
     // If logged in and trying to access login/register, redirect appropriately
-    if (
-      isLoggedIn &&
-      (pathname === "/login" || pathname === "/register")
-    ) {
+    if (isLoggedIn && (pathname === "/login" || pathname === "/register")) {
       // Check if user can access the app
       const appAccess = canAccessApp({ status: userStatus, role: userRole });
       if (!appAccess.allowed && appAccess.redirectTo) {
@@ -87,7 +82,7 @@ export default auth((req) => {
     const adminAccess = canAccessAdmin({ role: userRole, status: userStatus });
     if (!adminAccess.allowed) {
       return NextResponse.redirect(
-        new URL(adminAccess.redirectTo || "/", nextUrl)
+        new URL(adminAccess.redirectTo || "/", nextUrl),
       );
     }
     return NextResponse.next();
@@ -99,11 +94,11 @@ export default auth((req) => {
     if (routeType === "api") {
       return NextResponse.json(
         { error: appAccess.reason || "Forbidden" },
-        { status: 403 }
+        { status: 403 },
       );
     }
     return NextResponse.redirect(
-      new URL(appAccess.redirectTo || "/login", nextUrl)
+      new URL(appAccess.redirectTo || "/login", nextUrl),
     );
   }
 

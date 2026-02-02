@@ -75,7 +75,7 @@ export function addConnection(
   name: string,
   apiUrl: string,
   assistantId?: string,
-  apiKey?: string
+  apiKey?: string,
 ): Connection {
   const newConnection: Connection = {
     id: `conn-${Date.now()}`,
@@ -98,7 +98,9 @@ export function addConnection(
 // Delete connection
 export function deleteConnection(connectionId: string): void {
   const storage = loadConnections();
-  storage.connections = storage.connections.filter((c) => c.id !== connectionId);
+  storage.connections = storage.connections.filter(
+    (c) => c.id !== connectionId,
+  );
 
   // If deleted connection was active, switch to default
   if (storage.activeConnectionId === connectionId) {
@@ -120,7 +122,7 @@ export function getActiveConnection(): Connection {
 
   // Find active custom connection
   const activeConn = storage.connections.find(
-    (c) => c.id === storage.activeConnectionId
+    (c) => c.id === storage.activeConnectionId,
   );
 
   return activeConn || defaultConn;

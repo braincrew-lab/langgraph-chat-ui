@@ -47,8 +47,8 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-t-xl bg-muted dark:bg-zinc-800 px-5 py-2.5 text-sm font-medium text-foreground dark:text-white/90 border-b border-border dark:border-zinc-600">
-      <span className="lowercase text-xs font-mono">{language}</span>
+    <div className="bg-muted text-foreground border-border flex items-center justify-between gap-4 rounded-t-xl border-b px-5 py-2.5 text-sm font-medium dark:border-zinc-600 dark:bg-zinc-800 dark:text-white/90">
+      <span className="font-mono text-xs lowercase">{language}</span>
       <TooltipIconButton
         tooltip="Copy"
         onClick={onCopy}
@@ -114,7 +114,10 @@ const defaultComponents: Record<string, unknown> = {
   ),
   p: ({ className, ...props }: { className?: string }) => (
     <p
-      className={cn("mt-5 mb-5 leading-relaxed text-foreground/90 first:mt-0 last:mb-0", className)}
+      className={cn(
+        "text-foreground/90 mt-5 mb-5 leading-relaxed first:mt-0 last:mb-0",
+        className,
+      )}
       {...props}
     />
   ),
@@ -135,13 +138,19 @@ const defaultComponents: Record<string, unknown> = {
   ),
   ul: ({ className, ...props }: { className?: string }) => (
     <ul
-      className={cn("my-5 ml-6 list-disc [&>li]:mt-2 [&>li]:leading-relaxed", className)}
+      className={cn(
+        "my-5 ml-6 list-disc [&>li]:mt-2 [&>li]:leading-relaxed",
+        className,
+      )}
       {...props}
     />
   ),
   ol: ({ className, ...props }: { className?: string }) => (
     <ol
-      className={cn("my-5 ml-6 list-decimal [&>li]:mt-2 [&>li]:leading-relaxed", className)}
+      className={cn(
+        "my-5 ml-6 list-decimal [&>li]:mt-2 [&>li]:leading-relaxed",
+        className,
+      )}
       {...props}
     />
   ),
@@ -196,7 +205,7 @@ const defaultComponents: Record<string, unknown> = {
   pre: ({ className, ...props }: { className?: string }) => (
     <pre
       className={cn(
-        "w-full max-w-full overflow-x-auto rounded-xl bg-muted/50 dark:bg-zinc-900 text-foreground dark:text-white shadow-md border border-border/30 dark:border-zinc-700",
+        "bg-muted/50 text-foreground border-border/30 w-full max-w-full overflow-x-auto rounded-xl border shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:text-white",
         className,
       )}
       {...props}
@@ -234,7 +243,10 @@ const defaultComponents: Record<string, unknown> = {
 
     return (
       <code
-        className={cn("rounded-md bg-muted/60 px-1.5 py-0.5 font-mono text-[0.9em] font-medium border border-border/30 text-foreground", className)}
+        className={cn(
+          "bg-muted/60 border-border/30 text-foreground rounded-md border px-1.5 py-0.5 font-mono text-[0.9em] font-medium",
+          className,
+        )}
         {...props}
       >
         {children}
@@ -245,7 +257,7 @@ const defaultComponents: Record<string, unknown> = {
 
 const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
   return (
-    <div className="markdown-content min-w-0 max-w-full">
+    <div className="markdown-content max-w-full min-w-0">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}

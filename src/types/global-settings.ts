@@ -179,7 +179,8 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
   {
     key: "features.enableGraphSelection",
     label: "그래프 선택 활성화",
-    description: "사용자가 그래프(Assistant)를 선택할 수 있도록 허용. 비활성화 시 기본 그래프 사용",
+    description:
+      "사용자가 그래프(Assistant)를 선택할 수 있도록 허용. 비활성화 시 기본 그래프 사용",
     category: "features",
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.enableGraphSelection"],
@@ -187,7 +188,8 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
   {
     key: "features.enableConnectionSelection",
     label: "커넥션 선택 활성화",
-    description: "사용자가 LangGraph 커넥션을 선택할 수 있도록 허용. 비활성화 시 기본 커넥션 사용",
+    description:
+      "사용자가 LangGraph 커넥션을 선택할 수 있도록 허용. 비활성화 시 기본 커넥션 사용",
     category: "features",
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.enableConnectionSelection"],
@@ -195,7 +197,8 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
   {
     key: "features.enableAdvancedInput",
     label: "고급 입력 활성화",
-    description: "스키마 기반 선택적 필드 표시. 비활성화 시 기본 채팅 입력만 표시",
+    description:
+      "스키마 기반 선택적 필드 표시. 비활성화 시 기본 채팅 입력만 표시",
     category: "features",
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.enableAdvancedInput"],
@@ -245,7 +248,8 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
   {
     key: "branding.chatOpeners",
     label: "채팅 시작 문구",
-    description: "새 채팅 시작 시 표시되는 예시 질문 목록 (비워두면 기본값 사용)",
+    description:
+      "새 채팅 시작 시 표시되는 예시 질문 목록 (비워두면 기본값 사용)",
     category: "branding",
     type: "array",
     maxItems: 20,
