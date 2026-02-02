@@ -64,7 +64,11 @@ interface UserTableProps {
   currentUserRole: UserRole;
 }
 
-export function UserTable({ users, currentUserId, currentUserRole }: UserTableProps) {
+export function UserTable({
+  users,
+  currentUserId,
+  currentUserRole,
+}: UserTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
@@ -72,7 +76,7 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
 
   const handleAction = async (
     userId: string,
-    action: "approve" | "suspend" | "reactivate" | "delete"
+    action: "approve" | "suspend" | "reactivate" | "delete",
   ) => {
     setLoadingUserId(userId);
 
@@ -108,7 +112,10 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
     });
   };
 
-  const handleRoleChange = async (userId: string, newRole: "admin" | "user") => {
+  const handleRoleChange = async (
+    userId: string,
+    newRole: "admin" | "user",
+  ) => {
     setLoadingUserId(userId);
 
     startTransition(async () => {
@@ -132,19 +139,19 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
     switch (status) {
       case "active":
         return (
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 border-green-200 dark:border-green-800">
+          <Badge className="border-green-200 bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-900/50 dark:text-green-400">
             활성
           </Badge>
         );
       case "pending":
         return (
-          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+          <Badge className="border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-400">
             대기중
           </Badge>
         );
       case "suspended":
         return (
-          <Badge className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400 border-red-200 dark:border-red-800">
+          <Badge className="border-red-200 bg-red-100 text-red-700 dark:border-red-800 dark:bg-red-900/50 dark:text-red-400">
             정지됨
           </Badge>
         );
@@ -157,13 +164,13 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
     switch (role) {
       case "super_admin":
         return (
-          <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+          <Badge className="border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-900/50 dark:text-purple-400">
             최고관리자
           </Badge>
         );
       case "admin":
         return (
-          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+          <Badge className="border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-900/50 dark:text-blue-400">
             관리자
           </Badge>
         );
@@ -178,7 +185,8 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
     // Cannot modify super_admin
     if (user.role === "super_admin") return false;
     // Only super_admin can modify admins
-    if (user.role === "admin" && currentUserRole !== "super_admin") return false;
+    if (user.role === "admin" && currentUserRole !== "super_admin")
+      return false;
     return true;
   };
 
@@ -202,7 +210,7 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
               <TableCell>
                 <div>
                   <div className="font-medium">{user.name || "—"}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-muted-foreground text-sm">
                     {user.email}
                   </div>
                 </div>
@@ -258,12 +266,16 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
                         <>
                           <DropdownMenuSeparator />
                           {user.role === "user" ? (
-                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, "admin")}>
+                            <DropdownMenuItem
+                              onClick={() => handleRoleChange(user.id, "admin")}
+                            >
                               <Shield className="mr-2 h-4 w-4" />
                               관리자로 승격
                             </DropdownMenuItem>
                           ) : user.role === "admin" ? (
-                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, "user")}>
+                            <DropdownMenuItem
+                              onClick={() => handleRoleChange(user.id, "user")}
+                            >
                               <ShieldOff className="mr-2 h-4 w-4" />
                               일반회원으로 강등
                             </DropdownMenuItem>
@@ -287,7 +299,10 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
         </TableBody>
       </Table>
 
-      <AlertDialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+      <AlertDialog
+        open={!!deleteDialog}
+        onOpenChange={() => setDeleteDialog(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>사용자 삭제</AlertDialogTitle>
@@ -299,7 +314,9 @@ export function UserTable({ users, currentUserId, currentUserRole }: UserTablePr
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteDialog && handleAction(deleteDialog.id, "delete")}
+              onClick={() =>
+                deleteDialog && handleAction(deleteDialog.id, "delete")
+              }
               className="bg-red-600 hover:bg-red-700"
             >
               삭제

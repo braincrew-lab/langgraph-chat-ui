@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import React, { createContext, useState, useEffect, ReactNode } from "react";
 import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config/client";
 import { GlobalSettings, DEFAULT_SETTINGS } from "@/types/global-settings";
 
@@ -68,7 +63,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   const initial = initialConfig ?? defaultConfig;
   const [config, setConfig] = useState<ChatConfig>(initial);
   const [globalSettings] = useState<GlobalSettings>(
-    initialGlobalSettings ?? DEFAULT_SETTINGS
+    initialGlobalSettings ?? DEFAULT_SETTINGS,
   );
   const [userSettings, setUserSettings] = useState<UserSettings>({
     fontFamily: initial.theme.fontFamily,
@@ -111,9 +106,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       sans: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
       serif: "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif",
       mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-      pretendard: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      pretendard:
+        "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
     };
-    root.style.setProperty("--font-family", fontFamilyMap[userSettings.fontFamily]);
+    root.style.setProperty(
+      "--font-family",
+      fontFamilyMap[userSettings.fontFamily],
+    );
 
     // Apply font size
     const fontSizeMap = {
@@ -121,7 +120,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       medium: "16px",
       large: "18px",
     };
-    root.style.setProperty("--base-font-size", fontSizeMap[userSettings.fontSize]);
+    root.style.setProperty(
+      "--base-font-size",
+      fontSizeMap[userSettings.fontSize],
+    );
 
     // Apply color scheme
     if (userSettings.colorScheme === "auto") {
@@ -156,7 +158,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
   return (
     <SettingsContext.Provider
-      value={{ config, userSettings, updateUserSettings, resetUserSettings, globalSettings }}
+      value={{
+        config,
+        userSettings,
+        updateUserSettings,
+        resetUserSettings,
+        globalSettings,
+      }}
     >
       {children}
     </SettingsContext.Provider>

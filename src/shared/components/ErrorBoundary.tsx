@@ -49,12 +49,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
+          <AlertCircle className="text-destructive mb-4 h-12 w-12" />
+          <h2 className="mb-2 text-lg font-semibold">Something went wrong</h2>
           <p className="text-muted-foreground mb-4 max-w-md">
             {this.state.error?.message || "An unexpected error occurred"}
           </p>
-          <Button onClick={this.handleRetry} variant="outline">
+          <Button
+            onClick={this.handleRetry}
+            variant="outline"
+          >
             Try again
           </Button>
         </div>

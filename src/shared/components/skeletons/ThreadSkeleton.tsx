@@ -18,7 +18,7 @@ export function ThreadSkeleton({
   className,
 }: ThreadSkeletonProps) {
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex h-full flex-col", className)}>
       {/* Messages area */}
       <div className="flex-1 overflow-hidden">
         <div className="flex flex-col gap-4 p-4">
@@ -33,8 +33,8 @@ export function ThreadSkeleton({
 
       {/* Input area skeleton */}
       <div className="border-t p-4">
-        <div className="flex gap-2 items-center">
-          <Skeleton className="flex-1 h-10 rounded-lg" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-10 flex-1 rounded-lg" />
           <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
       </div>

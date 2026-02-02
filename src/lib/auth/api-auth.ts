@@ -33,7 +33,7 @@ export interface AuthResult {
  * const { user, authType } = authResult;
  */
 export async function getAuthFromRequest(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<AuthResult | null> {
   // 1. Check for Bearer token
   const authHeader = request.headers.get("authorization");
@@ -119,7 +119,7 @@ export async function requireAdmin(request: NextRequest): Promise<AuthResult> {
  * Require super_admin role for an API route.
  */
 export async function requireSuperAdmin(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<AuthResult> {
   const result = await requireAuth(request);
   if (result.user.role !== "super_admin") {
@@ -134,7 +134,7 @@ export async function requireSuperAdmin(
 export class AuthError extends Error {
   constructor(
     message: string,
-    public statusCode: number = 401
+    public statusCode: number = 401,
   ) {
     super(message);
     this.name = "AuthError";

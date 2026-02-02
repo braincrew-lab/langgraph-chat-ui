@@ -7,18 +7,20 @@ const inputVariants = cva(
   {
     variants: {
       size: {
-        default: "h-9 rounded-md px-3 py-1 transition-[color,box-shadow] focus:ring-1 focus:ring-ring",
+        default:
+          "h-9 rounded-md px-3 py-1 transition-[color,box-shadow] focus:ring-1 focus:ring-ring",
         lg: "h-11 rounded-xl px-4 py-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
       },
     },
     defaultVariants: {
       size: "default",
     },
-  }
+  },
 );
 
 export interface InputProps
-  extends Omit<React.ComponentProps<"input">, "size">,
+  extends
+    Omit<React.ComponentProps<"input">, "size">,
     VariantProps<typeof inputVariants> {}
 
 function Input({ className, type, size, ...props }: InputProps) {

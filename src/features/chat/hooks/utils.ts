@@ -89,7 +89,10 @@ export function parseStatus(s: unknown): TodoItem["status"] {
 
 export function safeMapToTodoItems(arr: unknown[]): TodoItem[] {
   return arr
-    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+    .filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === "object",
+    )
     .map((item, idx) => ({
       id: `todo-${idx}`,
       content: String(item.content ?? item.text ?? item.title ?? ""),
@@ -110,7 +113,7 @@ export function getTextFromContent(content: string | unknown[]): string {
         c !== null &&
         "type" in c &&
         (c as { type: string }).type === "text" &&
-        "text" in c
+        "text" in c,
     )
     .map((c) => c.text)
     .join(" ");
@@ -123,7 +126,7 @@ export function getTextFromContent(content: string | unknown[]): string {
 export function parseTaskArgsAsTodo(
   args: unknown,
   index: number,
-  nodeName?: string
+  nodeName?: string,
 ): TodoItem | null {
   if (!args || typeof args !== "object") return null;
   let o = args as Record<string, unknown>;
@@ -140,7 +143,9 @@ export function parseTaskArgsAsTodo(
           id: `task-${index}`,
           content: descMatch[1],
           status: "in_progress",
-          activeForm: subagentMatch ? `${subagentMatch[1]} running` : "Task running",
+          activeForm: subagentMatch
+            ? `${subagentMatch[1]} running`
+            : "Task running",
           nodeName,
           subagentType: subagentMatch ? subagentMatch[1] : undefined,
         };
@@ -152,7 +157,8 @@ export function parseTaskArgsAsTodo(
   if (typeof description !== "string" || description.length === 0) return null;
 
   const subagentType = o.subagent_type || o.subagentType || o.type;
-  const subagentTypeStr = typeof subagentType === "string" ? subagentType : undefined;
+  const subagentTypeStr =
+    typeof subagentType === "string" ? subagentType : undefined;
 
   return {
     id: `task-${index}`,
@@ -194,8 +200,18 @@ export function extractTodoWriteItems(msg: LangGraphMessage): TodoItem[] {
 
   if (msg.type === "ai" && Array.isArray(msg.content)) {
     const toolUseContents = msg.content.filter(
-      (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
-        typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
+      (
+        c,
+      ): c is {
+        type: "tool_use";
+        id: string;
+        name?: string;
+        input?: unknown;
+      } =>
+        typeof c === "object" &&
+        c !== null &&
+        "type" in c &&
+        (c as { type: string }).type === "tool_use",
     );
 
     for (const tc of toolUseContents) {
@@ -230,7 +246,7 @@ interface TaskCallInfo {
 export function extractTaskItemsWithIds(
   msg: LangGraphMessage,
   startIndex: number,
-  globalSeenIds?: Set<string>
+  globalSeenIds?: Set<string>,
 ): TaskCallInfo[] {
   const items: TaskCallInfo[] = [];
   const seenToolCallIds = new Set<string>();
@@ -263,12 +279,23 @@ export function extractTaskItemsWithIds(
 
   if (msg.type === "ai" && Array.isArray(msg.content)) {
     const toolUseContents = msg.content.filter(
-      (c): c is { type: "tool_use"; id: string; name?: string; input?: unknown } =>
-        typeof c === "object" && c !== null && "type" in c && (c as { type: string }).type === "tool_use"
+      (
+        c,
+      ): c is {
+        type: "tool_use";
+        id: string;
+        name?: string;
+        input?: unknown;
+      } =>
+        typeof c === "object" &&
+        c !== null &&
+        "type" in c &&
+        (c as { type: string }).type === "tool_use",
     );
 
     for (const tc of toolUseContents) {
-      if (tc.id && (seenToolCallIds.has(tc.id) || globalSeenIds?.has(tc.id))) continue;
+      if (tc.id && (seenToolCallIds.has(tc.id) || globalSeenIds?.has(tc.id)))
+        continue;
 
       if (isTaskToolName(tc.name)) {
         let args: unknown = tc.input;

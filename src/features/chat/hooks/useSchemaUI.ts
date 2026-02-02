@@ -79,7 +79,7 @@ export function useSchemaUI(): UseSchemaUIReturn {
     for (const field of allFields) {
       const defaultValue = getDefaultValue(
         field.schema,
-        parsedSchema.rawSchema
+        parsedSchema.rawSchema,
       );
       if (defaultValue !== undefined) {
         initialState[field.name] = defaultValue;
@@ -90,15 +90,12 @@ export function useSchemaUI(): UseSchemaUIReturn {
   }, [parsedSchema]);
 
   // Set a single field value
-  const setFieldValue = useCallback(
-    (fieldName: string, value: FieldValue) => {
-      setFormState((prev) => ({
-        ...prev,
-        [fieldName]: value,
-      }));
-    },
-    []
-  );
+  const setFieldValue = useCallback((fieldName: string, value: FieldValue) => {
+    setFormState((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  }, []);
 
   // Set multiple field values at once
   const setFieldValues = useCallback((values: FormState) => {
@@ -113,7 +110,7 @@ export function useSchemaUI(): UseSchemaUIReturn {
     return buildSubmitPayload(
       formState,
       parsedSchema.requiredFields,
-      parsedSchema.optionalFields
+      parsedSchema.optionalFields,
     );
   }, [formState, parsedSchema.requiredFields, parsedSchema.optionalFields]);
 
@@ -133,7 +130,7 @@ export function useSchemaUI(): UseSchemaUIReturn {
     for (const field of allFields) {
       const defaultValue = getDefaultValue(
         field.schema,
-        parsedSchema.rawSchema
+        parsedSchema.rawSchema,
       );
       if (defaultValue !== undefined) {
         initialState[field.name] = defaultValue;

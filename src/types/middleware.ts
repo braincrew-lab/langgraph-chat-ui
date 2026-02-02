@@ -19,7 +19,7 @@ export interface MiddlewareTrace {
 
 // 이벤트를 미들웨어별로 그룹화
 export function groupTracesByMiddleware(
-  events: MiddlewareTraceEvent[]
+  events: MiddlewareTraceEvent[],
 ): MiddlewareTrace[] {
   const grouped = new Map<string, MiddlewareTrace>();
 
@@ -35,7 +35,7 @@ export function groupTracesByMiddleware(
 
     // 같은 hook의 기존 항목 찾기
     const existingHookIndex = trace.hooks.findIndex(
-      (h) => h.hook === event.hook
+      (h) => h.hook === event.hook,
     );
 
     if (existingHookIndex >= 0) {

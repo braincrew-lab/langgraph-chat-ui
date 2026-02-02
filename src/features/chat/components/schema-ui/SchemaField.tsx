@@ -37,7 +37,7 @@ import {
 function isFileField(
   fieldName: string,
   fieldType: SchemaFieldType,
-  itemType?: SchemaFieldType
+  itemType?: SchemaFieldType,
 ): boolean {
   const nameContainsFile = fieldName.toLowerCase().includes("file");
   if (!nameContainsFile) return false;
@@ -78,8 +78,11 @@ export function SchemaField({
   const description = getFieldDescription(field);
 
   // Check for array item type (for file array detection)
-  const itemSchema = fieldType === "array" ? getArrayItemSchema(field, rootSchema) : null;
-  const itemType = itemSchema ? getFieldType(itemSchema, rootSchema) : undefined;
+  const itemSchema =
+    fieldType === "array" ? getArrayItemSchema(field, rootSchema) : null;
+  const itemType = itemSchema
+    ? getFieldType(itemSchema, rootSchema)
+    : undefined;
 
   // Check if this is a file field
   const isFile = isFileField(field.name, fieldType, itemType);

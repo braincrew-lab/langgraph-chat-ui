@@ -22,7 +22,7 @@ export function FileField({
         onChange(file.name);
       }
     },
-    [onChange]
+    [onChange],
   );
 
   const handleClear = useCallback(() => {

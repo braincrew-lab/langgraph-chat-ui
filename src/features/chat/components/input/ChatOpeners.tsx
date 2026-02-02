@@ -9,7 +9,11 @@ interface ChatOpenersProps {
   disabled: boolean;
 }
 
-export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpenersProps) {
+export function ChatOpeners({
+  chatOpeners,
+  onSelectOpener,
+  disabled,
+}: ChatOpenersProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 4;
   const totalPages = Math.ceil(chatOpeners.length / itemsPerPage);
@@ -37,7 +41,7 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
   };
 
   return (
-    <div className="flex flex-col gap-3 w-[calc(100%_-_12rem)]">
+    <div className="flex w-[calc(100%_-_12rem)] flex-col gap-3">
       <div className="relative">
         <AnimatePresence mode="wait">
           <motion.div
@@ -46,7 +50,7 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             {currentItems.map((opener, index) => (
               <button
@@ -54,11 +58,12 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
                 onClick={openerButtonHandler(opener)}
                 disabled={disabled}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl border border-border bg-card hover:bg-accent hover:border-primary transition-all duration-200 p-4 text-left shadow-sm hover:shadow-md min-h-[5rem] flex items-center cursor-pointer",
-                  disabled && "opacity-50 cursor-not-allowed hover:bg-card hover:border-border"
+                  "group border-border bg-card hover:bg-accent hover:border-primary relative flex min-h-[5rem] cursor-pointer items-center overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-all duration-200 hover:shadow-md",
+                  disabled &&
+                    "hover:bg-card hover:border-border cursor-not-allowed opacity-50",
                 )}
               >
-                <p className="text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors break-keep">
+                <p className="text-foreground group-hover:text-primary line-clamp-2 text-sm break-keep transition-colors">
                   {opener}
                 </p>
               </button>
@@ -71,7 +76,7 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={goToPrevPage}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card hover:bg-accent transition-colors"
+            className="border-border bg-card hover:bg-accent flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -85,8 +90,8 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
                 className={cn(
                   "h-2 rounded-full transition-all",
                   index === currentPage
-                    ? "w-6 bg-primary"
-                    : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    ? "bg-primary w-6"
+                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2",
                 )}
                 aria-label={`Go to page ${index + 1}`}
               />
@@ -95,7 +100,7 @@ export function ChatOpeners({ chatOpeners, onSelectOpener, disabled }: ChatOpene
 
           <button
             onClick={goToNextPage}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card hover:bg-accent transition-colors"
+            className="border-border bg-card hover:bg-accent flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />

@@ -7,7 +7,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { LoaderCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react";
+import {
+  LoaderCircle,
+  CheckCircle2,
+  Mail,
+  Lock,
+  ArrowRight,
+} from "lucide-react";
 import { useAuthContext } from "../AuthLayoutClient";
 
 const containerVariants = {
@@ -26,7 +32,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const }
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
 
@@ -84,7 +90,10 @@ function LoginForm() {
       className="space-y-6"
     >
       {/* Branding */}
-      <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col items-center gap-4 pb-2"
+      >
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -99,11 +108,11 @@ function LoginForm() {
             className="flex-shrink-0"
           />
         </motion.div>
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
             {branding.appName}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             계정에 로그인하여 시작하세요
           </p>
         </div>
@@ -114,23 +123,30 @@ function LoginForm() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-2 p-3 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/50 rounded-xl"
+          className="flex items-center gap-2 rounded-xl bg-green-50 p-3 text-sm text-green-700 dark:bg-green-950/50 dark:text-green-400"
           role="status"
           aria-live="polite"
         >
-          <CheckCircle2 className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <CheckCircle2
+            className="h-4 w-4 flex-shrink-0"
+            aria-hidden="true"
+          />
           <span>회원가입이 완료되었습니다. 로그인해 주세요.</span>
         </motion.div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        noValidate
+      >
         {/* Error message */}
         {error && (
           <motion.div
             ref={errorRef}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-xl"
+            className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
             role="alert"
             aria-live="assertive"
             tabIndex={-1}
@@ -139,9 +155,18 @@ function LoginForm() {
           </motion.div>
         )}
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
-            <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="email"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Mail
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             이메일
           </label>
           <Input
@@ -160,9 +185,18 @@ function LoginForm() {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
-            <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="password"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Lock
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             비밀번호
           </label>
           <Input
@@ -182,18 +216,24 @@ function LoginForm() {
         <motion.div variants={itemVariants}>
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             disabled={isLoading}
           >
             {isLoading ? (
               <>
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <LoaderCircle
+                  className="mr-2 h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                />
                 <span>로그인 중…</span>
               </>
             ) : (
               <>
                 <span>로그인</span>
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ArrowRight
+                  className="ml-2 h-4 w-4"
+                  aria-hidden="true"
+                />
               </>
             )}
           </Button>
@@ -202,20 +242,26 @@ function LoginForm() {
 
       {allowRegistration && (
         <>
-          <motion.div variants={itemVariants} className="relative">
+          <motion.div
+            variants={itemVariants}
+            className="relative"
+          >
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
+              <span className="border-border w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-3 text-muted-foreground">또는</span>
+              <span className="bg-card text-muted-foreground px-3">또는</span>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="text-center text-sm">
+          <motion.div
+            variants={itemVariants}
+            className="text-center text-sm"
+          >
             <span className="text-muted-foreground">계정이 없으신가요? </span>
             <Link
               href="/register"
-              className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+              className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               회원가입
             </Link>
@@ -230,16 +276,16 @@ function LoginFormFallback() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4 pb-2">
-        <div className="h-14 w-14 rounded-full bg-muted animate-pulse" />
-        <div className="text-center space-y-2">
-          <div className="h-7 w-40 bg-muted rounded animate-pulse mx-auto" />
-          <div className="h-4 w-48 bg-muted rounded animate-pulse mx-auto" />
+        <div className="bg-muted h-14 w-14 animate-pulse rounded-full" />
+        <div className="space-y-2 text-center">
+          <div className="bg-muted mx-auto h-7 w-40 animate-pulse rounded" />
+          <div className="bg-muted mx-auto h-4 w-48 animate-pulse rounded" />
         </div>
       </div>
       <div className="space-y-4">
-        <div className="h-11 bg-muted rounded-xl animate-pulse" />
-        <div className="h-11 bg-muted rounded-xl animate-pulse" />
-        <div className="h-11 bg-muted rounded-xl animate-pulse" />
+        <div className="bg-muted h-11 animate-pulse rounded-xl" />
+        <div className="bg-muted h-11 animate-pulse rounded-xl" />
+        <div className="bg-muted h-11 animate-pulse rounded-xl" />
       </div>
     </div>
   );

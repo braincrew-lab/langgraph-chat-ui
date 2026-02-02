@@ -17,7 +17,7 @@ import type {
  */
 export function resolveRef(
   schema: JSONSchemaProperty,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): JSONSchemaProperty {
   if (!schema.$ref) {
     return schema;
@@ -54,7 +54,7 @@ export function resolveRef(
  */
 export function resolveCompositeSchema(
   schema: JSONSchemaProperty,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): JSONSchemaProperty {
   // First resolve any $ref
   let resolved = resolveRef(schema, rootSchema);
@@ -139,7 +139,7 @@ export function hasMessagesField(inputSchema: JSONSchema | null): boolean {
  */
 export function getFieldType(
   schema: JSONSchemaProperty,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): SchemaFieldType {
   const resolved = resolveCompositeSchema(schema, rootSchema);
 
@@ -176,7 +176,7 @@ export function getFieldType(
  */
 export function getDefaultValue(
   schema: JSONSchemaProperty,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): FieldValue {
   const resolved = resolveCompositeSchema(schema, rootSchema);
 
@@ -211,7 +211,7 @@ export function getDefaultValue(
  * Parse input schema and categorize fields into required and optional
  */
 export function parseInputSchema(
-  inputSchema: JSONSchema | null
+  inputSchema: JSONSchema | null,
 ): ParsedInputSchema {
   const uiMode = detectUIMode(inputSchema);
   const hasMessages = hasMessagesField(inputSchema);
@@ -289,7 +289,7 @@ export function formatFieldName(name: string): string {
  * Get the description for a field
  */
 export function getFieldDescription(
-  field: SchemaFieldConfig
+  field: SchemaFieldConfig,
 ): string | undefined {
   return field.resolvedSchema.description;
 }
@@ -318,7 +318,7 @@ export function isFieldEmpty(value: FieldValue): boolean {
  */
 export function validateFormState(
   formState: Record<string, FieldValue>,
-  requiredFields: SchemaFieldConfig[]
+  requiredFields: SchemaFieldConfig[],
 ): boolean {
   for (const field of requiredFields) {
     const value = formState[field.name];
@@ -335,7 +335,7 @@ export function validateFormState(
 export function buildSubmitPayload(
   formState: Record<string, FieldValue>,
   requiredFields: SchemaFieldConfig[],
-  optionalFields: SchemaFieldConfig[]
+  optionalFields: SchemaFieldConfig[],
 ): Record<string, FieldValue> {
   const payload: Record<string, FieldValue> = {};
 
@@ -363,7 +363,7 @@ export function buildSubmitPayload(
  */
 export function getArrayItemSchema(
   field: SchemaFieldConfig,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): JSONSchemaProperty | null {
   const resolved = resolveCompositeSchema(field.schema, rootSchema);
   if (resolved.items) {

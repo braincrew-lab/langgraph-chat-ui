@@ -35,10 +35,13 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
   }, [isMenuOpen]);
 
   return (
-    <div ref={menuRef} className="relative shrink-0 ml-2">
+    <div
+      ref={menuRef}
+      className="relative ml-2 shrink-0"
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
-          className={`flex ${BUTTON_SIZE_SM} items-center justify-center rounded-md hover:bg-accent/50 transition-opacity ${
+          className={`flex ${BUTTON_SIZE_SM} hover:bg-accent/50 items-center justify-center rounded-md transition-opacity ${
             isMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           }`}
           onClick={(e) => {
@@ -49,7 +52,10 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         {isMenuOpen && (
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent
+            align="end"
+            className="w-48"
+          >
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();

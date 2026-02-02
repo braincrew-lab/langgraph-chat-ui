@@ -28,7 +28,9 @@ export interface SubagentMessageContext {
 /**
  * 메시지 배열에서 서브에이전트 컨텍스트를 빌드
  */
-export function buildSubagentContext(messages: Message[]): SubagentMessageContext {
+export function buildSubagentContext(
+  messages: Message[],
+): SubagentMessageContext {
   const subagentMessageIds = new Set<string>();
   const allTaskCallIds = new Set<string>();
   const activeTaskCallIds = new Set<string>();
@@ -48,10 +50,12 @@ export function buildSubagentContext(messages: Message[]): SubagentMessageContex
     const msg = messages[i];
 
     if (msg.type === "ai") {
-      const aiMsg = msg as { tool_calls?: Array<{ id?: string; name?: string }> };
-      const taskCalls = aiMsg.tool_calls?.filter(
-        tc => tc.name?.toLowerCase() === "task"
-      ) || [];
+      const aiMsg = msg as {
+        tool_calls?: Array<{ id?: string; name?: string }>;
+      };
+      const taskCalls =
+        aiMsg.tool_calls?.filter((tc) => tc.name?.toLowerCase() === "task") ||
+        [];
       for (const tc of taskCalls) {
         if (tc.id) {
           taskCallIndices.set(tc.id, i);
@@ -78,9 +82,13 @@ export function buildSubagentContext(messages: Message[]): SubagentMessageContex
     for (let i = callIndex + 1; i < resultIndex; i++) {
       const msg = messages[i];
       if (msg.type === "ai" && msg.id) {
-        const aiMsg = msg as { tool_calls?: Array<{ id?: string; name?: string }> };
+        const aiMsg = msg as {
+          tool_calls?: Array<{ id?: string; name?: string }>;
+        };
         const hasMainAgentCalls = aiMsg.tool_calls?.some(
-          tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
+          (tc) =>
+            tc.name?.toLowerCase() === "task" ||
+            tc.name?.toLowerCase().includes("todo"),
         );
         if (!hasMainAgentCalls) {
           subagentMessageIds.add(msg.id);
@@ -95,9 +103,13 @@ export function buildSubagentContext(messages: Message[]): SubagentMessageContex
     for (let i = callIndex + 1; i < messages.length; i++) {
       const msg = messages[i];
       if (msg.type === "ai" && msg.id) {
-        const aiMsg = msg as { tool_calls?: Array<{ id?: string; name?: string }> };
+        const aiMsg = msg as {
+          tool_calls?: Array<{ id?: string; name?: string }>;
+        };
         const hasMainAgentCalls = aiMsg.tool_calls?.some(
-          tc => tc.name?.toLowerCase() === "task" || tc.name?.toLowerCase().includes("todo")
+          (tc) =>
+            tc.name?.toLowerCase() === "task" ||
+            tc.name?.toLowerCase().includes("todo"),
         );
         if (!hasMainAgentCalls) {
           subagentMessageIds.add(msg.id);
@@ -127,23 +139,25 @@ export function buildSubagentContext(messages: Message[]): SubagentMessageContex
 export function isSubagentMessage(
   message: Message,
   context?: SubagentMessageContext,
-  messages?: Message[]
+  messages?: Message[],
 ): boolean {
   if (message.type === "tool") {
     return message.name?.toLowerCase() === "task";
   }
 
   if (message.type === "ai") {
-    const aiMsg = message as { tool_calls?: Array<{ id?: string; name?: string }> };
+    const aiMsg = message as {
+      tool_calls?: Array<{ id?: string; name?: string }>;
+    };
 
     // 메인 에이전트 표시자: Task 또는 Todo 호출이 있으면 메인 에이전트
     const hasTaskCall = aiMsg.tool_calls?.some(
-      tc => tc.name?.toLowerCase() === "task"
+      (tc) => tc.name?.toLowerCase() === "task",
     );
     if (hasTaskCall) return false;
 
-    const hasTodoCall = aiMsg.tool_calls?.some(
-      tc => tc.name?.toLowerCase().includes("todo")
+    const hasTodoCall = aiMsg.tool_calls?.some((tc) =>
+      tc.name?.toLowerCase().includes("todo"),
     );
     if (hasTodoCall) return false;
 
@@ -153,16 +167,26 @@ export function isSubagentMessage(
     }
 
     // 실시간 위치 기반 감지: messages 배열에서 활성 Task 이후인지 확인
-    if (messages && context && context.activeTaskCallIds.size > 0 && message.id) {
-      const msgIndex = messages.findIndex(m => m.id === message.id);
+    if (
+      messages &&
+      context &&
+      context.activeTaskCallIds.size > 0 &&
+      message.id
+    ) {
+      const msgIndex = messages.findIndex((m) => m.id === message.id);
       if (msgIndex >= 0) {
         // 이 메시지 이전에 활성 Task 호출이 있는지 확인
         for (let i = 0; i < msgIndex; i++) {
           const prevMsg = messages[i];
           if (prevMsg.type === "ai") {
-            const prevAiMsg = prevMsg as { tool_calls?: Array<{ id?: string; name?: string }> };
+            const prevAiMsg = prevMsg as {
+              tool_calls?: Array<{ id?: string; name?: string }>;
+            };
             const hasActiveTask = prevAiMsg.tool_calls?.some(
-              tc => tc.name?.toLowerCase() === "task" && tc.id && context.activeTaskCallIds.has(tc.id)
+              (tc) =>
+                tc.name?.toLowerCase() === "task" &&
+                tc.id &&
+                context.activeTaskCallIds.has(tc.id),
             );
             if (hasActiveTask) {
               // 활성 Task 이후에 있고, 메인 에이전트 도구가 없으면 서브에이전트
@@ -174,7 +198,11 @@ export function isSubagentMessage(
     }
 
     // 활성 Task가 있고 tool_calls가 없으면 서브에이전트 출력
-    if (context && context.activeTaskCallIds.size > 0 && !aiMsg.tool_calls?.length) {
+    if (
+      context &&
+      context.activeTaskCallIds.size > 0 &&
+      !aiMsg.tool_calls?.length
+    ) {
       return true;
     }
 
@@ -193,11 +221,11 @@ export function isSubagentMessage(
  */
 export function filterLastMainAgentMessage(
   messages: Message[],
-  context?: SubagentMessageContext
+  context?: SubagentMessageContext,
 ): Message[] {
   // AI 메시지 중 메인 에이전트 메시지만 필터링
   const mainAgentAiMessages = messages.filter(
-    (m) => m.type === "ai" && !isSubagentMessage(m, context)
+    (m) => m.type === "ai" && !isSubagentMessage(m, context),
   );
 
   // 마지막 메인 에이전트 AI 메시지 ID 찾기
@@ -229,7 +257,7 @@ export function shouldRenderMessage(
   compactView: boolean,
   isLastMainAgentMessage?: boolean,
   subagentContext?: SubagentMessageContext,
-  messages?: Message[]
+  messages?: Message[],
 ): boolean {
   // 컴팩트 뷰가 아니면 모든 메시지 표시
   if (!compactView) return true;
@@ -272,19 +300,24 @@ export interface FilterMessagesOptions {
  */
 export function filterMessages(
   messages: Message[],
-  options: FilterMessagesOptions = {}
+  options: FilterMessagesOptions = {},
 ): Message[] {
-  const { type, todoLifecycle = "inactive", compactView = false, subagentContext } = options;
+  const {
+    type,
+    todoLifecycle = "inactive",
+    compactView = false,
+    subagentContext,
+  } = options;
 
   const filtered = messages.filter(
-    (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX)
+    (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX),
   );
 
   const context = subagentContext ?? buildSubagentContext(filtered);
 
   // 마지막 메인 에이전트 AI 메시지 ID 계산 (messages 배열 전달로 실시간 위치 기반 감지)
   const mainAgentAiMessages = filtered.filter(
-    (m) => m.type === "ai" && !isSubagentMessage(m, context, filtered)
+    (m) => m.type === "ai" && !isSubagentMessage(m, context, filtered),
   );
   const lastMainAgentMessageId =
     mainAgentAiMessages.length > 0
@@ -300,7 +333,7 @@ export function filterMessages(
         compactView,
         m.id === lastMainAgentMessageId,
         context,
-        filtered  // messages 배열 전달
-      )
+        filtered, // messages 배열 전달
+      ),
     );
 }

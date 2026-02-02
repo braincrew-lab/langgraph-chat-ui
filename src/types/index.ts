@@ -6,10 +6,7 @@
  */
 
 // LangSmith API types
-export type {
-  LangSmithRun,
-  LangSmithRunsResponse,
-} from "./langsmith";
+export type { LangSmithRun, LangSmithRunsResponse } from "./langsmith";
 
 export {
   buildTaskHierarchy,
@@ -46,10 +43,7 @@ export type {
 export { buildTimeline } from "./timeline";
 
 // Middleware types
-export type {
-  MiddlewareTraceEvent,
-  MiddlewareTrace,
-} from "./middleware";
+export type { MiddlewareTraceEvent, MiddlewareTrace } from "./middleware";
 
 export { groupTracesByMiddleware } from "./middleware";
 

@@ -1,4 +1,9 @@
-import type { SchemaFieldConfig, FieldValue, JSONSchema, SchemaFieldType } from "@/types/schema-ui";
+import type {
+  SchemaFieldConfig,
+  FieldValue,
+  JSONSchema,
+  SchemaFieldType,
+} from "@/types/schema-ui";
 
 export interface BaseFieldProps {
   field: SchemaFieldConfig;

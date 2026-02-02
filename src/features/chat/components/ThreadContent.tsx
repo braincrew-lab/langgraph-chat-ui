@@ -56,7 +56,10 @@ function StickyToBottomContent(props: {
       style={{ width: "100%", height: "100%" }}
       className={props.className}
     >
-      <div ref={context.contentRef} className={props.contentClassName}>
+      <div
+        ref={context.contentRef}
+        className={props.contentClassName}
+      >
         {props.content}
       </div>
       {props.footer}
@@ -85,7 +88,8 @@ function ScrollToBottom(props: { className?: string }) {
 // ============================================
 
 export function ThreadContent() {
-  const { config, userSettings, updateUserSettings, globalSettings } = useSettings();
+  const { config, userSettings, updateUserSettings, globalSettings } =
+    useSettings();
   const [threadId] = useQueryState("threadId");
 
   // Tracing panel state
@@ -95,16 +99,16 @@ export function ThreadContent() {
       const newValue = typeof value === "function" ? value(sidebarOpen) : value;
       updateUserSettings({ tracingPanelOpen: newValue });
     },
-    [sidebarOpen, updateUserSettings]
+    [sidebarOpen, updateUserSettings],
   );
 
   const [hideToolCalls, setHideToolCalls] = useQueryState(
     "hideToolCalls",
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean.withDefault(false),
   );
   const [compactView, setCompactView] = useQueryState(
     "compactView",
-    parseAsBoolean.withDefault(true)
+    parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
   const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
@@ -216,7 +220,7 @@ export function ThreadContent() {
 
   const assistantSelectValue = useMemo(
     () => currentAssistantId?.trim() || "none",
-    [currentAssistantId]
+    [currentAssistantId],
   );
 
   const isAssistantSelected = Boolean(currentAssistantId?.trim());
@@ -242,7 +246,7 @@ export function ThreadContent() {
       });
       window.location.reload();
     },
-    [currentAssistantId]
+    [currentAssistantId],
   );
 
   useEffect(() => {
@@ -290,7 +294,10 @@ export function ThreadContent() {
         toast.error("그래프를 먼저 선택해주세요.");
         return;
       }
-      if ((input.trim().length === 0 && contentBlocks.length === 0) || isLoading) {
+      if (
+        (input.trim().length === 0 && contentBlocks.length === 0) ||
+        isLoading
+      ) {
         return;
       }
       setFirstTokenReceived(false);
@@ -316,9 +323,13 @@ export function ThreadContent() {
             ...STREAM_OPTIONS,
             optimisticValues: (prev) => ({
               ...prev,
-              messages: [...(prev.messages ?? []), ...toolMessages, newHumanMessage],
+              messages: [
+                ...(prev.messages ?? []),
+                ...toolMessages,
+                newHumanMessage,
+              ],
             }),
-          }
+          },
         );
       } else {
         stream.submit(schemaPayload, STREAM_OPTIONS);
@@ -327,7 +338,16 @@ export function ThreadContent() {
       setInput("");
       setContentBlocks([]);
     },
-    [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks, getSubmitPayload, parsedSchema.hasMessages]
+    [
+      isAssistantSelected,
+      input,
+      contentBlocks,
+      isLoading,
+      stream,
+      setContentBlocks,
+      getSubmitPayload,
+      parsedSchema.hasMessages,
+    ],
   );
 
   const handleRegenerate = useCallback(
@@ -339,7 +359,7 @@ export function ThreadContent() {
         ...STREAM_OPTIONS,
       });
     },
-    [stream]
+    [stream],
   );
 
   const handleFormSubmit = useCallback(() => {
@@ -349,7 +369,10 @@ export function ThreadContent() {
     }
 
     const payload = getSubmitPayload();
-    const allFields = [...parsedSchema.requiredFields, ...parsedSchema.optionalFields];
+    const allFields = [
+      ...parsedSchema.requiredFields,
+      ...parsedSchema.optionalFields,
+    ];
 
     setFormSubmissions((prev) => [
       ...prev,
@@ -361,7 +384,8 @@ export function ThreadContent() {
     resetForm();
   }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
 
-  const chatStarted = !!threadId || !!messages.length || formSubmissions.length > 0;
+  const chatStarted =
+    !!threadId || !!messages.length || formSubmissions.length > 0;
 
   return (
     <ThreadErrorBoundary>
@@ -369,29 +393,37 @@ export function ThreadContent() {
         <div
           className="grid w-full transition-all duration-500"
           style={{
-            gridTemplateColumns: sidebarOpen ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px` : "1fr 0fr",
+            gridTemplateColumns: sidebarOpen
+              ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px`
+              : "1fr 0fr",
           }}
         >
           <div
             className={cn(
               "relative flex min-w-0 flex-1 flex-col overflow-hidden transition-all",
               !chatStarted && "grid-rows-[1fr]",
-              isLargeScreen ? "duration-300" : "duration-0"
+              isLargeScreen ? "duration-300" : "duration-0",
             )}
           >
-            <StickToBottom resize="smooth" className="relative flex-1 overflow-hidden">
+            <StickToBottom
+              resize="smooth"
+              className="relative flex-1 overflow-hidden"
+            >
               <StickyToBottomContent
                 className={cn(
-                  "absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
-                  !chatStarted && "mt-0 flex flex-col items-stretch justify-center",
+                  "[&::-webkit-scrollbar-thumb]:bg-border absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
+                  !chatStarted &&
+                    "mt-0 flex flex-col items-stretch justify-center",
                   chatStarted && "grid grid-rows-[1fr_auto]",
-                  userSettings.chatWidth === "default" ? "px-4" : "px-2"
+                  userSettings.chatWidth === "default" ? "px-4" : "px-2",
                 )}
                 contentClassName={cn(
                   messages.length > 0 || formSubmissions.length > 0
                     ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full"
                     : "",
-                  userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
+                  userSettings.chatWidth === "default"
+                    ? "max-w-3xl"
+                    : "max-w-5xl",
                 )}
                 content={
                   <MessageList
@@ -421,8 +453,10 @@ export function ThreadContent() {
                     {!chatStarted && (
                       <div
                         className={cn(
-                          "flex flex-col items-center gap-6 w-full mx-auto",
-                          userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
+                          "mx-auto flex w-full flex-col items-center gap-6",
+                          userSettings.chatWidth === "default"
+                            ? "max-w-3xl"
+                            : "max-w-5xl",
                         )}
                       >
                         <div className="flex flex-col items-center gap-3">
@@ -447,7 +481,7 @@ export function ThreadContent() {
                           {config.branding.fullDescription && (
                             <button
                               onClick={() => setFullDescriptionOpen(true)}
-                              className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                              className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
                             >
                               <BookOpen className="h-4 w-4" />
                               <span>자세한 설명 보기</span>
@@ -455,7 +489,7 @@ export function ThreadContent() {
                           )}
                         </div>
                         {schemaUI.isLoading && (
-                          <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+                          <LoaderCircle className="text-muted-foreground h-6 w-6 animate-spin" />
                         )}
                         {config.branding.chatOpeners &&
                           config.branding.chatOpeners.length > 0 &&
@@ -481,7 +515,9 @@ export function ThreadContent() {
                     <div
                       className={cn(
                         "relative z-10 mx-auto mb-8 w-full",
-                        userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
+                        userSettings.chatWidth === "default"
+                          ? "max-w-3xl"
+                          : "max-w-5xl",
                       )}
                     >
                       <UnifiedInputArea
@@ -503,7 +539,9 @@ export function ThreadContent() {
                         enableFileUpload={config.buttons.enableFileUpload}
                         placeholder={config.buttons.chatInputPlaceholder}
                         hideToolCalls={hideToolCalls ?? false}
-                        onHideToolCallsChange={(value) => setHideToolCalls(value)}
+                        onHideToolCallsChange={(value) =>
+                          setHideToolCalls(value)
+                        }
                         compactView={compactView ?? true}
                         onCompactViewChange={(value) => setCompactView(value)}
                         assistants={assistants}
@@ -512,8 +550,12 @@ export function ThreadContent() {
                         onAssistantChange={handleAssistantChange}
                         onRefreshAssistants={refetchAssistants}
                         isChatPage={!!threadId}
-                        enableGraphSelection={globalSettings["features.enableGraphSelection"]}
-                        enableAdvancedInput={globalSettings["features.enableAdvancedInput"]}
+                        enableGraphSelection={
+                          globalSettings["features.enableGraphSelection"]
+                        }
+                        enableAdvancedInput={
+                          globalSettings["features.enableAdvancedInput"]
+                        }
                       />
                     </div>
                   </div>

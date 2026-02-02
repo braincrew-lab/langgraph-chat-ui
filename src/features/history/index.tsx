@@ -41,12 +41,7 @@ export default function ThreadHistory({
         setThreads([]); // Set empty array on error to show clean empty state
       })
       .finally(() => setThreadsLoading(false));
-  }, [
-    finalAssistantId,
-    getThreads,
-    setThreads,
-    setThreadsLoading,
-  ]);
+  }, [finalAssistantId, getThreads, setThreads, setThreadsLoading]);
 
   const handleNewChat = () => {
     setThreadId(null);

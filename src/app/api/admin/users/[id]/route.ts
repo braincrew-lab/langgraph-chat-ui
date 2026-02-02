@@ -10,7 +10,7 @@ import type { UserRole } from "@/types/auth-mode";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -31,14 +31,14 @@ export async function GET(
     console.error("Error fetching user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -56,11 +56,15 @@ export async function PATCH(
       if (!hasPermission(session.user.role as UserRole, "super_admin")) {
         return NextResponse.json(
           { error: "Only super admins can change user roles" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
-      const result = await updateUserRole(id, role as UserRole, session.user.id);
+      const result = await updateUserRole(
+        id,
+        role as UserRole,
+        session.user.id,
+      );
 
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 400 });
@@ -73,14 +77,14 @@ export async function PATCH(
     console.error("Error updating user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -101,7 +105,7 @@ export async function DELETE(
     console.error("Error deleting user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

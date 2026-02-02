@@ -31,7 +31,9 @@ export interface UserListResult {
 /**
  * Get paginated list of users with filtering
  */
-export async function getUsers(params: UserListParams = {}): Promise<UserListResult> {
+export async function getUsers(
+  params: UserListParams = {},
+): Promise<UserListResult> {
   const {
     page = 1,
     pageSize = 20,
@@ -124,7 +126,7 @@ export async function getUserById(id: string) {
  */
 export async function approveUser(
   userId: string,
-  approvedById: string
+  approvedById: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -167,7 +169,7 @@ export async function approveUser(
 export async function suspendUser(
   userId: string,
   suspendedById: string,
-  reason?: string
+  reason?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -206,7 +208,7 @@ export async function suspendUser(
  */
 export async function reactivateUser(
   userId: string,
-  reactivatedById: string
+  reactivatedById: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -244,7 +246,7 @@ export async function reactivateUser(
 export async function updateUserRole(
   userId: string,
   newRole: UserRole,
-  updatedById: string
+  updatedById: string,
 ): Promise<{ success: boolean; error?: string }> {
   const [user, updater] = await Promise.all([
     prisma.user.findUnique({
@@ -301,7 +303,7 @@ export async function updateUserRole(
  */
 export async function deleteUser(
   userId: string,
-  deletedById: string
+  deletedById: string,
 ): Promise<{ success: boolean; error?: string }> {
   const [user, deleter] = await Promise.all([
     prisma.user.findUnique({

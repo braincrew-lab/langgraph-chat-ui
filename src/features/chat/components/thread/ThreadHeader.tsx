@@ -2,11 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
-import {
-  PanelRightOpen,
-  PanelRightClose,
-  PanelRight,
-} from "lucide-react";
+import { PanelRightOpen, PanelRightClose, PanelRight } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -42,19 +38,20 @@ export function ThreadHeader({
     return (
       <div className="absolute top-0 left-0 z-10 flex w-full items-center justify-between gap-3 p-4">
         <div>
-          {config.threads.showHistory && (!chatHistoryOpen || !isLargeScreen) && (
-            <Button
-              className="hover:bg-accent cursor-pointer"
-              variant="ghost"
-              onClick={() => setChatHistoryOpen((p) => !p)}
-            >
-              {chatHistoryOpen ? (
-                <PanelRightOpen className="size-5" />
-              ) : (
-                <PanelRightClose className="size-5" />
-              )}
-            </Button>
-          )}
+          {config.threads.showHistory &&
+            (!chatHistoryOpen || !isLargeScreen) && (
+              <Button
+                className="hover:bg-accent cursor-pointer"
+                variant="ghost"
+                onClick={() => setChatHistoryOpen((p) => !p)}
+              >
+                {chatHistoryOpen ? (
+                  <PanelRightOpen className="size-5" />
+                ) : (
+                  <PanelRightClose className="size-5" />
+                )}
+              </Button>
+            )}
         </div>
         <div className="flex items-center gap-2">
           <TooltipProvider>
@@ -64,16 +61,15 @@ export function ThreadHeader({
                   variant="ghost"
                   size="icon"
                   onClick={() => setSidebarOpen((prev) => !prev)}
-                  className={cn(
-                    "h-9 w-9",
-                    sidebarOpen && "bg-accent"
-                  )}
+                  className={cn("h-9 w-9", sidebarOpen && "bg-accent")}
                 >
                   <PanelRight className="size-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="left">
-                <p>{sidebarOpen ? "Close tracing panel" : "Open tracing panel"}</p>
+                <p>
+                  {sidebarOpen ? "Close tracing panel" : "Open tracing panel"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -84,25 +80,26 @@ export function ThreadHeader({
   }
 
   return (
-    <div className="absolute top-0 left-0 z-10 w-full flex items-center justify-between gap-3 p-4">
+    <div className="absolute top-0 left-0 z-10 flex w-full items-center justify-between gap-3 p-4">
       <div className="relative flex items-center justify-start gap-2">
         <div className="absolute left-0 z-10">
-          {config.threads.showHistory && (!chatHistoryOpen || !isLargeScreen) && (
-            <Button
-              className="hover:bg-accent"
-              variant="ghost"
-              onClick={() => setChatHistoryOpen((p) => !p)}
-            >
-              {chatHistoryOpen ? (
-                <PanelRightOpen className="size-5" />
-              ) : (
-                <PanelRightClose className="size-5" />
-              )}
-            </Button>
-          )}
+          {config.threads.showHistory &&
+            (!chatHistoryOpen || !isLargeScreen) && (
+              <Button
+                className="hover:bg-accent"
+                variant="ghost"
+                onClick={() => setChatHistoryOpen((p) => !p)}
+              >
+                {chatHistoryOpen ? (
+                  <PanelRightOpen className="size-5" />
+                ) : (
+                  <PanelRightClose className="size-5" />
+                )}
+              </Button>
+            )}
         </div>
         <motion.button
-          className="flex cursor-pointer items-center gap-2 ml-2"
+          className="ml-2 flex cursor-pointer items-center gap-2"
           onClick={onLogoClick}
           animate={{
             translateX: config.threads.showHistory && !chatHistoryOpen ? 48 : 0,
@@ -134,16 +131,15 @@ export function ThreadHeader({
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen((prev) => !prev)}
-                className={cn(
-                  "h-9 w-9",
-                  sidebarOpen && "bg-accent"
-                )}
+                className={cn("h-9 w-9", sidebarOpen && "bg-accent")}
               >
                 <PanelRight className="size-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
-              <p>{sidebarOpen ? "Close tracing panel" : "Open tracing panel"}</p>
+              <p>
+                {sidebarOpen ? "Close tracing panel" : "Open tracing panel"}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

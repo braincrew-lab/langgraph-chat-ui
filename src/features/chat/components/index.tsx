@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import { useEffect, useRef, useMemo, useCallback, useState, FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useState,
+  FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -7,10 +14,7 @@ import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { ensureToolCallsHaveResponses } from "@/lib/utils/ensure-tool-responses";
-import {
-  LoaderCircle,
-  BookOpen,
-} from "lucide-react";
+import { LoaderCircle, BookOpen } from "lucide-react";
 import { useLangSmithRuns } from "@/features/chat/hooks/useLangSmithRuns";
 import { useStreamingView } from "@/features/chat/hooks/useStreamingView";
 import {
@@ -37,9 +41,7 @@ import { FullDescriptionModal } from "./modals/FullDescriptionModal";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
 import { ChatOpeners } from "./input/ChatOpeners";
 import { useSchemaUI } from "@/features/chat/hooks/useSchemaUI";
-import {
-  UnifiedInputArea,
-} from "./schema-ui";
+import { UnifiedInputArea } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { updateAssistantIdAction } from "@/app/actions";
 import { MessageList } from "./MessageList";
@@ -52,16 +54,23 @@ export function Thread() {
 
   // Sidebar states from settings (persisted)
   const chatHistoryOpen = userSettings.chatHistoryOpen;
-  const setChatHistoryOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    const newValue = typeof value === "function" ? value(chatHistoryOpen) : value;
-    updateUserSettings({ chatHistoryOpen: newValue });
-  }, [chatHistoryOpen, updateUserSettings]);
+  const setChatHistoryOpen = useCallback(
+    (value: boolean | ((prev: boolean) => boolean)) => {
+      const newValue =
+        typeof value === "function" ? value(chatHistoryOpen) : value;
+      updateUserSettings({ chatHistoryOpen: newValue });
+    },
+    [chatHistoryOpen, updateUserSettings],
+  );
 
   const sidebarOpen = userSettings.tracingPanelOpen;
-  const setSidebarOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    const newValue = typeof value === "function" ? value(sidebarOpen) : value;
-    updateUserSettings({ tracingPanelOpen: newValue });
-  }, [sidebarOpen, updateUserSettings]);
+  const setSidebarOpen = useCallback(
+    (value: boolean | ((prev: boolean) => boolean)) => {
+      const newValue = typeof value === "function" ? value(sidebarOpen) : value;
+      updateUserSettings({ tracingPanelOpen: newValue });
+    },
+    [sidebarOpen, updateUserSettings],
+  );
 
   const [hideToolCalls, setHideToolCalls] = useQueryState(
     "hideToolCalls",
@@ -131,7 +140,7 @@ export function Thread() {
       middlewares: langSmithMiddlewareRuns.map(mapRunToMiddlewareEvent),
       toolCalls: langSmithToolRuns.map(mapRunToToolCallEvent),
       toolResults: langSmithToolRuns
-        .filter(run => run.status === "success" || run.status === "error")
+        .filter((run) => run.status === "success" || run.status === "error")
         .map(mapRunToToolResultEvent),
       llmEnds: langSmithLLMRuns.map(mapRunToLLMEvent),
     };
@@ -146,7 +155,11 @@ export function Thread() {
     activeLeafTasks,
     intermediateOutputs,
     finalNodeId,
-  } = useStreamingView(allRuns, isLoading, messages, { nodeUpdates, finalNodeNames, updateNodeCompletedOutput });
+  } = useStreamingView(allRuns, isLoading, messages, {
+    nodeUpdates,
+    finalNodeNames,
+    updateNodeCompletedOutput,
+  });
 
   // 스트리밍 완료 시 LangSmith 재조회
   const prevIsLoading = useRef(isLoading);
@@ -185,33 +198,36 @@ export function Thread() {
 
   const assistantSelectValue = useMemo(
     () => currentAssistantId?.trim() || "none",
-    [currentAssistantId]
+    [currentAssistantId],
   );
 
   const isAssistantSelected = Boolean(currentAssistantId?.trim());
 
-  const handleAssistantChange = useCallback(async (value: string) => {
-    if (value === "none") {
-      if (currentAssistantId) {
-        await updateAssistantIdAction(null);
-        window.location.reload();
+  const handleAssistantChange = useCallback(
+    async (value: string) => {
+      if (value === "none") {
+        if (currentAssistantId) {
+          await updateAssistantIdAction(null);
+          window.location.reload();
+        }
+        return;
       }
-      return;
-    }
 
-    const trimmedValue = value.trim();
-    if (!trimmedValue || trimmedValue === currentAssistantId?.trim()) {
-      return;
-    }
+      const trimmedValue = value.trim();
+      if (!trimmedValue || trimmedValue === currentAssistantId?.trim()) {
+        return;
+      }
 
-    // Update cookie via server action and do full page reload
-    await updateAssistantIdAction(trimmedValue);
-    toast.success("그래프가 변경되었습니다.", {
-      description: `선택한 assistant ID: ${value}`,
-    });
-    // Full page reload to ensure cookie is properly read
-    window.location.reload();
-  }, [currentAssistantId, router, setThreadId, setContentBlocks]);
+      // Update cookie via server action and do full page reload
+      await updateAssistantIdAction(trimmedValue);
+      toast.success("그래프가 변경되었습니다.", {
+        description: `선택한 assistant ID: ${value}`,
+      });
+      // Full page reload to ensure cookie is properly read
+      window.location.reload();
+    },
+    [currentAssistantId, router, setThreadId, setContentBlocks],
+  );
 
   useEffect(() => {
     if (!stream.error) {
@@ -255,66 +271,78 @@ export function Thread() {
     prevMessageLength.current = messages.length;
   }, [messages]);
 
-  const handleSubmit = useCallback((e: FormEvent) => {
-    e.preventDefault();
-    if (!isAssistantSelected) {
-      toast.error("그래프를 먼저 선택해주세요.");
-      return;
-    }
-    if (
-      (input.trim().length === 0 && contentBlocks.length === 0) ||
-      isLoading
-    )
-      return;
-    setFirstTokenReceived(false);
+  const handleSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      if (!isAssistantSelected) {
+        toast.error("그래프를 먼저 선택해주세요.");
+        return;
+      }
+      if (
+        (input.trim().length === 0 && contentBlocks.length === 0) ||
+        isLoading
+      )
+        return;
+      setFirstTokenReceived(false);
 
-    const newHumanMessage: Message = {
-      id: uuidv4(),
-      type: "human",
-      content: [
-        ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
-        ...contentBlocks,
-      ] as Message["content"],
-    };
+      const newHumanMessage: Message = {
+        id: uuidv4(),
+        type: "human",
+        content: [
+          ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
+          ...contentBlocks,
+        ] as Message["content"],
+      };
 
-    const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+      const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
-    // Get schema payload (additional fields from input_schema)
-    const schemaPayload = getSubmitPayload();
+      // Get schema payload (additional fields from input_schema)
+      const schemaPayload = getSubmitPayload();
 
-    // 새 메시지 전송 전 노드 업데이트 초기화 (이전 노드 정보 클리어)
-    stream.clearNodeUpdates();
+      // 새 메시지 전송 전 노드 업데이트 초기화 (이전 노드 정보 클리어)
+      stream.clearNodeUpdates();
 
-    stream.submit(
-      { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
-      {
+      stream.submit(
+        { messages: [...toolMessages, newHumanMessage], ...schemaPayload },
+        {
+          ...STREAM_OPTIONS,
+          optimisticValues: (prev) => ({
+            ...prev,
+            messages: [
+              ...(prev.messages ?? []),
+              ...toolMessages,
+              newHumanMessage,
+            ],
+          }),
+        },
+      );
+
+      setInput("");
+      setContentBlocks([]);
+    },
+    [
+      isAssistantSelected,
+      input,
+      contentBlocks,
+      isLoading,
+      stream,
+      setContentBlocks,
+      getSubmitPayload,
+    ],
+  );
+
+  const handleRegenerate = useCallback(
+    (parentCheckpoint: Checkpoint | null | undefined) => {
+      // Do this so the loading state is correct
+      prevMessageLength.current = prevMessageLength.current - 1;
+      setFirstTokenReceived(false);
+      stream.submit(undefined, {
+        checkpoint: parentCheckpoint,
         ...STREAM_OPTIONS,
-        optimisticValues: (prev) => ({
-          ...prev,
-          messages: [
-            ...(prev.messages ?? []),
-            ...toolMessages,
-            newHumanMessage,
-          ],
-        }),
-      },
-    );
-
-    setInput("");
-    setContentBlocks([]);
-  }, [isAssistantSelected, input, contentBlocks, isLoading, stream, setContentBlocks, getSubmitPayload]);
-
-  const handleRegenerate = useCallback((
-    parentCheckpoint: Checkpoint | null | undefined,
-  ) => {
-    // Do this so the loading state is correct
-    prevMessageLength.current = prevMessageLength.current - 1;
-    setFirstTokenReceived(false);
-    stream.submit(undefined, {
-      checkpoint: parentCheckpoint,
-      ...STREAM_OPTIONS,
-    });
-  }, [stream]);
+      });
+    },
+    [stream],
+  );
 
   // Form mode submission handler
   const handleFormSubmit = useCallback(() => {
@@ -324,7 +352,10 @@ export function Thread() {
     }
 
     const payload = getSubmitPayload();
-    const allFields = [...parsedSchema.requiredFields, ...parsedSchema.optionalFields];
+    const allFields = [
+      ...parsedSchema.requiredFields,
+      ...parsedSchema.optionalFields,
+    ];
 
     // Save form submission for display
     setFormSubmissions((prev) => [
@@ -337,14 +368,15 @@ export function Thread() {
     resetForm();
   }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
 
-  const chatStarted = !!threadId || !!messages.length || formSubmissions.length > 0;
+  const chatStarted =
+    !!threadId || !!messages.length || formSubmissions.length > 0;
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
       {config.threads.showHistory && (
         <div className="relative hidden lg:flex">
           <motion.div
-            className="absolute z-20 h-full overflow-hidden border-r border-border bg-sidebar"
+            className="border-border bg-sidebar absolute z-20 h-full overflow-hidden border-r"
             style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
             initial={false}
             animate={{ x: chatHistoryOpen ? 0 : -UI.CHAT_SIDEBAR_WIDTH }}
@@ -355,7 +387,7 @@ export function Thread() {
             }
           >
             <div
-              className="relative h-full flex flex-col"
+              className="relative flex h-full flex-col"
               style={{ width: UI.CHAT_SIDEBAR_WIDTH }}
             >
               <div className="flex-1 overflow-hidden">
@@ -373,7 +405,9 @@ export function Thread() {
       <div
         className="grid w-full transition-all duration-500"
         style={{
-          gridTemplateColumns: sidebarOpen ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px` : '1fr 0fr',
+          gridTemplateColumns: sidebarOpen
+            ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px`
+            : "1fr 0fr",
         }}
       >
         <div
@@ -383,12 +417,18 @@ export function Thread() {
             isLargeScreen ? "duration-300" : "duration-0",
           )}
           style={{
-            marginLeft: config.threads.showHistory && chatHistoryOpen ? (isLargeScreen ? 300 : 0) : 0,
-            width: config.threads.showHistory && chatHistoryOpen
-              ? isLargeScreen
-                ? "calc(100% - 300px)"
-                : "100%"
-              : "100%",
+            marginLeft:
+              config.threads.showHistory && chatHistoryOpen
+                ? isLargeScreen
+                  ? 300
+                  : 0
+                : 0,
+            width:
+              config.threads.showHistory && chatHistoryOpen
+                ? isLargeScreen
+                  ? "calc(100% - 300px)"
+                  : "100%"
+                : "100%",
           }}
         >
           <ThreadHeader
@@ -402,17 +442,25 @@ export function Thread() {
             onLogoClick={() => setThreadId(null)}
           />
 
-          <StickToBottom resize="smooth" className="relative mt-[68px] flex-1 overflow-hidden">
+          <StickToBottom
+            resize="smooth"
+            className="relative mt-[68px] flex-1 overflow-hidden"
+          >
             <StickyToBottomContent
               className={cn(
-                "absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
-                !chatStarted && "mt-0 flex flex-col items-stretch justify-center",
+                "[&::-webkit-scrollbar-thumb]:bg-border absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
+                !chatStarted &&
+                  "mt-0 flex flex-col items-stretch justify-center",
                 chatStarted && "grid grid-rows-[1fr_auto]",
                 userSettings.chatWidth === "default" ? "px-4" : "px-2",
               )}
               contentClassName={cn(
-                (messages.length > 0 || formSubmissions.length > 0) ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full" : "",
-                userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
+                messages.length > 0 || formSubmissions.length > 0
+                  ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full"
+                  : "",
+                userSettings.chatWidth === "default"
+                  ? "max-w-3xl"
+                  : "max-w-5xl",
               )}
               content={
                 <MessageList
@@ -439,10 +487,14 @@ export function Thread() {
               footer={
                 <div className="sticky bottom-0 flex flex-col items-center gap-10 bg-none">
                   {!chatStarted && (
-                    <div className={cn(
-                      "flex flex-col items-center gap-6 w-full mx-auto",
-                      userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl"
-                    )}>
+                    <div
+                      className={cn(
+                        "mx-auto flex w-full flex-col items-center gap-6",
+                        userSettings.chatWidth === "default"
+                          ? "max-w-3xl"
+                          : "max-w-5xl",
+                      )}
+                    >
                       <div className="flex flex-col items-center gap-3">
                         <div className="flex items-center gap-3">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -465,7 +517,7 @@ export function Thread() {
                         {config.branding.fullDescription && (
                           <button
                             onClick={() => setFullDescriptionOpen(true)}
-                            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                            className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
                           >
                             <BookOpen className="h-4 w-4" />
                             <span>자세한 설명 보기</span>
@@ -473,21 +525,24 @@ export function Thread() {
                         )}
                       </div>
                       {schemaUI.isLoading && (
-                        <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <LoaderCircle className="text-muted-foreground h-6 w-6 animate-spin" />
                       )}
-                      {config.branding.chatOpeners && config.branding.chatOpeners.length > 0 && !isFormMode && !schemaUI.isLoading && (
-                        <ChatOpeners
-                          disabled={isLoading || !isAssistantSelected}
-                          chatOpeners={config.branding.chatOpeners}
-                          onSelectOpener={(opener) => {
-                            setInput(opener);
-                            setTimeout(() => {
-                              const form = document.querySelector('form');
-                              form?.requestSubmit();
-                            }, 0);
-                          }}
-                        />
-                      )}
+                      {config.branding.chatOpeners &&
+                        config.branding.chatOpeners.length > 0 &&
+                        !isFormMode &&
+                        !schemaUI.isLoading && (
+                          <ChatOpeners
+                            disabled={isLoading || !isAssistantSelected}
+                            chatOpeners={config.branding.chatOpeners}
+                            onSelectOpener={(opener) => {
+                              setInput(opener);
+                              setTimeout(() => {
+                                const form = document.querySelector("form");
+                                form?.requestSubmit();
+                              }, 0);
+                            }}
+                          />
+                        )}
                     </div>
                   )}
 
@@ -497,7 +552,9 @@ export function Thread() {
                   <div
                     className={cn(
                       "relative z-10 mx-auto mb-8 w-full",
-                      userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl",
+                      userSettings.chatWidth === "default"
+                        ? "max-w-3xl"
+                        : "max-w-5xl",
                     )}
                   >
                     {/* Unified input area - handles both Form and Chat modes */}

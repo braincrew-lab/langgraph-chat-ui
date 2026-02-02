@@ -1,16 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useEffect, useCallback } from "react";
-import {
-  CheckCircle2,
-  Loader2,
-  XCircle,
-  Wrench,
-  Bot,
-  Cog,
-} from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, Wrench, Bot, Cog } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TimelineEvent, LangSmithTimelineEvents, buildTimeline } from "@/types/timeline";
+import {
+  TimelineEvent,
+  LangSmithTimelineEvents,
+  buildTimeline,
+} from "@/types/timeline";
 
 const EventIcon = ({ event }: { event: TimelineEvent }) => {
   switch (event.type) {
@@ -35,10 +32,13 @@ const EventIcon = ({ event }: { event: TimelineEvent }) => {
 
 const EventTypeBadge = ({ type }: { type: TimelineEvent["type"] }) => {
   const styles: Record<TimelineEvent["type"], string> = {
-    middleware: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    middleware:
+      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
     llm_end: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    tool_call: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    tool_result: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    tool_call:
+      "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    tool_result:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   };
 
   const labels: Record<TimelineEvent["type"], string> = {
@@ -51,8 +51,8 @@ const EventTypeBadge = ({ type }: { type: TimelineEvent["type"] }) => {
   return (
     <span
       className={cn(
-        "px-1.5 py-0.5 text-[10px] font-medium rounded shrink-0",
-        styles[type]
+        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+        styles[type],
       )}
     >
       {labels[type]}
@@ -80,28 +80,49 @@ const formatLatency = (latency?: number) => {
 };
 
 // 토큰 사용량 포맷팅 헬퍼
-const formatTokenUsage = (tokenUsage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }) => {
+const formatTokenUsage = (tokenUsage?: {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}) => {
   if (!tokenUsage) return null;
   const parts: string[] = [];
   if (tokenUsage.inputTokens) parts.push(`in: ${tokenUsage.inputTokens}`);
   if (tokenUsage.outputTokens) parts.push(`out: ${tokenUsage.outputTokens}`);
-  if (tokenUsage.totalTokens && !tokenUsage.inputTokens && !tokenUsage.outputTokens) {
+  if (
+    tokenUsage.totalTokens &&
+    !tokenUsage.inputTokens &&
+    !tokenUsage.outputTokens
+  ) {
     parts.push(`total: ${tokenUsage.totalTokens}`);
   }
   return parts.length > 0 ? parts.join(", ") : null;
 };
 
 // 메타데이터 뱃지 컴포넌트
-const MetadataBadge = ({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "error" | "warning" }) => {
+const MetadataBadge = ({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "success" | "error" | "warning";
+}) => {
   const styles = {
     default: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    success: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+    success:
+      "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
     error: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-    warning: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
+    warning:
+      "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
   };
 
   return (
-    <span className={cn("px-1.5 py-0.5 text-[10px] font-medium rounded", styles[variant])}>
+    <span
+      className={cn(
+        "rounded px-1.5 py-0.5 text-[10px] font-medium",
+        styles[variant],
+      )}
+    >
       {children}
     </span>
   );
@@ -126,18 +147,18 @@ const TimelineEventItem = ({
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{event.middleware}</span>
-              <span className="text-xs text-muted-foreground font-mono">
+              <span className="text-sm font-medium">{event.middleware}</span>
+              <span className="text-muted-foreground font-mono text-xs">
                 {event.hook}
               </span>
             </div>
             {event.error && (
-              <div className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-2 rounded">
+              <div className="rounded bg-red-50 p-2 font-mono text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
                 {event.error}
               </div>
             )}
             {event.data && Object.keys(event.data).length > 0 && (
-              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto whitespace-pre-wrap max-h-32 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+              <pre className="text-muted-foreground bg-muted/50 [&::-webkit-scrollbar-thumb]:bg-border max-h-32 overflow-x-auto overflow-y-auto rounded p-2 text-xs whitespace-pre-wrap [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {JSON.stringify(event.data, null, 2)}
               </pre>
             )}
@@ -146,15 +167,11 @@ const TimelineEventItem = ({
       case "llm_end":
         return (
           <div className="flex flex-col gap-1">
-            <div className="text-sm text-muted-foreground">
-              {event.content}
-            </div>
+            <div className="text-muted-foreground text-sm">{event.content}</div>
             {/* LangSmith 메타데이터 표시 */}
             {(event.model || event.tokenUsage || event.error) && (
-              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                {event.model && (
-                  <MetadataBadge>{event.model}</MetadataBadge>
-                )}
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {event.model && <MetadataBadge>{event.model}</MetadataBadge>}
                 {event.tokenUsage && formatTokenUsage(event.tokenUsage) && (
                   <MetadataBadge variant="default">
                     {formatTokenUsage(event.tokenUsage)}
@@ -166,7 +183,7 @@ const TimelineEventItem = ({
               </div>
             )}
             {event.error && (
-              <div className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-2 rounded mt-1">
+              <div className="mt-1 rounded bg-red-50 p-2 font-mono text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
                 {event.error}
               </div>
             )}
@@ -176,20 +193,30 @@ const TimelineEventItem = ({
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm font-mono">{event.toolName}</span>
+              <span className="font-mono text-sm font-medium">
+                {event.toolName}
+              </span>
               {event.status && (
-                <MetadataBadge variant={event.status === "success" ? "success" : event.status === "error" ? "error" : "warning"}>
+                <MetadataBadge
+                  variant={
+                    event.status === "success"
+                      ? "success"
+                      : event.status === "error"
+                        ? "error"
+                        : "warning"
+                  }
+                >
                   {event.status}
                 </MetadataBadge>
               )}
             </div>
             {Object.keys(event.args).length > 0 && (
-              <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto max-h-24 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+              <pre className="text-muted-foreground bg-muted/50 [&::-webkit-scrollbar-thumb]:bg-border max-h-24 overflow-x-auto overflow-y-auto rounded p-2 text-xs [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {JSON.stringify(event.args, null, 2)}
               </pre>
             )}
             {event.error && (
-              <div className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-2 rounded mt-1">
+              <div className="mt-1 rounded bg-red-50 p-2 font-mono text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
                 {event.error}
               </div>
             )}
@@ -199,18 +226,22 @@ const TimelineEventItem = ({
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm font-mono">{event.toolName}</span>
+              <span className="font-mono text-sm font-medium">
+                {event.toolName}
+              </span>
               {event.status && (
-                <MetadataBadge variant={event.status === "success" ? "success" : "error"}>
+                <MetadataBadge
+                  variant={event.status === "success" ? "success" : "error"}
+                >
                   {event.status}
                 </MetadataBadge>
               )}
             </div>
-            <pre className="text-xs text-muted-foreground bg-muted/50 p-2 rounded overflow-x-auto overflow-y-auto whitespace-pre-wrap max-h-24 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+            <pre className="text-muted-foreground bg-muted/50 [&::-webkit-scrollbar-thumb]:bg-border max-h-24 overflow-x-auto overflow-y-auto rounded p-2 text-xs whitespace-pre-wrap [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full">
               {event.result}
             </pre>
             {event.error && (
-              <div className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-2 rounded mt-1">
+              <div className="mt-1 rounded bg-red-50 p-2 font-mono text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
                 {event.error}
               </div>
             )}
@@ -227,26 +258,27 @@ const TimelineEventItem = ({
     <div
       ref={eventRef}
       className={cn(
-        "flex gap-3 py-2 border-b border-border/50 last:border-b-0 transition-colors duration-200",
-        isHighlighted && "bg-blue-100/50 dark:bg-blue-900/30 ring-2 ring-blue-400 ring-inset rounded",
-        onClick && "cursor-pointer hover:bg-muted/30"
+        "border-border/50 flex gap-3 border-b py-2 transition-colors duration-200 last:border-b-0",
+        isHighlighted &&
+          "rounded bg-blue-100/50 ring-2 ring-blue-400 ring-inset dark:bg-blue-900/30",
+        onClick && "hover:bg-muted/30 cursor-pointer",
       )}
       onClick={onClick}
     >
       <div className="flex flex-col items-center pt-1">
         <EventIcon event={event} />
-        <div className="w-px flex-1 bg-border/50 mt-1" />
+        <div className="bg-border/50 mt-1 w-px flex-1" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-2">
           <EventTypeBadge type={event.type} />
           {timeStr && (
-            <span className="text-[10px] text-muted-foreground font-mono">
+            <span className="text-muted-foreground font-mono text-[10px]">
               {timeStr}
             </span>
           )}
           {latencyStr && (
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">
+            <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400">
               {latencyStr}
             </span>
           )}
@@ -320,7 +352,10 @@ export function ExecutionTimelinePanel({
 
   // 이벤트 추가 시 하단이었다면 자동 스크롤
   useEffect(() => {
-    if (timelineEvents.length > prevEventsLengthRef.current && isAtBottomRef.current) {
+    if (
+      timelineEvents.length > prevEventsLengthRef.current &&
+      isAtBottomRef.current
+    ) {
       const el = scrollRef.current;
       if (el) {
         el.scrollTop = el.scrollHeight;
@@ -344,23 +379,26 @@ export function ExecutionTimelinePanel({
   }, [selectedTaskId, highlightedEventIds]);
 
   // 이벤트 클릭 핸들러 (사이드바 → TODO 연동)
-  const handleEventClick = useCallback((event: TimelineEvent) => {
-    if (!onSelectTask) return;
+  const handleEventClick = useCallback(
+    (event: TimelineEvent) => {
+      if (!onSelectTask) return;
 
-    // 현재 선택된 이벤트인 경우 선택 해제
-    if (highlightedEventIds.has(event.id)) {
-      onSelectTask(null);
-      return;
-    }
+      // 현재 선택된 이벤트인 경우 선택 해제
+      if (highlightedEventIds.has(event.id)) {
+        onSelectTask(null);
+        return;
+      }
 
-    // 이벤트의 parentRunId가 있으면 그것을 선택, 없으면 자신의 id 선택
-    const taskIdToSelect = event.parentRunId || event.id;
-    onSelectTask(taskIdToSelect);
-  }, [onSelectTask, highlightedEventIds]);
+      // 이벤트의 parentRunId가 있으면 그것을 선택, 없으면 자신의 id 선택
+      const taskIdToSelect = event.parentRunId || event.id;
+      onSelectTask(taskIdToSelect);
+    },
+    [onSelectTask, highlightedEventIds],
+  );
 
   if (timelineEvents.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+      <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
         실행 로그가 없습니다
       </div>
     );
@@ -370,8 +408,8 @@ export function ExecutionTimelinePanel({
     <div
       ref={scrollRef}
       className={cn(
-        "h-full overflow-y-auto p-4 space-y-1",
-        "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
+        "h-full space-y-1 overflow-y-auto p-4",
+        "[&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
       )}
     >
       {timelineEvents.map((event) => (

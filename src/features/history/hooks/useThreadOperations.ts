@@ -30,7 +30,10 @@ export function useThreadOperations() {
     }
   };
 
-  const updateThreadTitle = async (threadIdToUpdate: string, newTitle: string) => {
+  const updateThreadTitle = async (
+    threadIdToUpdate: string,
+    newTitle: string,
+  ) => {
     try {
       // Update thread metadata with new title
       await client?.threads.update(threadIdToUpdate, {

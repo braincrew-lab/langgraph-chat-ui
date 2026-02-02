@@ -19,15 +19,18 @@ export function ThreadItemNormal({
 }: ThreadItemNormalProps) {
   return (
     <div
-      className={`flex w-full cursor-pointer items-center justify-between rounded-md ${THREAD_ITEM_PADDING} transition-colors hover:bg-accent ${
+      className={`flex w-full cursor-pointer items-center justify-between rounded-md ${THREAD_ITEM_PADDING} hover:bg-accent transition-colors ${
         isActive ? "bg-accent" : ""
       }`}
       onClick={onSelect}
     >
-      <p className="truncate text-ellipsis text-sm flex-1 min-w-0">
+      <p className="min-w-0 flex-1 truncate text-sm text-ellipsis">
         {truncateText(displayText, MAX_THREAD_TITLE_LENGTH)}
       </p>
-      <ThreadItemMenu onRename={onRename} onDelete={onDelete} />
+      <ThreadItemMenu
+        onRename={onRename}
+        onDelete={onDelete}
+      />
     </div>
   );
 }

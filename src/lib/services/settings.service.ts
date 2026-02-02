@@ -12,7 +12,7 @@ import {
  * Returns the DB value if exists, otherwise the default value
  */
 export async function getSetting<K extends SettingKey>(
-  key: K
+  key: K,
 ): Promise<GlobalSettings[K]> {
   const setting = await prisma.globalSetting.findUnique({
     where: { key },
@@ -34,7 +34,7 @@ export async function getSetting<K extends SettingKey>(
  * Returns an object with all requested settings
  */
 export async function getSettings<K extends SettingKey>(
-  keys: K[]
+  keys: K[],
 ): Promise<Pick<GlobalSettings, K>> {
   const settings = await prisma.globalSetting.findMany({
     where: { key: { in: keys } },
@@ -85,7 +85,7 @@ export async function getAllSettings(): Promise<GlobalSettings> {
  * Get all settings by category
  */
 export async function getSettingsByCategory(
-  category: SettingCategory
+  category: SettingCategory,
 ): Promise<GlobalSettingRecord[]> {
   return prisma.globalSetting.findMany({
     where: { category },
@@ -99,7 +99,7 @@ export async function getSettingsByCategory(
 export async function updateSetting<K extends SettingKey>(
   key: K,
   value: GlobalSettings[K],
-  updatedById?: string
+  updatedById?: string,
 ): Promise<void> {
   const category = key.split(".")[0] as SettingCategory;
 
@@ -135,7 +135,7 @@ export async function updateSetting<K extends SettingKey>(
  */
 export async function updateSettings(
   settings: Partial<GlobalSettings>,
-  updatedById?: string
+  updatedById?: string,
 ): Promise<void> {
   const operations = Object.entries(settings).map(([key, value]) => {
     const category = key.split(".")[0] as SettingCategory;
@@ -173,13 +173,15 @@ export async function updateSettings(
  */
 export async function resetSetting<K extends SettingKey>(
   key: K,
-  resetById?: string
+  resetById?: string,
 ): Promise<void> {
-  await prisma.globalSetting.delete({
-    where: { key },
-  }).catch(() => {
-    // Setting may not exist in DB
-  });
+  await prisma.globalSetting
+    .delete({
+      where: { key },
+    })
+    .catch(() => {
+      // Setting may not exist in DB
+    });
 
   if (resetById) {
     await prisma.auditLog.create({
@@ -217,9 +219,11 @@ export function getServerDefaults(): GlobalSettings {
     ...DEFAULT_SETTINGS,
     // Override with environment variables where applicable
     "features.defaultConnectionApiUrl":
-      process.env.NEXT_PUBLIC_API_URL || DEFAULT_SETTINGS["features.defaultConnectionApiUrl"],
+      process.env.NEXT_PUBLIC_API_URL ||
+      DEFAULT_SETTINGS["features.defaultConnectionApiUrl"],
     "features.defaultGraphId":
-      process.env.NEXT_PUBLIC_ASSISTANT_ID || DEFAULT_SETTINGS["features.defaultGraphId"],
+      process.env.NEXT_PUBLIC_ASSISTANT_ID ||
+      DEFAULT_SETTINGS["features.defaultGraphId"],
   };
 }
 

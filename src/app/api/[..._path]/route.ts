@@ -6,7 +6,8 @@ import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
 
 // LangGraph server URL (LANGGRAPH_API_URL for internal networks, fallback to NEXT_PUBLIC_API_URL)
-const ENV_LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
+const ENV_LANGGRAPH_API_URL =
+  process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
 
 function getCorsHeaders() {
   return {
@@ -28,17 +29,18 @@ async function handleRequest(req: NextRequest, method: string) {
     const cookieStore = await cookies();
     const cookieApiUrl = cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value;
     const globalSettings = await getAllSettings();
-    const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
+    const adminDefaultApiUrl =
+      globalSettings["features.defaultConnectionApiUrl"];
 
     // Priority: Admin default (if set) > Cookies > Environment variable
     const apiUrl = adminDefaultApiUrl
       ? adminDefaultApiUrl
-      : (cookieApiUrl || ENV_LANGGRAPH_API_URL);
+      : cookieApiUrl || ENV_LANGGRAPH_API_URL;
 
     if (!apiUrl) {
       return NextResponse.json(
         { error: "LangGraph API URL is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -73,7 +75,7 @@ async function handleRequest(req: NextRequest, method: string) {
     // Build headers with Bearer token
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     };
 
     // Build request options
@@ -105,10 +107,7 @@ async function handleRequest(req: NextRequest, method: string) {
     });
   } catch (e) {
     const error = e as Error;
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 

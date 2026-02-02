@@ -12,7 +12,9 @@ async function main() {
   const [, , email, password, name] = process.argv;
 
   if (!email || !password) {
-    console.error("Usage: npx tsx scripts/create-admin.ts <email> <password> [name]");
+    console.error(
+      "Usage: npx tsx scripts/create-admin.ts <email> <password> [name]",
+    );
     process.exit(1);
   }
 

@@ -22,7 +22,9 @@ export interface ThreadContextType {
   client: Client | null;
 }
 
-export const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
+export const ThreadContext = createContext<ThreadContextType | undefined>(
+  undefined,
+);
 
 function getThreadSearchMetadata(
   assistantId: string,
@@ -73,7 +75,7 @@ export function ThreadProvider({ children, connection }: ThreadProviderProps) {
       setThreadsLoading,
       client,
     }),
-    [getThreads, threads, threadsLoading, client]
+    [getThreads, threads, threadsLoading, client],
   );
 
   return (

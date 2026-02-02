@@ -11,7 +11,10 @@ import { useMemo } from "react";
 import type { Message } from "@langchain/langgraph-sdk";
 import type { LangSmithRun } from "@/types/langsmith";
 import { buildTaskHierarchy, findActiveLeafTasks } from "@/types/langsmith";
-import type { HierarchicalTask, IntermediateLLMOutput } from "@/types/task-hierarchy";
+import type {
+  HierarchicalTask,
+  IntermediateLLMOutput,
+} from "@/types/task-hierarchy";
 import type { TaskProgressItem } from "@/types/task-progress";
 import { useTaskProgress } from "./useTaskProgress";
 import { useLangSmithEnrichment } from "./useLangSmithEnrichment";
@@ -69,7 +72,7 @@ export function useStreamingView(
   runs: LangSmithRun[],
   isStreaming: boolean,
   messages: unknown[] = [],
-  options: UseStreamingViewOptions = {}
+  options: UseStreamingViewOptions = {},
 ): UseStreamingViewReturn {
   const { nodeUpdates, finalNodeNames = [], messageNodeMap } = options;
 
@@ -127,7 +130,7 @@ export function useStreamingView(
 
       // Check if this is a final node
       const isFinal = finalNodeNames.some(
-        (name) => node.nodeName.toLowerCase() === name.toLowerCase()
+        (name) => node.nodeName.toLowerCase() === name.toLowerCase(),
       );
 
       // Only include intermediate (non-final) nodes
@@ -137,7 +140,8 @@ export function useStreamingView(
       if (!content.trim()) continue;
 
       // Create unique ID including namespace for proper tracking
-      const namespaceStr = node.namespace.length > 0 ? `|${node.namespace.join("|")}` : "";
+      const namespaceStr =
+        node.namespace.length > 0 ? `|${node.namespace.join("|")}` : "";
       const uniqueId = `${node.nodeName}${namespaceStr}`;
 
       outputs.push({
@@ -160,7 +164,12 @@ export function useStreamingView(
   // ========================================
 
   const intermediateMessageOutputs = useMemo((): IntermediateLLMOutput[] => {
-    if (finalNodeNames.length === 0 || !messageNodeMap || messageNodeMap.size === 0) return [];
+    if (
+      finalNodeNames.length === 0 ||
+      !messageNodeMap ||
+      messageNodeMap.size === 0
+    )
+      return [];
 
     const outputs: IntermediateLLMOutput[] = [];
 
@@ -176,7 +185,7 @@ export function useStreamingView(
       if (!nodeName) continue;
 
       const isFinal = finalNodeNames.some(
-        (name) => nodeName.toLowerCase() === name.toLowerCase()
+        (name) => nodeName.toLowerCase() === name.toLowerCase(),
       );
 
       // Only include intermediate (non-final) node messages
@@ -233,9 +242,7 @@ export function useStreamingView(
     // Add message-based outputs for nodes not in nodeUpdates
     // (e.g., messages that came before nodeUpdates tracking started)
     for (const msgOutput of intermediateMessageOutputs) {
-      const exists = allOutputs.some(
-        (o) => o.nodeName === msgOutput.nodeName
-      );
+      const exists = allOutputs.some((o) => o.nodeName === msgOutput.nodeName);
       if (!exists) {
         allOutputs.push(msgOutput);
       }
@@ -260,7 +267,7 @@ export function useStreamingView(
 
     // Check if this is a final node
     const isFinal = finalNodeNames.some(
-      (name) => latest.nodeName.toLowerCase() === name.toLowerCase()
+      (name) => latest.nodeName.toLowerCase() === name.toLowerCase(),
     );
 
     return isFinal ? "main" : latest.nodeName;

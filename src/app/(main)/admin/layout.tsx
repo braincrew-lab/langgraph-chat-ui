@@ -18,9 +18,7 @@ export default async function AdminLayout({
   // Just render children - sidebar is in the shared (main) layout
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl px-4 pt-8 pb-16">
-        {children}
-      </div>
+      <div className="mx-auto max-w-3xl px-4 pt-8 pb-16">{children}</div>
     </div>
   );
 }

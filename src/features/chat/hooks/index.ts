@@ -16,8 +16,17 @@
 export { useStreamingView, type TodoLifecycleState } from "./useStreamingView";
 
 // Supporting hooks
-export { useTaskProgress, groupProgressItems, isFilteredToolName } from "./useTaskProgress";
-export { useLangSmithEnrichment, getRunsForTask, calculateTotalLatency, getActiveRunForTask } from "./useLangSmithEnrichment";
+export {
+  useTaskProgress,
+  groupProgressItems,
+  isFilteredToolName,
+} from "./useTaskProgress";
+export {
+  useLangSmithEnrichment,
+  getRunsForTask,
+  calculateTotalLatency,
+  getActiveRunForTask,
+} from "./useLangSmithEnrichment";
 
 // Re-export utility types
 export type {
@@ -28,8 +37,4 @@ export type {
 } from "./utils";
 
 // Re-export utility functions
-export {
-  isTodoToolName,
-  isTaskToolName,
-  isSubagentTodo,
-} from "./utils";
+export { isTodoToolName, isTaskToolName, isSubagentTodo } from "./utils";

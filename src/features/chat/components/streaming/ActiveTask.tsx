@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ChevronDown, Wrench, Bot, GitBranch, Box } from "lucide-react";
+import {
+  Loader2,
+  ChevronDown,
+  Wrench,
+  Bot,
+  GitBranch,
+  Box,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatValue } from "@/lib/utils/format";
 import { type HierarchicalTask } from "@/types/task-hierarchy";
@@ -27,7 +34,11 @@ const TaskTypeIcon = ({ type }: { type: HierarchicalTask["type"] }) => {
   }
 };
 
-export function ActiveTask({ task, depth = 0, showArgs = true }: ActiveTaskProps) {
+export function ActiveTask({
+  task,
+  depth = 0,
+  showArgs = true,
+}: ActiveTaskProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasArgs = task.toolArgs && Object.keys(task.toolArgs).length > 0;
 
@@ -38,23 +49,23 @@ export function ActiveTask({ task, depth = 0, showArgs = true }: ActiveTaskProps
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20",
-        depth > 0 && "ml-4 mt-2"
+        "rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20",
+        depth > 0 && "mt-2 ml-4",
       )}
     >
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-2 flex items-center gap-2 text-left"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
-        <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />
+        <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />
         <TaskTypeIcon type={task.type} />
-        <span className="font-medium text-sm truncate flex-1">{task.name}</span>
+        <span className="flex-1 truncate text-sm font-medium">{task.name}</span>
         {hasArgs && showArgs && (
           <motion.div
             animate={{ rotate: isExpanded ? 0 : -90 }}
             transition={{ duration: 0.15 }}
           >
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="text-muted-foreground h-4 w-4" />
           </motion.div>
         )}
       </button>
@@ -68,11 +79,16 @@ export function ActiveTask({ task, depth = 0, showArgs = true }: ActiveTaskProps
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-2 pt-0">
-              <div className="rounded-md bg-muted/50 p-2 text-xs font-mono overflow-x-auto max-h-24 overflow-y-auto">
+            <div className="px-3 pt-0 pb-2">
+              <div className="bg-muted/50 max-h-24 overflow-x-auto overflow-y-auto rounded-md p-2 font-mono text-xs">
                 {Object.entries(task.toolArgs!).map(([key, value]) => (
-                  <div key={key} className="flex gap-2">
-                    <span className="text-muted-foreground flex-shrink-0">{key}:</span>
+                  <div
+                    key={key}
+                    className="flex gap-2"
+                  >
+                    <span className="text-muted-foreground flex-shrink-0">
+                      {key}:
+                    </span>
                     <span className="text-foreground/80 truncate">
                       {formatValue(value)}
                     </span>
@@ -98,27 +114,32 @@ export function ActiveTasksList({ tasks, isStreaming }: ActiveTasksListProps) {
   }
 
   return (
-    <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
-      <div className="px-3 py-2 bg-muted/30 border-b border-border/50 flex items-center gap-2">
-        <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+    <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
+      <div className="bg-muted/30 border-border/50 flex items-center gap-2 border-b px-3 py-2">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
         <span className="text-sm font-medium">실행 중</span>
         {tasks.length > 0 && (
-          <span className="text-xs text-muted-foreground">({tasks.length})</span>
+          <span className="text-muted-foreground text-xs">
+            ({tasks.length})
+          </span>
         )}
       </div>
       <div className="p-2">
         <AnimatePresence mode="popLayout">
           {tasks.length > 0 ? (
             tasks.map((task, index) => (
-              <ActiveTask key={`${task.id || "task"}-${index}`} task={task} />
+              <ActiveTask
+                key={`${task.id || "task"}-${index}`}
+                task={task}
+              />
             ))
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center justify-center py-4 text-sm text-muted-foreground"
+              className="text-muted-foreground flex items-center justify-center py-4 text-sm"
             >
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               대기 중...
             </motion.div>
           )}

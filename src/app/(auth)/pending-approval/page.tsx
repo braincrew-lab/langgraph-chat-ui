@@ -57,7 +57,10 @@ export default function PendingApprovalPage() {
       className="space-y-6"
     >
       {/* Icon */}
-      <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col items-center gap-4 pb-2"
+      >
         <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
@@ -66,9 +69,9 @@ export default function PendingApprovalPage() {
         >
           <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
         </motion.div>
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">승인 대기 중</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             관리자의 승인을 기다리고 있습니다
           </p>
         </div>
@@ -77,7 +80,7 @@ export default function PendingApprovalPage() {
       {/* Message */}
       <motion.div
         variants={itemVariants}
-        className="text-center text-muted-foreground text-sm leading-relaxed"
+        className="text-muted-foreground text-center text-sm leading-relaxed"
       >
         <p>
           회원가입이 완료되었습니다. 관리자가 계정을 검토한 후 승인하면 서비스를
@@ -86,7 +89,7 @@ export default function PendingApprovalPage() {
         {session?.user?.email && (
           <p className="mt-4">
             등록 이메일:{" "}
-            <span className="font-medium text-foreground">
+            <span className="text-foreground font-medium">
               {session.user.email}
             </span>
           </p>
@@ -94,11 +97,14 @@ export default function PendingApprovalPage() {
       </motion.div>
 
       {/* Actions */}
-      <motion.div variants={itemVariants} className="space-y-3">
+      <motion.div
+        variants={itemVariants}
+        className="space-y-3"
+      >
         <Button
           onClick={handleRefresh}
           variant="outline"
-          className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
           상태 확인
@@ -106,7 +112,7 @@ export default function PendingApprovalPage() {
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="w-full h-11 rounded-xl font-medium text-muted-foreground transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <LogOut className="mr-2 h-4 w-4" />
           로그아웃

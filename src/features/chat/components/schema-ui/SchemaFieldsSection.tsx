@@ -46,11 +46,11 @@ export function SchemaFieldsSection({
         transition={{ duration: 0.2 }}
         className={cn("px-4 pt-3", className)}
       >
-        <div className="space-y-2 -mx-4 px-4 pb-3 border-b border-border/50">
+        <div className="border-border/50 -mx-4 space-y-2 border-b px-4 pb-3">
           <button
             type="button"
             onClick={() => setAdvancedExpanded(!advancedExpanded)}
-            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-xs font-medium transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span>고급 입력</span>
@@ -60,7 +60,7 @@ export function SchemaFieldsSection({
             >
               <ChevronDown className="h-3.5 w-3.5" />
             </motion.span>
-            <span className="text-xs text-muted-foreground/60">
+            <span className="text-muted-foreground/60 text-xs">
               ({optionalFields.length})
             </span>
           </button>
@@ -74,7 +74,7 @@ export function SchemaFieldsSection({
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="overflow-hidden"
               >
-                <div className="space-y-2 pt-1 pl-3 border-l-2 border-muted max-h-[200px] overflow-y-auto">
+                <div className="border-muted max-h-[200px] space-y-2 overflow-y-auto border-l-2 pt-1 pl-3">
                   {optionalFields.map((field) => (
                     <SchemaField
                       key={field.name}

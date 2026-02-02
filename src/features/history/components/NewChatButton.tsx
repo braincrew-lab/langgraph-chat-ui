@@ -8,7 +8,7 @@ interface NewChatButtonProps {
 export function NewChatButton({ onClick }: NewChatButtonProps) {
   return (
     <div
-      className={`h-10 flex w-full cursor-pointer items-center gap-2 rounded-md ${THREAD_ITEM_PADDING} transition-colors hover:bg-accent`}
+      className={`flex h-10 w-full cursor-pointer items-center gap-2 rounded-md ${THREAD_ITEM_PADDING} hover:bg-accent transition-colors`}
       onClick={onClick}
     >
       <SquarePen className={ICON_SIZE_SM} />

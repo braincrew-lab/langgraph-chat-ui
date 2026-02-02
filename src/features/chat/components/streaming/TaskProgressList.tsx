@@ -23,7 +23,11 @@ import {
   Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TaskProgressItem, LangSmithEnrichment, TaskChildNode } from "@/types/task-progress";
+import type {
+  TaskProgressItem,
+  LangSmithEnrichment,
+  TaskChildNode,
+} from "@/types/task-progress";
 
 // ============================================
 // Constants
@@ -69,7 +73,9 @@ function formatLatency(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function groupItems(items: TaskProgressItem[]): Map<string, TaskProgressItem[]> {
+function groupItems(
+  items: TaskProgressItem[],
+): Map<string, TaskProgressItem[]> {
   const groups = new Map<string, TaskProgressItem[]>();
 
   for (const item of items) {
@@ -93,12 +99,16 @@ const StatusIcon = memo(function StatusIcon({
 }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />;
+      return <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />;
     case "in_progress":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />;
+      return (
+        <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />
+      );
     case "pending":
     default:
-      return <Circle className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />;
+      return (
+        <Circle className="text-muted-foreground/50 h-4 w-4 flex-shrink-0" />
+      );
   }
 });
 
@@ -129,7 +139,7 @@ const LangSmithBadge = memo(function LangSmithBadge({
   if (parts.length === 0) return null;
 
   return (
-    <span className="text-[10px] text-muted-foreground">
+    <span className="text-muted-foreground text-[10px]">
       {parts.join(" · ")}
     </span>
   );
@@ -211,39 +221,44 @@ const ChildNodeItem = memo(function ChildNodeItem({
   }, [node.isActive, scrollContainerRef]);
 
   return (
-    <div ref={itemRef} className="ml-4 border-l-2 border-border/50">
+    <div
+      ref={itemRef}
+      className="border-border/50 ml-4 border-l-2"
+    >
       <div
         className={cn(
-          "flex items-start gap-2 py-1.5 px-2 text-xs",
+          "flex items-start gap-2 px-2 py-1.5 text-xs",
           "bg-muted/20 rounded-r",
-          canExpand && "cursor-pointer hover:bg-muted/40"
+          canExpand && "hover:bg-muted/40 cursor-pointer",
         )}
         onClick={canExpand ? onToggle : undefined}
       >
         {/* Expand/Collapse Icon */}
         {canExpand ? (
           isExpanded ? (
-            <ChevronDown className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <ChevronDown className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
           ) : (
-            <ChevronRight className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <ChevronRight className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
           )
         ) : (
-          <Circle className="h-3 w-3 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+          <Circle className="text-muted-foreground/50 mt-0.5 h-3 w-3 flex-shrink-0" />
         )}
 
         {/* Node name and status */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="font-medium text-foreground">{node.displayName}</span>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="text-foreground font-medium">
+            {node.displayName}
+          </span>
           {node.isActive ? (
-            <Loader2 className="h-3 w-3 text-blue-500 animate-spin flex-shrink-0" />
+            <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-blue-500" />
           ) : (
-            <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+            <CheckCircle2 className="h-3 w-3 flex-shrink-0 text-green-500" />
           )}
         </div>
 
         {/* Preview when collapsed */}
         {!isExpanded && hasContent && (
-          <span className="text-muted-foreground truncate max-w-[200px]">
+          <span className="text-muted-foreground max-w-[200px] truncate">
             {node.content.slice(0, 50)}...
           </span>
         )}
@@ -260,16 +275,16 @@ const ChildNodeItem = memo(function ChildNodeItem({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.15 }}
-            className="ml-5 mt-1 mb-2"
+            className="mt-1 mb-2 ml-5"
           >
             <div
               ref={contentRef}
-              className="text-xs bg-muted/30 rounded p-2 max-h-[200px] overflow-y-auto"
+              className="bg-muted/30 max-h-[200px] overflow-y-auto rounded p-2 text-xs"
             >
-              <div className="whitespace-pre-wrap break-words text-foreground/80">
+              <div className="text-foreground/80 break-words whitespace-pre-wrap">
                 {node.content}
                 {node.isActive && (
-                  <span className="inline-block w-1.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-middle" />
+                  <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-blue-500 align-middle" />
                 )}
               </div>
             </div>
@@ -304,7 +319,7 @@ const TaskItemComponent = memo(function TaskItemComponent({
   }, [isClickable, onSelect]);
 
   const toggleChildNode = useCallback((nodeId: string) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
         next.delete(nodeId);
@@ -318,11 +333,13 @@ const TaskItemComponent = memo(function TaskItemComponent({
   // Auto-expand active nodes
   useEffect(() => {
     if (item.childNodes) {
-      const activeNodeIds = item.childNodes.filter(n => n.isActive).map(n => n.id);
+      const activeNodeIds = item.childNodes
+        .filter((n) => n.isActive)
+        .map((n) => n.id);
       if (activeNodeIds.length > 0) {
-        setExpandedNodes(prev => {
+        setExpandedNodes((prev) => {
           const next = new Set(prev);
-          activeNodeIds.forEach(id => next.add(id));
+          activeNodeIds.forEach((id) => next.add(id));
           return next;
         });
       }
@@ -331,7 +348,11 @@ const TaskItemComponent = memo(function TaskItemComponent({
 
   // Auto-scroll to this task when it becomes in_progress
   useEffect(() => {
-    if (item.status === "in_progress" && taskItemRef.current && scrollContainerRef?.current) {
+    if (
+      item.status === "in_progress" &&
+      taskItemRef.current &&
+      scrollContainerRef?.current
+    ) {
       const container = scrollContainerRef.current;
       const task = taskItemRef.current;
       const containerRect = container.getBoundingClientRect();
@@ -352,15 +373,17 @@ const TaskItemComponent = memo(function TaskItemComponent({
         "text-sm",
         "transition-colors duration-150",
         item.status === "completed" && "text-muted-foreground",
-        item.status === "in_progress" && "bg-purple-50/50 dark:bg-purple-950/20",
-        selected && "ring-2 ring-purple-400 ring-inset bg-purple-100/50 dark:bg-purple-900/30",
+        item.status === "in_progress" &&
+          "bg-purple-50/50 dark:bg-purple-950/20",
+        selected &&
+          "bg-purple-100/50 ring-2 ring-purple-400 ring-inset dark:bg-purple-900/30",
       )}
     >
       {/* Main task header */}
       <div
         className={cn(
           "flex items-start gap-2 px-3 py-2",
-          isClickable && "cursor-pointer hover:bg-muted/30"
+          isClickable && "hover:bg-muted/30 cursor-pointer",
         )}
         onClick={handleClick}
       >
@@ -370,12 +393,12 @@ const TaskItemComponent = memo(function TaskItemComponent({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 item.status === "completed" && "line-through",
-                item.status === "in_progress" && "font-medium text-foreground"
+                item.status === "in_progress" && "text-foreground font-medium",
               )}
             >
               {item.status === "in_progress" && item.activeForm
@@ -389,10 +412,10 @@ const TaskItemComponent = memo(function TaskItemComponent({
 
           {/* Tool info for running tools */}
           {item.source === "tool" && item.status === "in_progress" && (
-            <div className="mt-1 text-xs text-muted-foreground">
+            <div className="text-muted-foreground mt-1 text-xs">
               <span className="font-mono">{item.toolName}</span>
               {item.toolArgs && Object.keys(item.toolArgs).length > 0 && (
-                <span className="ml-1 text-muted-foreground/70">
+                <span className="text-muted-foreground/70 ml-1">
                   ({Object.keys(item.toolArgs).join(", ")})
                 </span>
               )}
@@ -446,18 +469,18 @@ const TaskGroup = memo(function TaskGroup({
         <button
           onClick={() => setExpanded(!expanded)}
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-2 text-sm",
+            "flex w-full items-center gap-2 px-3 py-2 text-sm",
             "hover:bg-muted/30 transition-colors",
-            "border-b border-border/30"
+            "border-border/30 border-b",
           )}
         >
-          <ChevronIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-foreground/80">{name}</span>
-          <span className="text-xs text-muted-foreground ml-auto">
+          <ChevronIcon className="text-muted-foreground h-4 w-4" />
+          <span className="text-foreground/80 font-medium">{name}</span>
+          <span className="text-muted-foreground ml-auto text-xs">
             {completedCount}/{items.length}
           </span>
           {hasActiveItem && (
-            <Loader2 className="h-3 w-3 text-purple-500 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin text-purple-500" />
           )}
         </button>
       )}
@@ -470,7 +493,7 @@ const TaskGroup = memo(function TaskGroup({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="divide-y divide-border/20"
+            className="divide-border/20 divide-y"
           >
             {items.map((item) => (
               <TaskItemComponent
@@ -480,11 +503,12 @@ const TaskGroup = memo(function TaskGroup({
                 selected={selectedTaskId === item.langsmith?.runId}
                 onSelect={
                   item.langsmith?.runId
-                    ? () => onSelectTask?.(
-                        selectedTaskId === item.langsmith?.runId
-                          ? null
-                          : item.langsmith?.runId ?? null
-                      )
+                    ? () =>
+                        onSelectTask?.(
+                          selectedTaskId === item.langsmith?.runId
+                            ? null
+                            : (item.langsmith?.runId ?? null),
+                        )
                     : undefined
                 }
                 scrollContainerRef={scrollContainerRef}
@@ -512,13 +536,14 @@ export const TaskProgressList = memo(function TaskProgressList({
 
   // Filter only task and tool items (exclude todo)
   const taskItems = useMemo(
-    () => items.filter((item) => item.source === "task" || item.source === "tool"),
-    [items]
+    () =>
+      items.filter((item) => item.source === "task" || item.source === "tool"),
+    [items],
   );
 
   // Find active item for auto-scroll
   const activeItemId = useMemo(() => {
-    const activeItem = taskItems.find(i => i.status === "in_progress");
+    const activeItem = taskItems.find((i) => i.status === "in_progress");
     return activeItem?.id;
   }, [taskItems]);
 
@@ -535,7 +560,7 @@ export const TaskProgressList = memo(function TaskProgressList({
   // Get main group and subagent groups
   const mainItems = groups.get("main") || [];
   const subagentGroups = Array.from(groups.entries()).filter(
-    ([name]) => name !== "main"
+    ([name]) => name !== "main",
   );
 
   // Calculate totals
@@ -544,7 +569,7 @@ export const TaskProgressList = memo(function TaskProgressList({
       completedCount: taskItems.filter((i) => i.status === "completed").length,
       totalCount: taskItems.length,
     }),
-    [taskItems]
+    [taskItems],
   );
 
   const hasActiveItem = taskItems.some((i) => i.status === "in_progress");
@@ -556,22 +581,22 @@ export const TaskProgressList = memo(function TaskProgressList({
   const ChevronIcon = isCollapsed ? ChevronRight : ChevronDown;
 
   return (
-    <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+    <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
       {/* Header */}
       <div
-        className="px-3 py-2 bg-muted/30 border-b border-border/50 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
+        className="bg-muted/30 border-border/50 hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b px-3 py-2 transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <ChevronIcon className="h-4 w-4 text-muted-foreground" />
-          <Layers className="h-4 w-4 text-muted-foreground" />
+          <ChevronIcon className="text-muted-foreground h-4 w-4" />
+          <Layers className="text-muted-foreground h-4 w-4" />
           <span className="text-sm font-medium">Tasks</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             ({completedCount}/{totalCount})
           </span>
         </div>
         {hasActiveItem && (
-          <span className="text-xs text-purple-500 flex items-center gap-1">
+          <span className="flex items-center gap-1 text-xs text-purple-500">
             <Loader2 className="h-3 w-3 animate-spin" />
             In Progress
           </span>

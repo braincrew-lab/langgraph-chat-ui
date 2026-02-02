@@ -5,7 +5,14 @@ import type { UserRole } from "@/types/auth-mode";
 import { writeFile, mkdir, access, constants } from "fs/promises";
 import path from "path";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "image/x-icon"];
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "image/x-icon",
+];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 // Try multiple upload directories (for both dev and production)
@@ -44,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: "Invalid file type. Allowed: JPEG, PNG, GIF, WEBP, SVG, ICO" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "File too large. Maximum size is 2MB" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -64,8 +71,11 @@ export async function POST(request: NextRequest) {
     } catch (dirError) {
       console.error("Failed to create upload directory:", dirError);
       return NextResponse.json(
-        { error: "Upload directory is not writable. Please check server configuration." },
-        { status: 500 }
+        {
+          error:
+            "Upload directory is not writable. Please check server configuration.",
+        },
+        { status: 500 },
       );
     }
 
@@ -88,8 +98,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}` },
-      { status: 500 }
+      {
+        error: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`,
+      },
+      { status: 500 },
     );
   }
 }

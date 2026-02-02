@@ -50,12 +50,16 @@ const StatusIcon = memo(function StatusIcon({
 }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />;
+      return <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />;
     case "in_progress":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />;
+      return (
+        <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />
+      );
     case "pending":
     default:
-      return <Circle className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />;
+      return (
+        <Circle className="text-muted-foreground/50 h-4 w-4 flex-shrink-0" />
+      );
   }
 });
 
@@ -72,7 +76,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
         "flex items-start gap-2 px-3 py-2 text-sm",
         "transition-colors duration-150",
         item.status === "completed" && "text-muted-foreground",
-        item.status === "in_progress" && "bg-blue-50/50 dark:bg-blue-950/20"
+        item.status === "in_progress" && "bg-blue-50/50 dark:bg-blue-950/20",
       )}
     >
       {/* Status Icon */}
@@ -81,11 +85,11 @@ const TodoItemComponent = memo(function TodoItemComponent({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <span
           className={cn(
             item.status === "completed" && "line-through",
-            item.status === "in_progress" && "font-medium text-foreground"
+            item.status === "in_progress" && "text-foreground font-medium",
           )}
         >
           {item.status === "in_progress" && item.activeForm
@@ -110,7 +114,7 @@ export const TodoProgressList = memo(function TodoProgressList({
   // Filter only todo items
   const todoItems = useMemo(
     () => items.filter((item) => item.source === "todo"),
-    [items]
+    [items],
   );
 
   // Calculate totals
@@ -119,7 +123,7 @@ export const TodoProgressList = memo(function TodoProgressList({
       completedCount: todoItems.filter((i) => i.status === "completed").length,
       totalCount: todoItems.length,
     }),
-    [todoItems]
+    [todoItems],
   );
 
   const hasActiveItem = todoItems.some((i) => i.status === "in_progress");
@@ -131,22 +135,22 @@ export const TodoProgressList = memo(function TodoProgressList({
   const ChevronIcon = isCollapsed ? ChevronRight : ChevronDown;
 
   return (
-    <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+    <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
       {/* Header */}
       <div
-        className="px-3 py-2 bg-muted/30 border-b border-border/50 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
+        className="bg-muted/30 border-border/50 hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b px-3 py-2 transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <ChevronIcon className="h-4 w-4 text-muted-foreground" />
-          <ListTodo className="h-4 w-4 text-muted-foreground" />
+          <ChevronIcon className="text-muted-foreground h-4 w-4" />
+          <ListTodo className="text-muted-foreground h-4 w-4" />
           <span className="text-sm font-medium">Todo</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             ({completedCount}/{totalCount})
           </span>
         </div>
         {hasActiveItem && (
-          <span className="text-xs text-blue-500 flex items-center gap-1">
+          <span className="flex items-center gap-1 text-xs text-blue-500">
             <Loader2 className="h-3 w-3 animate-spin" />
             In Progress
           </span>
@@ -163,11 +167,14 @@ export const TodoProgressList = memo(function TodoProgressList({
             transition={{ duration: 0.2 }}
           >
             <div
-              className="overflow-y-auto divide-y divide-border/20"
+              className="divide-border/20 divide-y overflow-y-auto"
               style={{ maxHeight: MAX_HEIGHT }}
             >
               {todoItems.map((item) => (
-                <TodoItemComponent key={item.id} item={item} />
+                <TodoItemComponent
+                  key={item.id}
+                  item={item}
+                />
               ))}
             </div>
           </motion.div>

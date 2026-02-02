@@ -47,7 +47,7 @@ function hashToken(token: string): string {
 export async function createApiToken(
   userId: string,
   name: string,
-  expiresInDays?: number
+  expiresInDays?: number,
 ): Promise<{ token: string; info: ApiTokenInfo }> {
   const plainToken = generateToken();
   const hashedToken = hashToken(plainToken);
@@ -121,7 +121,7 @@ export async function getUserTokens(userId: string): Promise<ApiTokenInfo[]> {
  * Validate an API token and return the associated user
  */
 export async function validateApiToken(
-  plainToken: string
+  plainToken: string,
 ): Promise<ApiTokenWithUser | null> {
   const hashedToken = hashToken(plainToken);
 
@@ -179,7 +179,7 @@ export async function validateApiToken(
  */
 export async function deleteApiToken(
   tokenId: string,
-  userId: string
+  userId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const token = await prisma.apiToken.findUnique({
     where: { id: tokenId },
@@ -217,7 +217,7 @@ export async function deleteApiToken(
  */
 export async function deleteAllUserTokens(
   userId: string,
-  deletedById: string
+  deletedById: string,
 ): Promise<{ success: boolean; count: number }> {
   const result = await prisma.apiToken.deleteMany({
     where: { userId },

@@ -8,9 +8,7 @@ export function prettifyText(action: string) {
   return startCase(action.replace(/_/g, " "));
 }
 
-export function isArrayOfMessages(
-  value: unknown,
-): value is BaseMessage[] {
+export function isArrayOfMessages(value: unknown): value is BaseMessage[] {
   if (!Array.isArray(value)) return false;
   if (
     value.every(isBaseMessage) ||

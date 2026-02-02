@@ -6,7 +6,7 @@ import type { UserRole } from "@/types/auth-mode";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -30,7 +30,7 @@ export async function POST(
     console.error("Error suspending user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

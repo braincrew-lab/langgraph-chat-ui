@@ -76,11 +76,15 @@ function formatValue(value: unknown): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   return JSON.stringify(value, null, 2);
 }
 
-function truncateResult(result: string, maxLength: number = 500): { text: string; isTruncated: boolean } {
+function truncateResult(
+  result: string,
+  maxLength: number = 500,
+): { text: string; isTruncated: boolean } {
   if (result.length <= maxLength) {
     return { text: result, isTruncated: false };
   }
@@ -91,7 +95,11 @@ function truncateResult(result: string, maxLength: number = 500): { text: string
 // Sub-components
 // ============================================
 
-const StatusIcon = memo(function StatusIcon({ status }: { status: ToolStatus }) {
+const StatusIcon = memo(function StatusIcon({
+  status,
+}: {
+  status: ToolStatus;
+}) {
   switch (status) {
     case "completed":
       return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -99,13 +107,17 @@ const StatusIcon = memo(function StatusIcon({ status }: { status: ToolStatus }) 
       return <XCircle className="h-4 w-4 text-red-500" />;
     case "running":
     default:
-      return <Loader2 className="h-4 w-4 text-orange-500 animate-spin" />;
+      return <Loader2 className="h-4 w-4 animate-spin text-orange-500" />;
   }
 });
 
-const LatencyBadge = memo(function LatencyBadge({ latency }: { latency: number }) {
+const LatencyBadge = memo(function LatencyBadge({
+  latency,
+}: {
+  latency: number;
+}) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-muted/70 px-2 py-0.5 text-xs font-mono text-muted-foreground border border-border/30">
+    <span className="bg-muted/70 text-muted-foreground border-border/30 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs">
       <Clock className="h-3 w-3" />
       {formatLatency(latency)}
     </span>
@@ -128,7 +140,9 @@ const ArgsTable = memo(function ArgsTable({
   if (entries.length === 0) {
     return (
       <div className="px-4 py-3">
-        <span className="text-xs text-muted-foreground/60 italic">No arguments</span>
+        <span className="text-muted-foreground/60 text-xs italic">
+          No arguments
+        </span>
       </div>
     );
   }
@@ -136,10 +150,10 @@ const ArgsTable = memo(function ArgsTable({
   if (compact) {
     // Compact view: simple key=value list
     return (
-      <div className="px-3 py-2 text-xs text-muted-foreground">
+      <div className="text-muted-foreground px-3 py-2 text-xs">
         {entries.map(([key, value], idx) => (
           <span key={key}>
-            <span className="font-medium text-foreground/70">{key}</span>
+            <span className="text-foreground/70 font-medium">{key}</span>
             <span className="text-muted-foreground">=</span>
             <span className="text-foreground/85">
               {isComplexValue(value) ? "[...]" : String(value).slice(0, 50)}
@@ -154,19 +168,24 @@ const ArgsTable = memo(function ArgsTable({
   // Full view: table layout
   return (
     <table className="min-w-full">
-      <tbody className="divide-y divide-border/40">
+      <tbody className="divide-border/40 divide-y">
         {entries.map(([key, value]) => (
-          <tr key={key} className="transition-colors duration-150 hover:bg-muted/30">
-            <td className="px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-foreground/70 bg-muted/20 w-1/4">
+          <tr
+            key={key}
+            className="hover:bg-muted/30 transition-colors duration-150"
+          >
+            <td className="text-foreground/70 bg-muted/20 w-1/4 px-4 py-2.5 text-xs font-semibold whitespace-nowrap">
               {key}
             </td>
-            <td className="px-4 py-2.5 text-sm text-foreground/85">
+            <td className="text-foreground/85 px-4 py-2.5 text-sm">
               {isComplexValue(value) ? (
-                <code className="block rounded-lg bg-muted/40 px-3 py-2 font-mono text-xs break-all border border-border/30 whitespace-pre-wrap">
+                <code className="bg-muted/40 border-border/30 block rounded-lg border px-3 py-2 font-mono text-xs break-all whitespace-pre-wrap">
                   {formatValue(value)}
                 </code>
               ) : (
-                <span className="font-normal break-words">{formatValue(value)}</span>
+                <span className="font-normal break-words">
+                  {formatValue(value)}
+                </span>
               )}
             </td>
           </tr>
@@ -193,9 +212,11 @@ const ResultDisplay = memo(function ResultDisplay({
 
   if (error) {
     return (
-      <div className="px-4 py-3 bg-red-50/50 dark:bg-red-950/20 border-t border-red-200/50 dark:border-red-800/30">
-        <div className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Error</div>
-        <code className="text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap break-words">
+      <div className="border-t border-red-200/50 bg-red-50/50 px-4 py-3 dark:border-red-800/30 dark:bg-red-950/20">
+        <div className="mb-1 text-xs font-medium text-red-700 dark:text-red-400">
+          Error
+        </div>
+        <code className="text-xs break-words whitespace-pre-wrap text-red-600 dark:text-red-300">
           {error}
         </code>
       </div>
@@ -204,8 +225,10 @@ const ResultDisplay = memo(function ResultDisplay({
 
   if (!result) {
     return (
-      <div className="px-4 py-3 border-t border-border/40">
-        <span className="text-xs text-muted-foreground/60 italic">No result</span>
+      <div className="border-border/40 border-t px-4 py-3">
+        <span className="text-muted-foreground/60 text-xs italic">
+          No result
+        </span>
       </div>
     );
   }
@@ -223,23 +246,29 @@ const ResultDisplay = memo(function ResultDisplay({
 
   const { text: displayText, isTruncated } = truncateResult(
     isJsonContent ? JSON.stringify(parsedContent, null, 2) : result,
-    showFull ? Infinity : 500
+    showFull ? Infinity : 500,
   );
   const lines = displayText.split("\n");
   const shouldShowMore = isTruncated || lines.length > maxLines;
 
   return (
-    <div className="border-t border-border/40">
+    <div className="border-border/40 border-t">
       <div className="px-4 py-3">
-        <div className="text-xs font-medium text-muted-foreground mb-2">Result</div>
-        <code className="block rounded-lg bg-muted/40 px-3 py-2 text-xs font-mono border border-border/30 leading-relaxed whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto">
-          {showFull ? (isJsonContent ? JSON.stringify(parsedContent, null, 2) : result) : displayText}
+        <div className="text-muted-foreground mb-2 text-xs font-medium">
+          Result
+        </div>
+        <code className="bg-muted/40 border-border/30 block max-h-[200px] overflow-y-auto rounded-lg border px-3 py-2 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
+          {showFull
+            ? isJsonContent
+              ? JSON.stringify(parsedContent, null, 2)
+              : result
+            : displayText}
         </code>
       </div>
       {shouldShowMore && (
         <button
           onClick={() => setShowFull(!showFull)}
-          className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground border-t border-border/40 hover:bg-muted/30 transition-colors"
+          className="text-muted-foreground border-border/40 hover:bg-muted/30 flex w-full items-center justify-center gap-1.5 border-t py-2 text-xs font-medium transition-colors"
         >
           {showFull ? (
             <>
@@ -280,7 +309,11 @@ export const ToolCard = memo(function ToolCard({
 
   // Auto-collapse when completed (if setting enabled)
   useEffect(() => {
-    if (autoCollapse && userSettings.autoCollapseToolCalls && status === "completed") {
+    if (
+      autoCollapse &&
+      userSettings.autoCollapseToolCalls &&
+      status === "completed"
+    ) {
       setIsExpanded(false);
     }
   }, [status, autoCollapse, userSettings.autoCollapseToolCalls]);
@@ -307,20 +340,23 @@ export const ToolCard = memo(function ToolCard({
     return (
       <div
         className={cn(
-          "flex items-center gap-2 py-1.5 px-2 text-xs",
-          "border-l-2 rounded-r",
+          "flex items-center gap-2 px-2 py-1.5 text-xs",
+          "rounded-r border-l-2",
           getStatusColor(),
-          className
+          className,
         )}
       >
-        <Wrench className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-        <span className="font-medium text-foreground/80">{name}</span>
+        <Wrench className="text-muted-foreground h-3 w-3 flex-shrink-0" />
+        <span className="text-foreground/80 font-medium">{name}</span>
         <StatusIcon status={status} />
         {latency && <LatencyBadge latency={latency} />}
         {hasArgs && (
-          <span className="text-muted-foreground truncate max-w-[200px]">
+          <span className="text-muted-foreground max-w-[200px] truncate">
             {Object.entries(args)
-              .map(([k, v]) => `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 20)}`)
+              .map(
+                ([k, v]) =>
+                  `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 20)}`,
+              )
               .join(", ")}
           </span>
         )}
@@ -335,32 +371,39 @@ export const ToolCard = memo(function ToolCard({
         "overflow-hidden rounded-lg border-l-2",
         getStatusColor(),
         "transition-all duration-150",
-        className
+        className,
       )}
     >
       {/* Header - compact inline style */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-2 text-left transition-colors hover:bg-muted/30"
+        className="hover:bg-muted/30 w-full px-3 py-2 text-left transition-colors"
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Wrench className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="font-medium text-sm text-foreground truncate">{name}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Wrench className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+            <span className="text-foreground truncate text-sm font-medium">
+              {name}
+            </span>
             <StatusIcon status={status} />
             {latency && <LatencyBadge latency={latency} />}
             {/* Show args preview when collapsed */}
             {!isExpanded && hasArgs && (
-              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                ({Object.entries(args).map(([k, v]) =>
-                  `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`
-                ).join(", ")})
+              <span className="text-muted-foreground max-w-[150px] truncate text-xs">
+                (
+                {Object.entries(args)
+                  .map(
+                    ([k, v]) =>
+                      `${k}=${isComplexValue(v) ? "[...]" : String(v).slice(0, 15)}`,
+                  )
+                  .join(", ")}
+                )
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex flex-shrink-0 items-center gap-1.5">
             {toolCallId && (
-              <code className="hidden sm:inline rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70">
+              <code className="bg-muted/50 text-muted-foreground/70 hidden rounded px-1.5 py-0.5 font-mono text-[10px] sm:inline">
                 {toolCallId.slice(0, 6)}
               </code>
             )}
@@ -368,7 +411,7 @@ export const ToolCard = memo(function ToolCard({
               animate={{ rotate: isExpanded ? 0 : -90 }}
               transition={{ duration: 0.15, ease: "easeInOut" }}
             >
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <ChevronDown className="text-muted-foreground/60 h-3.5 w-3.5" />
             </motion.div>
           </div>
         </div>
@@ -382,7 +425,7 @@ export const ToolCard = memo(function ToolCard({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden border-t border-border/30"
+            className="border-border/30 overflow-hidden border-t"
           >
             {/* Args Section */}
             {hasArgs && (
@@ -393,12 +436,15 @@ export const ToolCard = memo(function ToolCard({
 
             {/* Result Section */}
             {(hasResult || error || status === "completed") && (
-              <ResultDisplay result={result} error={error} />
+              <ResultDisplay
+                result={result}
+                error={error}
+              />
             )}
 
             {/* Running State */}
             {status === "running" && !hasResult && (
-              <div className="px-3 py-2 bg-purple-50/20 dark:bg-purple-950/10">
+              <div className="bg-purple-50/20 px-3 py-2 dark:bg-purple-950/10">
                 <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Running...</span>
@@ -446,7 +492,7 @@ export const ToolCardList = memo(function ToolCardList({
         "grid gap-3",
         userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl",
         "mx-auto",
-        className
+        className,
       )}
     >
       {tools.map((tool) => (

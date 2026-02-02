@@ -30,7 +30,10 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
   });
 
   // Validate LangGraph URL by calling /info endpoint
-  const validateLangGraphUrl = async (apiUrl: string, apiKey?: string): Promise<boolean> => {
+  const validateLangGraphUrl = async (
+    apiUrl: string,
+    apiKey?: string,
+  ): Promise<boolean> => {
     try {
       const url = apiUrl.replace(/\/$/, ""); // Remove trailing slash
       const res = await fetch(`${url}/info`, {
@@ -67,7 +70,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
     setIsValidating(true);
     const isValid = await validateLangGraphUrl(
       newConnection.apiUrl,
-      newConnection.apiKey || undefined
+      newConnection.apiKey || undefined,
     );
     setIsValidating(false);
 
@@ -83,7 +86,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
       connectionName,
       newConnection.apiUrl,
       newConnection.assistantId || undefined,
-      newConnection.apiKey || undefined
+      newConnection.apiKey || undefined,
     );
 
     toast.success("Connection added successfully");
@@ -121,7 +124,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-medium text-sm text-muted-foreground">
+        <h4 className="text-muted-foreground text-sm font-medium">
           Saved Connections ({connections.length})
         </h4>
         <Button
@@ -136,7 +139,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
 
       {/* Add Connection Form */}
       {isAdding && (
-        <div className="space-y-3 p-4 border rounded-lg">
+        <div className="space-y-3 rounded-lg border p-4">
           <div className="space-y-2">
             <Label htmlFor="conn-name">Connection Name (Optional)</Label>
             <Input
@@ -147,7 +150,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
                 setNewConnection({ ...newConnection, name: e.target.value })
               }
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Leave empty for auto-generated name (Connection 1, 2, ...)
             </p>
           </div>
@@ -177,7 +180,7 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
                 })
               }
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Leave empty to auto-load available graphs
             </p>
           </div>
@@ -196,7 +199,11 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleAddConnection} size="sm" disabled={isValidating}>
+            <Button
+              onClick={handleAddConnection}
+              size="sm"
+              disabled={isValidating}
+            >
               {isValidating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -223,22 +230,24 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
         {connections.map((connection) => (
           <div
             key={connection.id}
-            className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors ${
+            className={`hover:bg-accent/50 flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
               connection.isActive ? "bg-accent border-primary" : ""
             }`}
             onClick={() => handleSwitchConnection(connection)}
           >
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="font-medium text-sm">{connection.name}</p>
+                <p className="text-sm font-medium">{connection.name}</p>
                 {connection.isDefault && (
-                  <span className="text-xs px-2 py-0.5 bg-muted rounded">
+                  <span className="bg-muted rounded px-2 py-0.5 text-xs">
                     Default
                   </span>
                 )}
-                {connection.isActive && <Check className="h-4 w-4 text-primary" />}
+                {connection.isActive && (
+                  <Check className="text-primary h-4 w-4" />
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-xs">
                 {connection.apiUrl}
                 {connection.assistantId && ` • ${connection.assistantId}`}
               </p>
@@ -254,7 +263,9 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
                   handleDeleteConnection(connection.id);
                 }}
               >
-                <Trash2 className={`h-4 w-4 ${connection.isActive ? "text-muted-foreground" : "text-destructive"}`} />
+                <Trash2
+                  className={`h-4 w-4 ${connection.isActive ? "text-muted-foreground" : "text-destructive"}`}
+                />
               </Button>
             )}
           </div>

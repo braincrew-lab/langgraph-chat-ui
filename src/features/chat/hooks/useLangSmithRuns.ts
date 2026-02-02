@@ -32,12 +32,10 @@ const DEFAULT_POLLING_INTERVAL = 5000; // 5초 (스트리밍 중 폴링)
 export function useLangSmithRuns(
   threadId: string | null,
   traceId?: string | null,
-  options: UseLangSmithRunsOptions = {}
+  options: UseLangSmithRunsOptions = {},
 ): UseLangSmithRunsReturn {
-  const {
-    pollingInterval = DEFAULT_POLLING_INTERVAL,
-    autoPolling = false,
-  } = options;
+  const { pollingInterval = DEFAULT_POLLING_INTERVAL, autoPolling = false } =
+    options;
 
   const [runs, setRuns] = useState<LangSmithRun[]>([]);
   const [loading, setLoading] = useState(false);

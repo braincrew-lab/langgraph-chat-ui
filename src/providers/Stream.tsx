@@ -39,12 +39,12 @@ export type StateType = {
 
 // 노드별 업데이트 정보 (스트리밍 이벤트에서 추출)
 export interface NodeUpdateInfo {
-  nodeName: string;       // 노드 이름 (이벤트에서 추출)
-  namespace: string[];    // 서브그래프 경로
-  timestamp: number;      // 업데이트 시간
-  hasMessages: boolean;   // 메시지 업데이트 포함 여부
+  nodeName: string; // 노드 이름 (이벤트에서 추출)
+  namespace: string[]; // 서브그래프 경로
+  timestamp: number; // 업데이트 시간
+  hasMessages: boolean; // 메시지 업데이트 포함 여부
   streamingContent: string; // 현재까지의 스트리밍 콘텐츠
-  isActive: boolean;      // 현재 활성(스트리밍 중) 여부
+  isActive: boolean; // 현재 활성(스트리밍 중) 여부
   completedOutput: string; // 노드 완료 시 저장된 출력
 }
 
@@ -123,13 +123,18 @@ const StreamSession = ({
 
   // 메시지 인덱스 → 노드 이름 매핑 (중간 노드 추적용)
   const messageNodeMapRef = useRef(new Map<number, string>());
-  const [messageNodeMap, setMessageNodeMap] = useState(new Map<number, string>());
+  const [messageNodeMap, setMessageNodeMap] = useState(
+    new Map<number, string>(),
+  );
   const prevAiMessageCountRef = useRef(0);
   const currentActiveNodeRef = useRef<string | null>(null);
 
   // Memoize callbacks to prevent infinite re-renders
   const handleCustomEvent = useCallback(
-    (event: unknown, options: { mutate: (fn: (prev: StateType) => StateType) => void }) => {
+    (
+      event: unknown,
+      options: { mutate: (fn: (prev: StateType) => StateType) => void },
+    ) => {
       // Handle UI messages
       if (isUIMessage(event) || isRemoveUIMessage(event)) {
         options.mutate((prev: StateType) => {
@@ -138,23 +143,33 @@ const StreamSession = ({
         });
       }
     },
-    []
+    [],
   );
 
   // 스트리밍 이벤트에서 노드 정보 추출 (노드 이름만 추적, 콘텐츠는 messages에서)
   const handleUpdateEvent = useCallback(
     (
       data: { [node: string]: unknown },
-      options: { namespace: string[] | undefined; mutate: (update: Partial<StateType> | ((prev: StateType) => Partial<StateType>)) => void }
+      options: {
+        namespace: string[] | undefined;
+        mutate: (
+          update:
+            | Partial<StateType>
+            | ((prev: StateType) => Partial<StateType>),
+        ) => void;
+      },
     ) => {
       // DEBUG: 전체 SSE 이벤트 구조 확인
-      console.log(`[SSE Event] namespace=${JSON.stringify(options.namespace)}, data keys=${Object.keys(data).join(', ')}`, data);
+      console.log(
+        `[SSE Event] namespace=${JSON.stringify(options.namespace)}, data keys=${Object.keys(data).join(", ")}`,
+        data,
+      );
 
       const nodeNames = Object.keys(data);
       const timestamp = Date.now();
 
       // 모든 기존 노드를 비활성화 (immutable update로 React 변경 감지 보장)
-      nodeUpdatesRef.current = nodeUpdatesRef.current.map(u => ({
+      nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => ({
         ...u,
         isActive: false,
       }));
@@ -164,23 +179,32 @@ const StreamSession = ({
         if (nodeName.startsWith("__") && nodeName.endsWith("__")) continue;
 
         const nodeData = data[nodeName] as Record<string, unknown> | undefined;
-        const hasMessages = nodeData && ("messages" in nodeData);
+        const hasMessages = nodeData && "messages" in nodeData;
 
         // DEBUG: SSE 데이터 구조 확인
-        console.log(`[SSE] Node: ${nodeName}, namespace: ${JSON.stringify(options.namespace)}, data keys:`, nodeData ? Object.keys(nodeData) : 'null');
+        console.log(
+          `[SSE] Node: ${nodeName}, namespace: ${JSON.stringify(options.namespace)}, data keys:`,
+          nodeData ? Object.keys(nodeData) : "null",
+        );
 
         // SSE 이벤트에서 콘텐츠 추출 (다양한 소스 시도)
         let messageContent = "";
 
         if (nodeData) {
           // DEBUG: 전체 nodeData 구조 확인
-          console.log(`[SSE] Node: ${nodeName}, full nodeData:`, JSON.stringify(nodeData, null, 2).slice(0, 500));
+          console.log(
+            `[SSE] Node: ${nodeName}, full nodeData:`,
+            JSON.stringify(nodeData, null, 2).slice(0, 500),
+          );
 
           // 1. messages 필드에서 추출 (기존 로직)
           if (hasMessages) {
             const rawMessages = nodeData.messages as unknown;
-            const messages = Array.isArray(rawMessages) ? rawMessages :
-                            (typeof rawMessages === "object" && rawMessages !== null) ? [rawMessages] : [];
+            const messages = Array.isArray(rawMessages)
+              ? rawMessages
+              : typeof rawMessages === "object" && rawMessages !== null
+                ? [rawMessages]
+                : [];
 
             if (messages.length > 0) {
               const lastMsg = messages[messages.length - 1];
@@ -206,12 +230,22 @@ const StreamSession = ({
           // 2. messages가 없으면 다른 필드에서 텍스트 추출 시도
           if (!messageContent) {
             // 우선순위가 높은 필드 먼저 확인
-            const priorityFields = ["content", "text", "output", "response", "result", "data"];
+            const priorityFields = [
+              "content",
+              "text",
+              "output",
+              "response",
+              "result",
+              "data",
+            ];
             for (const field of priorityFields) {
               const value = nodeData[field];
               if (typeof value === "string" && value.length > 0) {
                 messageContent = value;
-                console.log(`[SSE] Found content in field "${field}":`, value.slice(0, 100));
+                console.log(
+                  `[SSE] Found content in field "${field}":`,
+                  value.slice(0, 100),
+                );
                 break;
               }
             }
@@ -223,7 +257,10 @@ const StreamSession = ({
               if (key === "messages") continue; // already handled
               if (typeof value === "string" && value.length > 10) {
                 messageContent = value;
-                console.log(`[SSE] Found content in arbitrary field "${key}":`, value.slice(0, 100));
+                console.log(
+                  `[SSE] Found content in arbitrary field "${key}":`,
+                  value.slice(0, 100),
+                );
                 break;
               }
             }
@@ -232,16 +269,22 @@ const StreamSession = ({
 
         // 동일 노드의 기존 업데이트를 찾기
         const existingIndex = nodeUpdatesRef.current.findIndex(
-          (u) => u.nodeName === nodeName && JSON.stringify(u.namespace) === JSON.stringify(options.namespace || [])
+          (u) =>
+            u.nodeName === nodeName &&
+            JSON.stringify(u.namespace) ===
+              JSON.stringify(options.namespace || []),
         );
 
         if (existingIndex >= 0) {
           // 기존 노드 업데이트 - 콘텐츠 누적
-          const existingContent = nodeUpdatesRef.current[existingIndex].streamingContent;
+          const existingContent =
+            nodeUpdatesRef.current[existingIndex].streamingContent;
           nodeUpdatesRef.current[existingIndex] = {
             ...nodeUpdatesRef.current[existingIndex],
             timestamp,
-            hasMessages: nodeUpdatesRef.current[existingIndex].hasMessages || !!hasMessages,
+            hasMessages:
+              nodeUpdatesRef.current[existingIndex].hasMessages ||
+              !!hasMessages,
             streamingContent: messageContent || existingContent, // 새 콘텐츠가 있으면 업데이트
             isActive: true,
           };
@@ -260,7 +303,7 @@ const StreamSession = ({
       }
 
       // 현재 활성 노드 저장 (메시지-노드 매핑용)
-      const activeNode = nodeUpdatesRef.current.find(n => n.isActive);
+      const activeNode = nodeUpdatesRef.current.find((n) => n.isActive);
       if (activeNode) {
         currentActiveNodeRef.current = activeNode.nodeName;
       }
@@ -268,7 +311,7 @@ const StreamSession = ({
       // React 상태 업데이트
       setNodeUpdates([...nodeUpdatesRef.current]);
     },
-    []
+    [],
   );
 
   const handleThreadId = useCallback(
@@ -285,7 +328,7 @@ const StreamSession = ({
       // Wait for some seconds before fetching so we're able to get the new thread that was created.
       sleep().then(() => getThreads().then(setThreads).catch(console.error));
     },
-    [setThreadId, getThreads, setThreads]
+    [setThreadId, getThreads, setThreads],
   );
 
   const streamValue = useTypedStream({
@@ -308,10 +351,15 @@ const StreamSession = ({
       console.log(`[Stream] isLoading=true, messages count=${messages.length}`);
       if (messages.length > 0) {
         const lastMsg = messages[messages.length - 1];
-        console.log(`[Stream] Last message type=${lastMsg.type}, content length=${
-          typeof lastMsg.content === 'string' ? lastMsg.content.length :
-          Array.isArray(lastMsg.content) ? lastMsg.content.length : 0
-        }`);
+        console.log(
+          `[Stream] Last message type=${lastMsg.type}, content length=${
+            typeof lastMsg.content === "string"
+              ? lastMsg.content.length
+              : Array.isArray(lastMsg.content)
+                ? lastMsg.content.length
+                : 0
+          }`,
+        );
       }
     }
 
@@ -321,9 +369,16 @@ const StreamSession = ({
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].type === "ai") {
         // 새로운 AI 메시지인 경우 현재 활성 노드에 매핑
-        if (aiIndex >= prevAiMessageCountRef.current && !messageNodeMapRef.current.has(i)) {
-          const nodeName = currentActiveNodeRef.current ||
-            (nodeUpdatesRef.current.length > 0 ? nodeUpdatesRef.current[nodeUpdatesRef.current.length - 1].nodeName : null);
+        if (
+          aiIndex >= prevAiMessageCountRef.current &&
+          !messageNodeMapRef.current.has(i)
+        ) {
+          const nodeName =
+            currentActiveNodeRef.current ||
+            (nodeUpdatesRef.current.length > 0
+              ? nodeUpdatesRef.current[nodeUpdatesRef.current.length - 1]
+                  .nodeName
+              : null);
           if (nodeName) {
             messageNodeMapRef.current.set(i, nodeName);
           }
@@ -355,16 +410,21 @@ const StreamSession = ({
   }, []);
 
   // 노드 완료 출력 업데이트 함수 (노드가 비활성화될 때 출력 저장)
-  const updateNodeCompletedOutput = useCallback((nodeName: string, output: string) => {
-    const nodeIndex = nodeUpdatesRef.current.findIndex(n => n.nodeName === nodeName);
-    if (nodeIndex >= 0) {
-      nodeUpdatesRef.current[nodeIndex] = {
-        ...nodeUpdatesRef.current[nodeIndex],
-        completedOutput: output,
-      };
-      setNodeUpdates([...nodeUpdatesRef.current]);
-    }
-  }, []);
+  const updateNodeCompletedOutput = useCallback(
+    (nodeName: string, output: string) => {
+      const nodeIndex = nodeUpdatesRef.current.findIndex(
+        (n) => n.nodeName === nodeName,
+      );
+      if (nodeIndex >= 0) {
+        nodeUpdatesRef.current[nodeIndex] = {
+          ...nodeUpdatesRef.current[nodeIndex],
+          completedOutput: output,
+        };
+        setNodeUpdates([...nodeUpdatesRef.current]);
+      }
+    },
+    [],
+  );
 
   // 확장된 컨텍스트 값 생성
   const extendedStreamValue = useMemo(
@@ -375,7 +435,13 @@ const StreamSession = ({
       updateNodeCompletedOutput,
       messageNodeMap,
     }),
-    [streamValue, nodeUpdates, clearNodeUpdates, updateNodeCompletedOutput, messageNodeMap]
+    [
+      streamValue,
+      nodeUpdates,
+      clearNodeUpdates,
+      updateNodeCompletedOutput,
+      messageNodeMap,
+    ],
   );
 
   useEffect(() => {
@@ -428,7 +494,7 @@ export const StreamProvider: React.FC<{
   // Connection values come from server (already resolved: Cookies > Env vars)
   const resolvedApiUrl = useMemo(
     () => normalizeApiUrl(connection.apiUrl),
-    [connection.apiUrl]
+    [connection.apiUrl],
   );
 
   const finalAssistantId = connection.assistantId?.trim() || "";

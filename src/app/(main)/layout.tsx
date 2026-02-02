@@ -16,7 +16,9 @@ export default async function MainLayout({
   // Read connection settings from cookies (SSR support)
   const cookieStore = await cookies();
   const cookieApiUrl = cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value;
-  const cookieAssistantId = cookieStore.get(CONNECTION_COOKIE_NAMES.assistantId)?.value;
+  const cookieAssistantId = cookieStore.get(
+    CONNECTION_COOKIE_NAMES.assistantId,
+  )?.value;
   const cookieApiKey = cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value;
 
   // Priority: Admin default (if set) > Cookies > Environment variables
@@ -26,15 +28,20 @@ export default async function MainLayout({
 
   const apiUrl = adminDefaultApiUrl
     ? adminDefaultApiUrl
-    : (cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "");
+    : cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "";
   const assistantIdOrGraphId = adminDefaultGraphId
     ? adminDefaultGraphId
-    : (cookieAssistantId || "");
-  const apiKey = cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
+    : cookieAssistantId || "";
+  const apiKey =
+    cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
   // Resolve graph_id to UUID if needed
   const resolvedAssistantId = assistantIdOrGraphId
-    ? await resolveAssistantId(apiUrl, assistantIdOrGraphId, apiKey || undefined)
+    ? await resolveAssistantId(
+        apiUrl,
+        assistantIdOrGraphId,
+        apiKey || undefined,
+      )
     : null;
 
   const initialConnection = {

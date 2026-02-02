@@ -11,7 +11,7 @@ import { UI } from "@/lib/constants";
  */
 export function truncateToolResult(
   result: string,
-  maxLength: number = UI.MAX_TOOL_RESULT_LENGTH
+  maxLength: number = UI.MAX_TOOL_RESULT_LENGTH,
 ): string {
   if (!result) return "";
   return result.length > maxLength
@@ -28,7 +28,7 @@ export function truncateToolResult(
 export function formatToolArgs(
   args: Record<string, unknown>,
   maxEntries: number = 2,
-  maxValueLength: number = 40
+  maxValueLength: number = 40,
 ): string {
   if (!args || Object.keys(args).length === 0) {
     return "";
@@ -56,12 +56,8 @@ export function formatToolArgs(
  * @param maxLength - 최대 길이 (기본값: 100)
  */
 export function formatValue(value: unknown, maxLength: number = 100): string {
-  const str = typeof value === "object"
-    ? JSON.stringify(value)
-    : String(value);
-  return str.length > maxLength
-    ? str.substring(0, maxLength) + "..."
-    : str;
+  const str = typeof value === "object" ? JSON.stringify(value) : String(value);
+  return str.length > maxLength ? str.substring(0, maxLength) + "..." : str;
 }
 
 /**

@@ -16,7 +16,13 @@
  * └─────────────────────────────────────────┘
  */
 
-import React, { FormEvent, ChangeEvent, RefObject, useState, useEffect } from "react";
+import React, {
+  FormEvent,
+  ChangeEvent,
+  RefObject,
+  useState,
+  useEffect,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -108,7 +114,13 @@ export function UnifiedInputArea({
   enableGraphSelection = true,
   enableAdvancedInput = true,
 }: UnifiedInputAreaProps) {
-  const { isFormValid, parsedSchema, formState, setFieldValue, isLoading: schemaLoading } = schemaUI;
+  const {
+    isFormValid,
+    parsedSchema,
+    formState,
+    setFieldValue,
+    isLoading: schemaLoading,
+  } = schemaUI;
   const { requiredFields, rawSchema } = parsedSchema;
 
   // Form collapse state - collapsed by default on chat page
@@ -180,7 +192,7 @@ export function UnifiedInputArea({
                 <button
                   type="button"
                   onClick={() => setIsFormCollapsed(!isFormCollapsed)}
-                  className="flex w-full items-center justify-between gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground flex w-full items-center justify-between gap-2 text-sm transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     {isLoading ? (
@@ -211,17 +223,19 @@ export function UnifiedInputArea({
                       transition={{ duration: 0.2, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <div className="pt-3 border-t border-border/50 mt-3">
+                      <div className="border-border/50 mt-3 border-t pt-3">
                         {/* Required fields only (고급 입력 is already shown at top) */}
                         {requiredFields.length > 0 && rawSchema && (
-                          <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                          <div className="max-h-[200px] space-y-3 overflow-y-auto">
                             {requiredFields.map((field) => (
                               <SchemaField
                                 key={field.name}
                                 field={field}
                                 rootSchema={rawSchema}
                                 value={formState[field.name]}
-                                onChange={(value) => setFieldValue(field.name, value)}
+                                onChange={(value) =>
+                                  setFieldValue(field.name, value)
+                                }
                                 disabled={true}
                               />
                             ))}
@@ -254,7 +268,7 @@ export function UnifiedInputArea({
             /* Full form when not streaming */
             <>
               {requiredFields.length > 0 && rawSchema && (
-                <div className="space-y-3 px-4 py-3 max-h-[300px] overflow-y-auto">
+                <div className="max-h-[300px] space-y-3 overflow-y-auto px-4 py-3">
                   {requiredFields.map((field) => (
                     <SchemaField
                       key={field.name}

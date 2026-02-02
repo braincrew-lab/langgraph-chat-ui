@@ -40,7 +40,10 @@ export default function AccountSuspendedPage() {
       className="space-y-6"
     >
       {/* Icon */}
-      <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 pb-2">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col items-center gap-4 pb-2"
+      >
         <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
@@ -49,9 +52,9 @@ export default function AccountSuspendedPage() {
         >
           <Ban className="h-8 w-8 text-red-600 dark:text-red-400" />
         </motion.div>
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">계정 정지됨</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             계정이 관리자에 의해 정지되었습니다
           </p>
         </div>
@@ -60,7 +63,7 @@ export default function AccountSuspendedPage() {
       {/* Message */}
       <motion.div
         variants={itemVariants}
-        className="text-center text-muted-foreground text-sm leading-relaxed"
+        className="text-muted-foreground text-center text-sm leading-relaxed"
       >
         <p>
           계정이 정지되어 서비스를 이용할 수 없습니다. 문의사항이 있으시면
@@ -69,7 +72,7 @@ export default function AccountSuspendedPage() {
         {session?.user?.email && (
           <p className="mt-4">
             계정:{" "}
-            <span className="font-medium text-foreground">
+            <span className="text-foreground font-medium">
               {session.user.email}
             </span>
           </p>
@@ -77,11 +80,14 @@ export default function AccountSuspendedPage() {
       </motion.div>
 
       {/* Actions */}
-      <motion.div variants={itemVariants} className="space-y-3">
+      <motion.div
+        variants={itemVariants}
+        className="space-y-3"
+      >
         <Button
           onClick={() => (window.location.href = "mailto:support@example.com")}
           variant="outline"
-          className="w-full h-11 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <Mail className="mr-2 h-4 w-4" />
           문의하기
@@ -89,7 +95,7 @@ export default function AccountSuspendedPage() {
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="w-full h-11 rounded-xl font-medium text-muted-foreground transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <LogOut className="mr-2 h-4 w-4" />
           로그아웃
