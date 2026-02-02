@@ -30,3 +30,10 @@ dist-ssr
 next-env.d.ts
 
 tsconfig.tsbuildinfo
+
+# Database
+*.db
+*.db-journal
+
+# Uploaded files
+public/uploads/

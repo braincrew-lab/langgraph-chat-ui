@@ -18,13 +18,13 @@
   --secondary-foreground: oklch(0.18 0 0);
   /* Refined muted colors for message backgrounds */
   --muted: oklch(0.955 0 0);
-  --muted-foreground: oklch(0.50 0 0);
+  --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.96 0 0);
   --accent-foreground: oklch(0.18 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.99 0 0);
   /* Subtle borders for elegant separation */
-  --border: oklch(0.90 0 0);
+  --border: oklch(0.9 0 0);
   --input: oklch(0.94 0 0);
   --ring: oklch(0.82 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -40,9 +40,11 @@
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.96 0 0);
   --sidebar-accent-foreground: oklch(0.18 0 0);
-  --sidebar-border: oklch(0.90 0 0);
+  --sidebar-border: oklch(0.9 0 0);
   --sidebar-ring: oklch(0.82 0 0);
-  --font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
   --base-font-size: 16px;
 }
 
@@ -64,7 +66,7 @@
   --secondary-foreground: oklch(0.96 0 0);
   /* Elegant muted backgrounds for messages */
   --muted: oklch(0.16 0 0);
-  --muted-foreground: oklch(0.70 0 0);
+  --muted-foreground: oklch(0.7 0 0);
   /* Subtle accent */
   --accent: oklch(0.18 0 0);
   --accent-foreground: oklch(0.96 0 0);

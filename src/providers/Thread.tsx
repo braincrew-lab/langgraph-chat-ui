@@ -1,7 +1,5 @@
 import { validate } from "uuid";
-import { getApiKey } from "@/lib/api-key";
-import { Thread } from "@langchain/langgraph-sdk";
-import { useQueryState } from "nuqs";
+import { Thread, Client } from "@langchain/langgraph-sdk";
 import {
   createContext,
   ReactNode,
@@ -12,6 +10,8 @@ import {
   SetStateAction,
 } from "react";
 import { createClient } from "./client";
+import { getApiKey } from "@/lib/api-key";
+import type { ConnectionConfig } from "./Stream";
 
 export interface ThreadContextType {
   getThreads: () => Promise<Thread[]>;
@@ -19,9 +19,12 @@ export interface ThreadContextType {
   setThreads: Dispatch<SetStateAction<Thread[]>>;
   threadsLoading: boolean;
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
+  client: Client | null;
 }
 
-export const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
+export const ThreadContext = createContext<ThreadContextType | undefined>(
+  undefined,
+);
 
 function getThreadSearchMetadata(
   assistantId: string,
@@ -33,19 +36,25 @@ function getThreadSearchMetadata(
   }
 }
 
-export function ThreadProvider({ children }: { children: ReactNode }) {
-  const [apiUrl] = useQueryState("apiUrl");
-  const [assistantId] = useQueryState("assistantId");
+interface ThreadProviderProps {
+  children: ReactNode;
+  connection: ConnectionConfig;
+}
+
+export function ThreadProvider({ children, connection }: ThreadProviderProps) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const finalApiUrl = apiUrl || envApiUrl;
-  const sanitizedAssistantId = assistantId?.trim();
-  const finalAssistantId = sanitizedAssistantId || undefined;
+  const finalAssistantId = connection.assistantId?.trim() || undefined;
+  const apiKey = connection.apiKey || getApiKey() || undefined;
+
+  // Create client once and memoize
+  const client = useMemo(() => {
+    if (!connection.apiUrl) return null;
+    return createClient(connection.apiUrl, apiKey);
+  }, [connection.apiUrl, apiKey]);
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
-    if (!finalApiUrl || !finalAssistantId) return [];
-    const client = createClient(finalApiUrl, getApiKey() ?? undefined);
+    if (!client || !finalAssistantId) return [];
 
     const threads = await client.threads.search({
       metadata: {
@@ -55,7 +64,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     });
 
     return threads;
-  }, [finalApiUrl, finalAssistantId]);
+  }, [client, finalAssistantId]);
 
   const value = useMemo(
     () => ({
@@ -64,8 +73,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
       setThreads,
       threadsLoading,
       setThreadsLoading,
+      client,
     }),
-    [getThreads, threads, threadsLoading]
+    [getThreads, threads, threadsLoading, client],
   );
 
   return (

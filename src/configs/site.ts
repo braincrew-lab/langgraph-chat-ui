@@ -24,12 +24,14 @@ export const siteConfig = {
     sidebarOpenByDefault: true,
   },
   theme: {
-    fontFamily: "serif" as const,
-    fontSize: "large" as const,
+    fontFamily: "sans" as const,
+    fontSize: "medium" as const,
     colorScheme: "light" as const,
   },
   ui: {
     autoCollapseToolCalls: false,
     chatWidth: "default" as const,
+    chatHistoryOpen: false,
+    tracingPanelOpen: false,
   },
 } as const;
