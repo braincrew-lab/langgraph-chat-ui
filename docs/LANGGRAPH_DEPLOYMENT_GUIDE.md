@@ -13,21 +13,20 @@ LangGraph 에이전트 서버를 프로덕션 환경에 배포하는 두 가지 
 
 ## 배포 옵션 비교
 
-| 항목 | Docker 기반 | LangSmith 기반 |
-|------|------------|----------------|
-| **인프라 관리** | 직접 관리 | 완전 관리형 |
-| **비용** | 인프라 비용만 | LangSmith 요금 |
-| **LangSmith 필수** | ❌ 불필요 | ✅ 필수 |
-| **커스터마이징** | 완전한 제어 | 플랫폼 제한 |
-| **모니터링** | 직접 구축 | LangSmith 내장 |
-| **권장 환경** | Air-gapped, 완전 독립 | 빠른 구축, 관리형 선호 |
+| 항목               | Docker 기반           | LangSmith 기반         |
+| ------------------ | --------------------- | ---------------------- |
+| **인프라 관리**    | 직접 관리             | 완전 관리형            |
+| **비용**           | 인프라 비용만         | LangSmith 요금         |
+| **LangSmith 필수** | ❌ 불필요             | ✅ 필수                |
+| **커스터마이징**   | 완전한 제어           | 플랫폼 제한            |
+| **모니터링**       | 직접 구축             | LangSmith 내장         |
+| **권장 환경**      | Air-gapped, 완전 독립 | 빠른 구축, 관리형 선호 |
 
 ---
 
 ## Option A: Docker 기반 배포
 
 LangSmith 없이 Docker Compose로 완전 독립적인 환경을 구축합니다.
-
 
 ### 1. 프로젝트 구조
 
@@ -182,6 +181,7 @@ docker push $ECR_URL/my-agent:latest
 ```
 
 필요한 인프라:
+
 - **ECS Fargate** 또는 **EC2**
 - **RDS PostgreSQL**
 - **ElastiCache Redis**
@@ -198,6 +198,7 @@ docker push asia-northeast3-docker.pkg.dev/$PROJECT/repo/my-agent:latest
 ```
 
 필요한 인프라:
+
 - **Cloud Run**
 - **Cloud SQL PostgreSQL**
 - **Memorystore Redis**
@@ -207,7 +208,6 @@ docker push asia-northeast3-docker.pkg.dev/$PROJECT/repo/my-agent:latest
 ## Option B: LangSmith 기반 배포
 
 LangSmith Platform을 사용한 관리형 배포입니다.
-
 
 ### 1. LangSmith 계정 설정
 
@@ -219,7 +219,6 @@ LangSmith Platform을 사용한 관리형 배포입니다.
 
 GitHub 저장소를 연결하여 자동 배포합니다.
 
-
 #### 설정 방법
 
 1. [smith.langchain.com](https://smith.langchain.com) → **Deployments**
@@ -230,6 +229,7 @@ GitHub 저장소를 연결하여 자동 배포합니다.
 4. 배포 시작
 
 배포 완료 후:
+
 ```
 https://your-deployment-id.langgraph.app
 ```
@@ -273,7 +273,7 @@ services:
     environment:
       DATABASE_URI: postgres://langgraph:${POSTGRES_PASSWORD:-langgraph}@postgres:5432/langgraph
       REDIS_URI: redis://redis:6379
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}  # 추가
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY} # 추가
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     depends_on:
@@ -305,13 +305,13 @@ POSTGRES_PASSWORD=secure-password
 
 ### 4. LangSmith 기능
 
-| 기능 | 설명 |
-|------|------|
-| **Tracing** | 모든 LLM 호출 및 에이전트 실행 추적 |
-| **Monitoring** | 지연시간, 토큰 사용량, 에러율 |
-| **Playground** | 그래프 테스트 및 디버깅 |
-| **Datasets** | 테스트 데이터셋 관리 |
-| **Evaluation** | 에이전트 성능 평가 |
+| 기능           | 설명                                |
+| -------------- | ----------------------------------- |
+| **Tracing**    | 모든 LLM 호출 및 에이전트 실행 추적 |
+| **Monitoring** | 지연시간, 토큰 사용량, 에러율       |
+| **Playground** | 그래프 테스트 및 디버깅             |
+| **Datasets**   | 테스트 데이터셋 관리                |
+| **Evaluation** | 에이전트 성능 평가                  |
 
 ---
 
@@ -410,12 +410,12 @@ export const DELETE = handler;
 
 ## 비용 비교
 
-| 항목 | Docker 기반 | LangSmith Cloud |
-|------|------------|-----------------|
-| **인프라** | 직접 관리 | 포함 |
-| **LangSmith** | 불필요 | 필수 ($0~$400+/월) |
-| **운영** | 직접 운영 | 관리형 |
-| **월 예상 비용** | $50~200+ | $0~400+ |
+| 항목             | Docker 기반 | LangSmith Cloud    |
+| ---------------- | ----------- | ------------------ |
+| **인프라**       | 직접 관리   | 포함               |
+| **LangSmith**    | 불필요      | 필수 ($0~$400+/월) |
+| **운영**         | 직접 운영   | 관리형             |
+| **월 예상 비용** | $50~200+    | $0~400+            |
 
 ---
 
