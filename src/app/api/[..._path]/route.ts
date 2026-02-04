@@ -4,10 +4,7 @@ import { auth } from "@/lib/auth";
 import { SignJWT } from "jose";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
-
-// LangGraph server URL (LANGGRAPH_API_URL for internal networks, fallback to NEXT_PUBLIC_API_URL)
-const ENV_LANGGRAPH_API_URL =
-  process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
+import { resolveApiUrl } from "@/lib/connections/resolve";
 
 function getCorsHeaders() {
   return {
@@ -25,17 +22,14 @@ async function handleRequest(req: NextRequest, method: string) {
   }
 
   try {
-    // Get API URL from: Admin settings > Cookies > Environment variable
+    // Get API URL - Priority: Cookies > DB admin settings > Server env > Public env
     const cookieStore = await cookies();
     const cookieApiUrl = cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value;
     const globalSettings = await getAllSettings();
     const adminDefaultApiUrl =
       globalSettings["features.defaultConnectionApiUrl"];
 
-    // Priority: Admin default (if set) > Cookies > Environment variable
-    const apiUrl = adminDefaultApiUrl
-      ? adminDefaultApiUrl
-      : cookieApiUrl || ENV_LANGGRAPH_API_URL;
+    const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
 
     if (!apiUrl) {
       return NextResponse.json(

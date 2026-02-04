@@ -132,7 +132,7 @@ export function DesktopSidebar({
         )}
       </div>
 
-      <div className="border-border space-y-3 border-t bg-transparent p-4">
+      <div className="border-border space-y-3 border-t bg-transparent px-3 py-4">
         <UserMenu />
         <SettingsDialog />
       </div>

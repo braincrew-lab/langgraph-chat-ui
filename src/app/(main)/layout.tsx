@@ -4,6 +4,7 @@ import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { MainLayoutClient } from "@/shared/components/layout/MainLayoutClient";
 import { getAllSettings } from "@/lib/services/settings.service";
 import { resolveAssistantId } from "@/lib/api/assistant.server";
+import { resolveApiUrl } from "@/lib/connections/resolve";
 
 export default async function MainLayout({
   children,
@@ -21,17 +22,12 @@ export default async function MainLayout({
   )?.value;
   const cookieApiKey = cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value;
 
-  // Priority: Admin default (if set) > Cookies > Environment variables
-  // 서버 전역값이 설정되어 있으면 항상 우선 적용
+  // Priority: Cookies > DB admin settings > Server env > Public env
   const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
   const adminDefaultGraphId = globalSettings["features.defaultGraphId"];
 
-  const apiUrl = adminDefaultApiUrl
-    ? adminDefaultApiUrl
-    : cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "";
-  const assistantIdOrGraphId = adminDefaultGraphId
-    ? adminDefaultGraphId
-    : cookieAssistantId || "";
+  const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
+  const assistantIdOrGraphId = cookieAssistantId || adminDefaultGraphId || "";
   const apiKey =
     cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
