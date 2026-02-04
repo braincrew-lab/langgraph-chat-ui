@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
 import { SignJWT } from "jose";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
 import { resolveApiUrl } from "@/lib/connections/resolve";
+import { getAuthMode, requiresNextAuth } from "@/types/auth-mode";
 
 function getCorsHeaders() {
   return {
@@ -15,10 +15,18 @@ function getCorsHeaders() {
 }
 
 async function handleRequest(req: NextRequest, method: string) {
-  // Get user session
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authMode = getAuthMode();
+  const needsAuth = requiresNextAuth();
+
+  // Get user session (only for auth modes that require it)
+  type SessionType = { user?: { id: string; email?: string | null; name?: string | null; role?: string; status?: string } } | null;
+  let session: SessionType = null;
+  if (needsAuth) {
+    const { auth } = await import("@/lib/auth");
+    session = await auth() as SessionType;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   try {
@@ -50,27 +58,32 @@ async function handleRequest(req: NextRequest, method: string) {
       ? `?${searchParams.toString()}`
       : "";
 
-    // Generate signed JWT token for LangGraph server
-    const token = await new SignJWT({
-      sub: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      role: session.user.role,
-      status: session.user.status,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(new TextEncoder().encode(process.env.NEXTAUTH_SECRET!));
-
-    console.log("[LangGraph Proxy] User:", session.user.email);
-    console.log("[LangGraph Proxy] API URL:", apiUrl);
-
-    // Build headers with Bearer token
+    // Build headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     };
+
+    // Generate signed JWT token for LangGraph server (only if authenticated)
+    if (session?.user) {
+      const token = await new SignJWT({
+        sub: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role,
+        status: session.user.status,
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1h")
+        .sign(new TextEncoder().encode(process.env.NEXTAUTH_SECRET!));
+
+      headers["Authorization"] = `Bearer ${token}`;
+      console.log("[LangGraph Proxy] User:", session.user.email);
+    } else {
+      console.log("[LangGraph Proxy] Mode:", authMode, "(no auth)");
+    }
+
+    console.log("[LangGraph Proxy] API URL:", apiUrl);
 
     // Build request options
     const options: RequestInit = {

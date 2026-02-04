@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
@@ -11,42 +10,42 @@ import type { UserRole, UserStatus } from "@/types/auth-mode";
 
 /**
  * Check if request has a Bearer token in the Authorization header.
- * Bearer tokens are validated in API route handlers, not in middleware,
- * because Prisma doesn't work in Edge Runtime.
  */
 function hasBearerToken(request: NextRequest): boolean {
   const authHeader = request.headers.get("authorization");
   return authHeader?.startsWith("Bearer ") ?? false;
 }
 
-export default auth((req) => {
+/**
+ * Simple middleware for standalone/oauth-direct modes (no NextAuth)
+ */
+export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
-  const isLoggedIn = !!req.auth;
   const routeType = getRouteType(pathname);
 
-  // Get user info from session
-  const user = req.auth?.user as { role?: string; status?: string } | undefined;
-  const userRole = (user?.role || "user") as UserRole;
-  const userStatus = (user?.status || "active") as UserStatus;
-
-  // PUBLIC MODE: Almost everything is accessible without auth
+  // STANDALONE / OAUTH-DIRECT MODE: No NextAuth required
   if (isPublicMode()) {
-    // Admin routes are blocked in public mode
+    // Admin routes are blocked in these modes
     if (routeType === "admin") {
       return NextResponse.redirect(new URL("/", nextUrl));
     }
-    // Everything else is accessible
     return NextResponse.next();
   }
 
-  // AUTHENTICATED MODE: Require login for most routes
+  // CREDENTIALS / OAUTH / EMAIL MODE: Use NextAuth
+  // Get session using auth()
+  const { auth } = await import("@/lib/auth");
+  const session = await auth();
+  const isLoggedIn = !!session?.user;
+
+  const user = session?.user as { role?: string; status?: string } | undefined;
+  const userRole = (user?.role || "user") as UserRole;
+  const userStatus = (user?.status || "active") as UserStatus;
 
   // Public routes are always accessible
   if (routeType === "public") {
-    // If logged in and trying to access login/register, redirect appropriately
     if (isLoggedIn && (pathname === "/login" || pathname === "/register")) {
-      // Check if user can access the app
       const appAccess = canAccessApp({ status: userStatus, role: userRole });
       if (!appAccess.allowed && appAccess.redirectTo) {
         return NextResponse.redirect(new URL(appAccess.redirectTo, nextUrl));
@@ -56,26 +55,19 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // From here on, user must be logged in (or have a Bearer token for API routes)
-
-  // For API routes with Bearer token, let them through to the route handler
-  // The route handler will validate the token using the api-auth helper
+  // For API routes with Bearer token, let them through
   if (routeType === "api" && hasBearerToken(req)) {
     return NextResponse.next();
   }
 
   if (!isLoggedIn) {
-    // API routes return 401
     if (routeType === "api") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Page routes redirect to login
     const loginUrl = new URL("/login", nextUrl);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
-
-  // User is logged in - check permissions
 
   // Admin routes require admin role
   if (routeType === "admin") {
@@ -103,7 +95,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

@@ -6,6 +6,14 @@ import {
   SettingCategory,
   GlobalSettingRecord,
 } from "@/types/global-settings";
+import { requiresNextAuth } from "@/types/auth-mode";
+
+/**
+ * Check if database is available (only in modes that require NextAuth)
+ */
+function isDatabaseAvailable(): boolean {
+  return requiresNextAuth();
+}
 
 /**
  * Get a single setting value
@@ -14,6 +22,11 @@ import {
 export async function getSetting<K extends SettingKey>(
   key: K,
 ): Promise<GlobalSettings[K]> {
+  // In standalone/oauth-direct mode, always return defaults
+  if (!isDatabaseAvailable()) {
+    return DEFAULT_SETTINGS[key];
+  }
+
   const setting = await prisma.globalSetting.findUnique({
     where: { key },
   });
@@ -36,6 +49,15 @@ export async function getSetting<K extends SettingKey>(
 export async function getSettings<K extends SettingKey>(
   keys: K[],
 ): Promise<Pick<GlobalSettings, K>> {
+  // In standalone/oauth-direct mode, always return defaults
+  if (!isDatabaseAvailable()) {
+    const result: Partial<GlobalSettings> = {};
+    for (const key of keys) {
+      result[key] = DEFAULT_SETTINGS[key];
+    }
+    return result as Pick<GlobalSettings, K>;
+  }
+
   const settings = await prisma.globalSetting.findMany({
     where: { key: { in: keys } },
   });
@@ -62,6 +84,11 @@ export async function getSettings<K extends SettingKey>(
  * Get all settings, merged with defaults
  */
 export async function getAllSettings(): Promise<GlobalSettings> {
+  // In standalone/oauth-direct mode, always return defaults
+  if (!isDatabaseAvailable()) {
+    return { ...DEFAULT_SETTINGS };
+  }
+
   const dbSettings = await prisma.globalSetting.findMany();
 
   const result: GlobalSettings = { ...DEFAULT_SETTINGS };
@@ -87,6 +114,11 @@ export async function getAllSettings(): Promise<GlobalSettings> {
 export async function getSettingsByCategory(
   category: SettingCategory,
 ): Promise<GlobalSettingRecord[]> {
+  // In standalone/oauth-direct mode, return empty array
+  if (!isDatabaseAvailable()) {
+    return [];
+  }
+
   return prisma.globalSetting.findMany({
     where: { category },
     orderBy: { key: "asc" },
@@ -101,6 +133,12 @@ export async function updateSetting<K extends SettingKey>(
   value: GlobalSettings[K],
   updatedById?: string,
 ): Promise<void> {
+  // In standalone/oauth-direct mode, settings cannot be updated
+  if (!isDatabaseAvailable()) {
+    console.warn("Settings cannot be updated in standalone/oauth-direct mode");
+    return;
+  }
+
   const category = key.split(".")[0] as SettingCategory;
 
   await prisma.globalSetting.upsert({
@@ -137,6 +175,12 @@ export async function updateSettings(
   settings: Partial<GlobalSettings>,
   updatedById?: string,
 ): Promise<void> {
+  // In standalone/oauth-direct mode, settings cannot be updated
+  if (!isDatabaseAvailable()) {
+    console.warn("Settings cannot be updated in standalone/oauth-direct mode");
+    return;
+  }
+
   const operations = Object.entries(settings).map(([key, value]) => {
     const category = key.split(".")[0] as SettingCategory;
     return prisma.globalSetting.upsert({
@@ -175,6 +219,11 @@ export async function resetSetting<K extends SettingKey>(
   key: K,
   resetById?: string,
 ): Promise<void> {
+  // In standalone/oauth-direct mode, nothing to reset
+  if (!isDatabaseAvailable()) {
+    return;
+  }
+
   await prisma.globalSetting
     .delete({
       where: { key },
@@ -198,6 +247,11 @@ export async function resetSetting<K extends SettingKey>(
  * Reset all settings to defaults
  */
 export async function resetAllSettings(resetById?: string): Promise<void> {
+  // In standalone/oauth-direct mode, nothing to reset
+  if (!isDatabaseAvailable()) {
+    return;
+  }
+
   await prisma.globalSetting.deleteMany();
 
   if (resetById) {
@@ -239,6 +293,17 @@ export async function getSettingsWithMeta(): Promise<
     updatedAt?: Date;
   }>
 > {
+  // In standalone/oauth-direct mode, return all defaults
+  if (!isDatabaseAvailable()) {
+    return (Object.keys(DEFAULT_SETTINGS) as SettingKey[]).map((key) => ({
+      key,
+      value: DEFAULT_SETTINGS[key],
+      category: key.split(".")[0],
+      isDefault: true,
+      updatedAt: undefined,
+    }));
+  }
+
   const dbSettings = await prisma.globalSetting.findMany();
   const dbSettingsMap = new Map(dbSettings.map((s) => [s.key, s]));
 
