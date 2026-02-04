@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { useAuthMode } from "@/features/auth/hooks/useAuthMode";
 import { Button } from "@/shared/components/ui/button";
 import {
   Tooltip,
@@ -12,17 +11,10 @@ import {
 import { LogOut, User } from "lucide-react";
 
 export function UserMenu() {
-  const authMode = useAuthMode();
-  const { user, isLoading, signOut } = useAuth();
+  const { user, isLoading, isStandalone, signOut } = useAuth();
 
   // In standalone mode, hide user menu entirely
-  if (authMode === "standalone") {
-    return null;
-  }
-
-  // In oauth-direct mode, auth is handled by LangGraph server
-  // Could be extended to show LangGraph user info in the future
-  if (authMode === "oauth-direct") {
+  if (isStandalone) {
     return null;
   }
 

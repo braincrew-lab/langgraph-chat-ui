@@ -1,56 +1,32 @@
 "use client";
 
-import { requiresNextAuth } from "@/types/auth-mode";
-
-interface AuthUser {
-  id: string;
-  name: string | null;
-  email: string | null;
-  role: string;
-  status: string;
-}
-
-const STANDALONE_USER: AuthUser = {
-  id: "anonymous",
-  name: "User",
-  email: null,
-  role: "user",
-  status: "active",
-};
-
-const needsAuth = requiresNextAuth();
-
-// 조건부 import
-let useSession: () => { data: { user?: AuthUser } | null; status: string };
-let signIn: () => Promise<unknown>;
-let signOut: (opts: { callbackUrl: string }) => Promise<void>;
-
-if (needsAuth) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const nextAuth = require("next-auth/react");
-  useSession = nextAuth.useSession;
-  signIn = nextAuth.signIn;
-  signOut = nextAuth.signOut;
-}
+import { useSession, signIn, signOut } from "next-auth/react";
+import { useAuthContext } from "@/providers/AuthProvider";
 
 export function useAuth() {
-  if (!needsAuth) {
+  const authContext = useAuthContext();
+
+  // Standalone mode - no user, no auth
+  if (authContext.isStandalone) {
     return {
-      user: STANDALONE_USER as AuthUser | null,
+      user: null,
       isLoading: false,
-      isAuthenticated: true,
+      isAuthenticated: false,
+      isStandalone: true,
       signIn: () => Promise.resolve(undefined),
       signOut: () => Promise.resolve(),
     };
   }
 
+  // NextAuth mode - use real session
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: session, status } = useSession();
 
   return {
-    user: (session?.user ?? null) as AuthUser | null,
+    user: session?.user ?? null,
     isLoading: status === "loading",
     isAuthenticated: status === "authenticated",
+    isStandalone: false,
     signIn,
     signOut: () => signOut({ callbackUrl: "/login" }),
   };

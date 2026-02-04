@@ -1,20 +1,43 @@
 "use client";
 
-import { ReactNode } from "react";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { SessionProvider } from "next-auth/react";
+import { createContext, ReactNode, useContext } from "react";
 
-// 조건부 import를 위한 동적 컴포넌트
-let SessionProviderComponent: React.ComponentType<{ children: ReactNode }> | null = null;
-
-if (requiresNextAuth()) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { SessionProvider } = require("next-auth/react");
-  SessionProviderComponent = SessionProvider;
+// Auth context for standalone mode
+interface StandaloneAuthContextValue {
+  isStandalone: true;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  if (!requiresNextAuth() || !SessionProviderComponent) {
-    return <>{children}</>;
-  }
-  return <SessionProviderComponent>{children}</SessionProviderComponent>;
+interface NextAuthContextValue {
+  isStandalone: false;
+}
+
+type AuthContextValue = StandaloneAuthContextValue | NextAuthContextValue;
+
+const AuthContext = createContext<AuthContextValue>({ isStandalone: false });
+
+export function useAuthContext() {
+  return useContext(AuthContext);
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+// NextAuth provider (for credentials, oauth, email modes)
+export function AuthProvider({ children }: AuthProviderProps) {
+  return (
+    <AuthContext.Provider value={{ isStandalone: false }}>
+      <SessionProvider>{children}</SessionProvider>
+    </AuthContext.Provider>
+  );
+}
+
+// Standalone provider (no auth required)
+export function StandaloneAuthProvider({ children }: AuthProviderProps) {
+  return (
+    <AuthContext.Provider value={{ isStandalone: true }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
