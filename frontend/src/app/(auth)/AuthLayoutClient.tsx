@@ -2,7 +2,7 @@
 
 import { ReactNode, createContext, useContext } from "react";
 import { motion } from "framer-motion";
-import type { RegistrationPolicy } from "@/types/auth-mode";
+import type { AuthMode, RegistrationPolicy } from "@/types/auth-mode";
 
 interface BrandingConfig {
   appName: string;
@@ -12,9 +12,11 @@ interface BrandingConfig {
 }
 
 interface AuthContextType {
+  authMode: AuthMode;
   allowRegistration: boolean;
   registrationPolicy: RegistrationPolicy;
   branding: BrandingConfig;
+  oauthProviders: string[];
 }
 
 const defaultBranding: BrandingConfig = {
@@ -25,9 +27,11 @@ const defaultBranding: BrandingConfig = {
 };
 
 const AuthContext = createContext<AuthContextType>({
+  authMode: "credentials",
   allowRegistration: true,
   registrationPolicy: "open",
   branding: defaultBranding,
+  oauthProviders: [],
 });
 
 export function useAuthContext() {
@@ -36,20 +40,24 @@ export function useAuthContext() {
 
 interface AuthLayoutClientProps {
   children: ReactNode;
+  authMode: AuthMode;
   allowRegistration: boolean;
   registrationPolicy: RegistrationPolicy;
   branding?: BrandingConfig;
+  oauthProviders?: string[];
 }
 
 export function AuthLayoutClient({
   children,
+  authMode,
   allowRegistration,
   registrationPolicy,
   branding = defaultBranding,
+  oauthProviders = [],
 }: AuthLayoutClientProps) {
   return (
     <AuthContext.Provider
-      value={{ allowRegistration, registrationPolicy, branding }}
+      value={{ authMode, allowRegistration, registrationPolicy, branding, oauthProviders }}
     >
       <div className="from-background via-background to-muted/30 flex min-h-screen items-center justify-center bg-gradient-to-br px-4 py-8">
         {/* Subtle background pattern */}

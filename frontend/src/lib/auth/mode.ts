@@ -1,21 +1,17 @@
 import {
-  AuthMode,
   AuthModeConfig,
   RegistrationPolicy,
   UserRole,
   UserStatus,
   PermissionCheck,
   isAdmin,
+  getAuthMode,
+  requiresNextAuth,
+  allowsAnonymousAccess,
 } from "@/types/auth-mode";
 
-/**
- * Get current auth mode from environment
- */
-export function getAuthMode(): AuthMode {
-  const mode = process.env.AUTH_MODE?.toLowerCase();
-  if (mode === "public") return "public";
-  return "authenticated"; // Default to authenticated
-}
+// Re-export for convenience
+export { getAuthMode, requiresNextAuth, allowsAnonymousAccess };
 
 /**
  * Get registration policy from environment
@@ -45,17 +41,35 @@ export function getAuthModeConfig(): AuthModeConfig {
 }
 
 /**
- * Check if public mode is enabled
+ * Check if public/standalone mode is enabled (no auth required)
  */
 export function isPublicMode(): boolean {
-  return getAuthMode() === "public";
+  return allowsAnonymousAccess();
 }
 
 /**
  * Check if authentication is required
  */
 export function isAuthRequired(): boolean {
-  return getAuthMode() === "authenticated";
+  return requiresNextAuth();
+}
+
+/**
+ * Check if current mode is oauth-direct (LangGraph handles auth)
+ */
+export function isOAuthDirectMode(): boolean {
+  return getAuthMode() === "oauth-direct";
+}
+
+/**
+ * Get the LangGraph OAuth login URL for oauth-direct mode
+ */
+export function getLangGraphOAuthUrl(): string | null {
+  if (!isOAuthDirectMode()) return null;
+  const baseUrl =
+    process.env.LANGGRAPH_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (!baseUrl) return null;
+  return `${baseUrl}/auth/login`;
 }
 
 /**
@@ -112,11 +126,11 @@ export function canAccessAdmin(user: {
   role: UserRole;
   status: UserStatus;
 }): PermissionCheck {
-  // Public mode: no admin access
-  if (isPublicMode()) {
+  // Standalone/oauth-direct modes: no admin access
+  if (allowsAnonymousAccess()) {
     return {
       allowed: false,
-      reason: "Admin access is not available in public mode",
+      reason: "Admin access is not available in this mode",
       redirectTo: "/",
     };
   }
@@ -150,6 +164,7 @@ export const ROUTE_CONFIG = {
   public: [
     "/login",
     "/register",
+    "/verify-request", // For email magic link
     "/api/auth",
     "/pending-approval",
     "/account-suspended",

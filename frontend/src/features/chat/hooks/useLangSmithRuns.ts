@@ -71,8 +71,18 @@ export function useLangSmithRuns(
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `HTTP ${res.status}`);
+        // Safely parse error response (may not be JSON)
+        let errorMessage = `HTTP ${res.status}`;
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType?.includes("application/json")) {
+            const errorData = await res.json();
+            errorMessage = errorData.error || errorMessage;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+        throw new Error(errorMessage);
       }
 
       const data: LangSmithRunsResponse = await res.json();

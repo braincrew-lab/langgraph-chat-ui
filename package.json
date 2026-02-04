@@ -1,0 +1,22 @@
+{
+  "name": "langgraph-chat-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chat UI for LangGraph agents with multiple authentication modes",
+  "scripts": {
+    "launch": "npx tsx scripts/setup.ts",
+    "dev": "cd frontend && pnpm dev",
+    "build": "cd frontend && pnpm build",
+    "start": "cd frontend && pnpm start",
+    "lint": "cd frontend && pnpm lint"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^0.7.0",
+    "picocolors": "^1.0.0",
+    "tsx": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

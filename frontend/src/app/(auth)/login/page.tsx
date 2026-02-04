@@ -15,6 +15,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useAuthContext } from "../AuthLayoutClient";
+import { OAuthLoginForm } from "./OAuthLoginForm";
+import { EmailLoginForm } from "./EmailLoginForm";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,7 +38,7 @@ const itemVariants = {
   },
 };
 
-function LoginForm() {
+function CredentialsLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
@@ -289,6 +291,20 @@ function LoginFormFallback() {
       </div>
     </div>
   );
+}
+
+function LoginForm() {
+  const { authMode } = useAuthContext();
+
+  switch (authMode) {
+    case "oauth":
+      return <OAuthLoginForm />;
+    case "email":
+      return <EmailLoginForm />;
+    case "credentials":
+    default:
+      return <CredentialsLoginForm />;
+  }
 }
 
 export default function LoginPage() {
