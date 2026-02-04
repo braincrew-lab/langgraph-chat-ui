@@ -27,7 +27,11 @@ export default async function ChatPage() {
 
   // Priority: Cookies > DB admin settings > Server env > Public env
   const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
-  const assistantId = cookieAssistantId || adminDefaultGraphId || "";
+  const assistantId =
+    cookieAssistantId ||
+    adminDefaultGraphId ||
+    process.env.NEXT_PUBLIC_ASSISTANT_ID ||
+    "";
   const apiKey =
     cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
