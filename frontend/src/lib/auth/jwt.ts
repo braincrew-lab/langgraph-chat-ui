@@ -6,7 +6,7 @@
  */
 
 import { SignJWT } from "jose";
-import { auth } from "@/lib/auth";
+import { requiresNextAuth } from "@/types/auth-mode";
 
 export interface JWTPayload {
   sub: string;
@@ -23,6 +23,12 @@ export interface JWTPayload {
  * @returns The signed JWT token string, or null if user is not authenticated
  */
 export async function generateUserJWT(): Promise<string | null> {
+  // Skip JWT generation in standalone/oauth-direct mode
+  if (!requiresNextAuth()) {
+    return null;
+  }
+
+  const { auth } = await import("@/lib/auth");
   const session = await auth();
 
   if (!session?.user) {

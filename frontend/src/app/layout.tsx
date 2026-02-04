@@ -3,8 +3,9 @@ import "./globals.css";
 import React from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { siteConfig } from "@/configs/site";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider, StandaloneAuthProvider } from "@/providers/AuthProvider";
 import { getAllSettings } from "@/lib/services/settings.service";
+import { requiresNextAuth } from "@/types/auth-mode";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -45,6 +46,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const needsAuth = requiresNextAuth();
+
   return (
     <html
       lang="ko"
@@ -58,9 +61,15 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <NuqsAdapter>{children}</NuqsAdapter>
-        </AuthProvider>
+        {needsAuth ? (
+          <AuthProvider>
+            <NuqsAdapter>{children}</NuqsAdapter>
+          </AuthProvider>
+        ) : (
+          <StandaloneAuthProvider>
+            <NuqsAdapter>{children}</NuqsAdapter>
+          </StandaloneAuthProvider>
+        )}
       </body>
     </html>
   );

@@ -103,11 +103,16 @@ export async function registerUser(
       "auth.registrationPolicy",
     )) as RegistrationPolicy;
 
+    // Check if this is the first user (will become admin)
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+
     // Determine user status based on registration policy
     const initialAdminEmail = getInitialAdminEmail();
     const isInitialAdmin =
-      initialAdminEmail &&
-      email.toLowerCase() === initialAdminEmail.toLowerCase();
+      isFirstUser ||
+      (initialAdminEmail &&
+        email.toLowerCase() === initialAdminEmail.toLowerCase());
 
     let role: UserRole = "user";
     // Use admin setting to determine if approval is required

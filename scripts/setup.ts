@@ -203,6 +203,10 @@ const i18n = {
     ko: "API 키 입력",
     en: "Enter API key",
   },
+  enterLangSmithProject: {
+    ko: "LangSmith 프로젝트 이름:",
+    en: "LangSmith project name:",
+  },
   enterProductionUrl: {
     ko: "프론트엔드 URL (예: https://chat.example.com):",
     en: "Frontend URL (e.g., https://chat.example.com):",
@@ -496,6 +500,7 @@ interface SetupConfig {
   githubClientId?: string;
   githubClientSecret?: string;
   langSmithApiKey?: string;
+  langSmithProject?: string;
   // Branding
   appName?: string;
   logoUrl?: string;
@@ -701,6 +706,18 @@ async function gatherConfig(): Promise<SetupConfig | null> {
   });
 
   if (p.isCancel(langSmithApiKey)) return null;
+
+  // LangSmith Project Name (if API key provided)
+  let langSmithProject: string | undefined;
+  if (langSmithApiKey) {
+    const project = await p.text({
+      message: t("enterLangSmithProject"),
+      initialValue: "default",
+    });
+
+    if (p.isCancel(project)) return null;
+    langSmithProject = project || undefined;
+  }
 
   // Frontend URL
   const frontendUrl = await p.text({
@@ -917,6 +934,7 @@ async function gatherConfig(): Promise<SetupConfig | null> {
     frontendUrl,
     graphId,
     langSmithApiKey: langSmithApiKey || undefined,
+    langSmithProject,
     databaseUrl,
     nextAuthSecret,
     googleClientId,
@@ -1291,7 +1309,8 @@ function generateEnvFile(config: SetupConfig) {
     lines.push(
       "",
       "# LangSmith (Tracing)",
-      `LANGSMITH_API_KEY=${config.langSmithApiKey}`
+      `LANGSMITH_API_KEY=${config.langSmithApiKey}`,
+      `LANGSMITH_PROJECT=${config.langSmithProject || "default"}`
     );
   }
 

@@ -27,7 +27,11 @@ export default async function MainLayout({
   const adminDefaultGraphId = globalSettings["features.defaultGraphId"];
 
   const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
-  const assistantIdOrGraphId = cookieAssistantId || adminDefaultGraphId || "";
+  const assistantIdOrGraphId =
+    cookieAssistantId ||
+    adminDefaultGraphId ||
+    process.env.NEXT_PUBLIC_ASSISTANT_ID ||
+    "";
   const apiKey =
     cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
