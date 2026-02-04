@@ -22,7 +22,7 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between px-3">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

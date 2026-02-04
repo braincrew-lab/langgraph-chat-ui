@@ -22,6 +22,7 @@ import { FormSubmissionMessage } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { LoaderCircle } from "lucide-react";
+import { StreamErrorMessage } from "./streaming/StreamErrorMessage";
 
 interface FormSubmission {
   data: FormState;
@@ -52,6 +53,10 @@ interface MessageListProps {
   threadId?: string | null;
   /** Whether conversation history is currently loading */
   isHistoryLoading?: boolean;
+  /** Stream error - when set, displays error message instead of task view */
+  streamError?: unknown;
+  /** Callback to retry the last message */
+  onRetry?: () => void;
 }
 
 export function MessageList({
@@ -75,6 +80,8 @@ export function MessageList({
   interrupt,
   threadId,
   isHistoryLoading = false,
+  streamError,
+  onRetry,
 }: MessageListProps) {
   const stream = useStreamContext();
 
@@ -179,21 +186,32 @@ export function MessageList({
 
     const elements: React.ReactNode[] = [];
 
-    // Insert StreamingTaskView before first message if no human messages
+    // Insert StreamingTaskView or StreamErrorMessage before first message if no human messages
     // Use showTaskView (not hasVisibleContent) to show "thinking" indicator during streaming
-    if (compactView && showTaskView && lastHumanIndex === -1) {
-      elements.push(
-        <StreamingTaskView
-          key="streaming-task-view"
-          progress={progress}
-          activeLeafTasks={activeLeafTasks}
-          isStreaming={isLoading}
-          selectedTaskId={selectedTaskId}
-          onSelectTask={onSelectTask}
-          intermediateOutputs={intermediateOutputs}
-          finalNodeId={finalNodeId}
-        />,
-      );
+    if (compactView && lastHumanIndex === -1) {
+      if (streamError) {
+        // Show error message instead of task view when error occurs
+        elements.push(
+          <StreamErrorMessage
+            key="stream-error"
+            error={streamError}
+            onRetry={onRetry}
+          />,
+        );
+      } else if (showTaskView) {
+        elements.push(
+          <StreamingTaskView
+            key="streaming-task-view"
+            progress={progress}
+            activeLeafTasks={activeLeafTasks}
+            isStreaming={isLoading}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={onSelectTask}
+            intermediateOutputs={intermediateOutputs}
+            finalNodeId={finalNodeId}
+          />,
+        );
+      }
     }
 
     filteredMessages.forEach((message, index) => {
@@ -210,21 +228,32 @@ export function MessageList({
           />,
         );
 
-        // Insert StreamingTaskView after last human message
+        // Insert StreamingTaskView or StreamErrorMessage after last human message
         // Use showTaskView (not hasVisibleContent) to show "thinking" indicator during streaming
-        if (compactView && showTaskView && index === lastHumanIndex) {
-          elements.push(
-            <StreamingTaskView
-              key="streaming-task-view"
-              progress={progress}
-              activeLeafTasks={activeLeafTasks}
-              isStreaming={isLoading}
-              selectedTaskId={selectedTaskId}
-              onSelectTask={onSelectTask}
-              intermediateOutputs={intermediateOutputs}
-              finalNodeId={finalNodeId}
-            />,
-          );
+        if (compactView && index === lastHumanIndex) {
+          if (streamError) {
+            // Show error message instead of task view when error occurs
+            elements.push(
+              <StreamErrorMessage
+                key="stream-error"
+                error={streamError}
+                onRetry={onRetry}
+              />,
+            );
+          } else if (showTaskView) {
+            elements.push(
+              <StreamingTaskView
+                key="streaming-task-view"
+                progress={progress}
+                activeLeafTasks={activeLeafTasks}
+                isStreaming={isLoading}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
+                intermediateOutputs={intermediateOutputs}
+                finalNodeId={finalNodeId}
+              />,
+            );
+          }
         }
       } else {
         const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
@@ -302,7 +331,7 @@ export function MessageList({
     <>
       {/* Loading spinner for conversation history */}
       {showHistoryLoading && (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex h-full w-full items-center justify-center py-12">
           <div className="text-muted-foreground flex items-center gap-3">
             <LoaderCircle className="h-5 w-5 animate-spin" />
             <span className="text-sm">대화를 불러오는 중...</span>
@@ -334,8 +363,10 @@ export function MessageList({
         />
       )}
 
-      {/* Loading indicator */}
-      {isLoading && !firstTokenReceived && <AssistantMessageLoading />}
+      {/* Loading indicator - hide when StreamingTaskView is shown (compactView && showTaskView) */}
+      {isLoading &&
+        !firstTokenReceived &&
+        !(compactView && showTaskView) && <AssistantMessageLoading />}
     </>
   );
 }

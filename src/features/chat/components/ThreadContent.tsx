@@ -211,10 +211,11 @@ export function ThreadContent() {
         setInput("");
         setContentBlocks([]);
         setFirstTokenReceived(false);
+        stream.clearNodeUpdates();
       }
     }
     prevThreadId.current = threadId;
-  }, [threadId, setSidebarOpen, setContentBlocks]);
+  }, [threadId, setSidebarOpen, setContentBlocks, stream]);
 
   const lastError = useRef<string | undefined>(undefined);
 
@@ -362,6 +363,28 @@ export function ThreadContent() {
     [stream],
   );
 
+  // Retry by resubmitting the last human message
+  const handleRetry = useCallback(() => {
+    // Find last human message
+    const lastHumanMessage = [...messages].reverse().find((m) => m.type === "human");
+
+    if (lastHumanMessage) {
+      setFirstTokenReceived(false);
+      stream.clearNodeUpdates();
+
+      // Get messages up to (not including) the last human message
+      const lastHumanIndex = messages.findIndex((m) => m.id === lastHumanMessage.id);
+      const toolMessages = ensureToolCallsHaveResponses(
+        messages.slice(0, lastHumanIndex),
+      );
+
+      stream.submit(
+        { messages: [...toolMessages, lastHumanMessage] },
+        STREAM_OPTIONS,
+      );
+    }
+  }, [messages, stream]);
+
   const handleFormSubmit = useCallback(() => {
     if (!isAssistantSelected) {
       toast.error("그래프를 먼저 선택해주세요.");
@@ -419,8 +442,9 @@ export function ThreadContent() {
                 )}
                 contentClassName={cn(
                   messages.length > 0 || formSubmissions.length > 0
-                    ? "pt-8 pb-16 mx-auto flex flex-col gap-6 w-full"
+                    ? "pt-8 pb-16 flex flex-col gap-6"
                     : "",
+                  "mx-auto w-full",
                   userSettings.chatWidth === "default"
                     ? "max-w-3xl"
                     : "max-w-5xl",
@@ -446,6 +470,8 @@ export function ThreadContent() {
                     firstTokenReceived={firstTokenReceived}
                     interrupt={stream.interrupt}
                     threadId={threadId}
+                    streamError={stream.error}
+                    onRetry={handleRetry}
                   />
                 }
                 footer={

@@ -9,10 +9,9 @@
  */
 
 import { Client } from "@langchain/langgraph-sdk";
-import { cookies } from "next/headers";
-import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { isValidUUID } from "@/lib/utils/uuid";
 import { getAuthHeaders } from "@/lib/auth/jwt";
+import { resolveConnection } from "@/lib/connections/resolve";
 
 // Types
 export interface AssistantConfig {
@@ -69,21 +68,6 @@ export interface AssistantData {
   graphStructure: GraphStructure | null;
   finalNodeNames: string[];
   error: string | null;
-}
-
-// Helper to get connection from cookies
-async function getConnectionFromCookies() {
-  const cookieStore = await cookies();
-  return {
-    apiUrl:
-      cookieStore.get(CONNECTION_COOKIE_NAMES.apiUrl)?.value ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "",
-    apiKey:
-      cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value ||
-      process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY ||
-      "",
-  };
 }
 
 // Helper to create server client with JWT Bearer token auth
@@ -149,7 +133,7 @@ export async function searchAssistantsAction(): Promise<{
   error: string | null;
 }> {
   try {
-    const { apiUrl, apiKey } = await getConnectionFromCookies();
+    const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { assistants: [], error: "No API URL configured" };
     }
@@ -186,7 +170,7 @@ export async function getAssistantDataAction(
   };
 
   try {
-    const { apiUrl, apiKey } = await getConnectionFromCookies();
+    const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { ...emptyResult, error: "No API URL configured" };
     }
@@ -303,7 +287,7 @@ export async function updateAssistantConfigAction(
   }
 
   try {
-    const { apiUrl, apiKey } = await getConnectionFromCookies();
+    const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return {
         success: false,
@@ -353,7 +337,7 @@ export async function refetchAssistantDataAction(assistantId: string): Promise<{
   }
 
   try {
-    const { apiUrl, apiKey } = await getConnectionFromCookies();
+    const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { ...emptyResult, error: "No API URL configured" };
     }

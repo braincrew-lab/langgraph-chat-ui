@@ -3,6 +3,7 @@ import { fetchAssistantDataServer } from "@/lib/api/assistant.server";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { ChatContent } from "@/features/chat/components/chat/ChatContent";
 import { getAllSettings } from "@/lib/services/settings.service";
+import { resolveApiUrl } from "@/lib/connections/resolve";
 
 // Force dynamic rendering to avoid build-time errors
 export const dynamic = "force-dynamic";
@@ -24,14 +25,9 @@ export default async function ChatPage() {
   const adminDefaultApiUrl = globalSettings["features.defaultConnectionApiUrl"];
   const adminDefaultGraphId = globalSettings["features.defaultGraphId"];
 
-  // Priority: Admin default (if set) > Cookies > Environment variables
-  // 서버 전역값이 설정되어 있으면 항상 우선 적용
-  const apiUrl = adminDefaultApiUrl
-    ? adminDefaultApiUrl
-    : cookieApiUrl || process.env.NEXT_PUBLIC_API_URL || "";
-  const assistantId = adminDefaultGraphId
-    ? adminDefaultGraphId
-    : cookieAssistantId || "";
+  // Priority: Cookies > DB admin settings > Server env > Public env
+  const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
+  const assistantId = cookieAssistantId || adminDefaultGraphId || "";
   const apiKey =
     cookieApiKey || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY || "";
 
