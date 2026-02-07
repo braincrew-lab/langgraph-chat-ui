@@ -369,7 +369,10 @@ const StreamSession = ({
 
   // 2-3: Auto-deactivate all nodes when streaming stops
   useEffect(() => {
-    if (!streamValue.isLoading && nodeUpdatesRef.current.some(n => n.isActive)) {
+    if (
+      !streamValue.isLoading &&
+      nodeUpdatesRef.current.some((n) => n.isActive)
+    ) {
       nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => ({
         ...u,
         isActive: false,

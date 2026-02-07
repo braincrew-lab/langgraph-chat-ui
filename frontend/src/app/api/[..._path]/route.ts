@@ -39,11 +39,19 @@ async function handleRequest(req: NextRequest, method: string) {
   const needsAuth = requiresNextAuth();
 
   // Get user session (only for auth modes that require it)
-  type SessionType = { user?: { id: string; email?: string | null; name?: string | null; role?: string; status?: string } } | null;
+  type SessionType = {
+    user?: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      role?: string;
+      status?: string;
+    };
+  } | null;
   let session: SessionType = null;
   if (needsAuth) {
     const { auth } = await import("@/lib/auth");
-    session = await auth() as SessionType;
+    session = (await auth()) as SessionType;
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

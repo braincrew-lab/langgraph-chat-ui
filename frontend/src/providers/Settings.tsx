@@ -1,4 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+} from "react";
 import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config/client";
 import { GlobalSettings, DEFAULT_SETTINGS } from "@/types/global-settings";
 
@@ -178,7 +185,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       resetUserSettings,
       globalSettings,
     }),
-    [config, userSettings, updateUserSettings, resetUserSettings, globalSettings],
+    [
+      config,
+      userSettings,
+      updateUserSettings,
+      resetUserSettings,
+      globalSettings,
+    ],
   );
 
   return (

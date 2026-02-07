@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import type { Base64ContentBlock } from "@langchain/core/messages";
@@ -81,9 +87,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
           id: uuidv4(),
           type: "human",
           content: [
-            ...(input.trim().length > 0
-              ? [{ type: "text", text: input }]
-              : []),
+            ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
             ...contentBlocks,
           ] as Message["content"],
         };

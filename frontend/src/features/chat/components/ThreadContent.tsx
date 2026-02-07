@@ -182,7 +182,13 @@ export function ThreadContent() {
       }
     }
     prevThreadId.current = threadId;
-  }, [threadId, setSidebarOpen, setContentBlocks, stream, setFirstTokenReceived]);
+  }, [
+    threadId,
+    setSidebarOpen,
+    setContentBlocks,
+    stream,
+    setFirstTokenReceived,
+  ]);
 
   const lastError = useRef<string | undefined>(undefined);
 

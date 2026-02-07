@@ -16,10 +16,7 @@ import type {
   LangSmithEnrichment,
 } from "@/types/task-progress";
 import type { LangSmithRun } from "@/types/langsmith";
-import {
-  extractToolCallIdFromRun,
-  extractModelName,
-} from "@/types/langsmith";
+import { extractToolCallIdFromRun, extractModelName } from "@/types/langsmith";
 
 // ============================================
 // Types

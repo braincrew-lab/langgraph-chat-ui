@@ -90,7 +90,10 @@ const LEGACY_MODE_MAP: Record<string, AuthMode> = {
  */
 export function getAuthMode(): AuthMode {
   // Use NEXT_PUBLIC_AUTH_MODE for client-side, AUTH_MODE for server-side
-  const rawMode = (process.env.NEXT_PUBLIC_AUTH_MODE || process.env.AUTH_MODE)?.toLowerCase() || "standalone";
+  const rawMode =
+    (
+      process.env.NEXT_PUBLIC_AUTH_MODE || process.env.AUTH_MODE
+    )?.toLowerCase() || "standalone";
 
   // Check for legacy values
   if (rawMode in LEGACY_MODE_MAP) {

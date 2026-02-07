@@ -99,7 +99,11 @@ export const AssistantConfigProvider: React.FC<{
   // Fetch graph data on mount if we have an assistant ID from SSR
   const graphFetchAttemptedRef = React.useRef(false);
   useEffect(() => {
-    if (initialData?.assistantId && !graphStructure && !graphFetchAttemptedRef.current) {
+    if (
+      initialData?.assistantId &&
+      !graphStructure &&
+      !graphFetchAttemptedRef.current
+    ) {
       graphFetchAttemptedRef.current = true;
       startTransition(async () => {
         const result = await refetchAssistantDataAction(

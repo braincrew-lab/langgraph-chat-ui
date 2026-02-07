@@ -27,7 +27,11 @@ export default async function middleware(req: NextRequest) {
   // STANDALONE / OAUTH-DIRECT MODE: No NextAuth required
   if (isPublicMode()) {
     // Admin routes and auth pages are blocked in these modes
-    if (routeType === "admin" || pathname === "/login" || pathname === "/register") {
+    if (
+      routeType === "admin" ||
+      pathname === "/login" ||
+      pathname === "/register"
+    ) {
       return NextResponse.redirect(new URL("/", nextUrl));
     }
     return NextResponse.next();

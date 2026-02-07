@@ -354,9 +354,9 @@ export function MessageList({
       )}
 
       {/* Loading indicator - hide when StreamingTaskView is shown (compactView && showTaskView) */}
-      {isLoading &&
-        !firstTokenReceived &&
-        !(compactView && showTaskView) && <AssistantMessageLoading />}
+      {isLoading && !firstTokenReceived && !(compactView && showTaskView) && (
+        <AssistantMessageLoading />
+      )}
     </>
   );
 }

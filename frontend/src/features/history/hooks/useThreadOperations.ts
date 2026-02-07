@@ -2,10 +2,7 @@ import { useThreads } from "@/shared/hooks/useThreads";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { UI_TEXT } from "../constants";
-import {
-  deleteThreadAction,
-  updateThreadAction,
-} from "@/app/actions/thread";
+import { deleteThreadAction, updateThreadAction } from "@/app/actions/thread";
 
 /**
  * Custom hook for thread CRUD operations
@@ -19,7 +16,9 @@ export function useThreadOperations() {
   const deleteThread = async (threadIdToDelete: string) => {
     try {
       // Optimistically update UI first
-      setThreads((prev) => prev.filter((t) => t.thread_id !== threadIdToDelete));
+      setThreads((prev) =>
+        prev.filter((t) => t.thread_id !== threadIdToDelete),
+      );
 
       // If the deleted thread was active, reset the thread
       if (threadId === threadIdToDelete) {

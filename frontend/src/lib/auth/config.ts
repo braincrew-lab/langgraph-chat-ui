@@ -26,7 +26,9 @@ function getSessionStrategy(): "jwt" | "database" {
 
 export const authConfig: NextAuthConfig = {
   // standalone/oauth-direct 모드에서는 더미 시크릿 사용 (실제로 사용되지 않음)
-  secret: requiresNextAuth() ? process.env.NEXTAUTH_SECRET : "standalone-dummy-secret-not-used",
+  secret: requiresNextAuth()
+    ? process.env.NEXTAUTH_SECRET
+    : "standalone-dummy-secret-not-used",
   adapter: requiresNextAuth() ? PrismaAdapter(prisma) : undefined,
   session: {
     strategy: getSessionStrategy(),

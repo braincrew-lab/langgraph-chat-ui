@@ -8,7 +8,9 @@
     "dev": "cd frontend && pnpm dev",
     "build": "cd frontend && pnpm build",
     "start": "cd frontend && pnpm start",
-    "lint": "cd frontend && pnpm lint"
+    "lint": "cd frontend && pnpm lint",
+    "format": "cd frontend && pnpm format",
+    "format:check": "cd frontend && pnpm format:check"
   },
   "devDependencies": {
     "@clack/prompts": "^0.7.0",
