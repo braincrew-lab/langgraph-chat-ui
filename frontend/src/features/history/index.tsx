@@ -47,10 +47,6 @@ export default function ThreadHistory({
     setThreadId(null);
   };
 
-  const handleToggleChatHistory = () => {
-    onChatHistoryOpenChange(!chatHistoryOpen);
-  };
-
   const handleMobileNewChat = () => {
     handleNewChat();
     onChatHistoryOpenChange(false);
@@ -65,8 +61,6 @@ export default function ThreadHistory({
       <DesktopSidebar
         threads={threads}
         threadsLoading={threadsLoading}
-        chatHistoryOpen={chatHistoryOpen}
-        onToggleChatHistory={handleToggleChatHistory}
         onNewChat={handleNewChat}
         onShowGuide={onShowGuide}
       />

@@ -24,6 +24,24 @@ import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { LoaderCircle } from "lucide-react";
 import { StreamErrorMessage } from "./streaming/StreamErrorMessage";
 
+function hasAiTextContent(msg: Message): boolean {
+  const content = msg.content;
+  if (typeof content === "string") return content.trim().length > 0;
+  return (
+    Array.isArray(content) &&
+    content.some(
+      (c: unknown) =>
+        typeof c === "object" &&
+        c !== null &&
+        "type" in c &&
+        (c as { type: string }).type === "text" &&
+        "text" in c &&
+        typeof (c as { text: unknown }).text === "string" &&
+        (c as { text: string }).text.trim().length > 0,
+    )
+  );
+}
+
 interface FormSubmission {
   data: FormState;
   fields: SchemaFieldConfig[];
@@ -127,12 +145,35 @@ export function MessageList({
       (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX),
     );
 
-    // Find last human message index
-    let lastHumanIndex = -1;
-    for (let i = filteredMessages.length - 1; i >= 0; i--) {
-      if (filteredMessages[i].type === "human") {
-        lastHumanIndex = i;
-        break;
+    // Collect all human message indices
+    const humanIndices: number[] = [];
+    for (let i = 0; i < filteredMessages.length; i++) {
+      if (filteredMessages[i].type === "human") humanIndices.push(i);
+    }
+    const lastHumanIndex =
+      humanIndices.length > 0
+        ? humanIndices[humanIndices.length - 1]
+        : -1;
+
+    // Collect final AI message IDs for completed turns (all turns except the last)
+    const completedTurnFinalAiIds = new Set<string>();
+    if (compactView) {
+      for (let t = 0; t < humanIndices.length - 1; t++) {
+        const turnStart = humanIndices[t];
+        const turnEnd = humanIndices[t + 1];
+        for (let i = turnEnd - 1; i > turnStart; i--) {
+          const msg = filteredMessages[i];
+          if (
+            msg.type === "ai" &&
+            !subagentContext.subagentMessageIds.has(msg.id || "") &&
+            !isIntermediateNodeMessage(msg) &&
+            hasAiTextContent(msg) &&
+            msg.id
+          ) {
+            completedTurnFinalAiIds.add(msg.id);
+            break;
+          }
+        }
       }
     }
 
@@ -151,22 +192,7 @@ export function MessageList({
             lastAiMessageIndex = i;
           }
 
-          const content = msg.content;
-          const hasTextContent =
-            typeof content === "string"
-              ? content.trim().length > 0
-              : Array.isArray(content) &&
-                content.some(
-                  (c: unknown) =>
-                    typeof c === "object" &&
-                    c !== null &&
-                    "type" in c &&
-                    (c as { type: string }).type === "text" &&
-                    "text" in c &&
-                    typeof (c as { text: unknown }).text === "string" &&
-                    (c as { text: string }).text.trim().length > 0,
-                );
-          if (hasTextContent) {
+          if (hasAiTextContent(msg)) {
             lastAiMessageId = msg.id ?? null;
             break;
           }
@@ -246,52 +272,75 @@ export function MessageList({
           }
         }
       } else {
-        const isAfterLastHuman = lastHumanIndex >= 0 && index > lastHumanIndex;
-        // Apply compact filter during streaming (isLoading) OR when there's visible content
-        // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
-        const shouldApplyCompactFilter =
-          compactView &&
-          (hasVisibleContent || isLoading) &&
-          (isAfterLastHuman || lastHumanIndex === -1);
-
-        if (shouldApplyCompactFilter) {
-          if (message.type === "tool") {
-            return;
+        // Determine which turn this message belongs to
+        const owningHumanIdx = (() => {
+          for (let t = humanIndices.length - 1; t >= 0; t--) {
+            if (humanIndices[t] < index) return t;
           }
+          return -1;
+        })();
+        const isInCompletedTurn =
+          owningHumanIdx >= 0 && owningHumanIdx < humanIndices.length - 1;
+
+        if (compactView && isInCompletedTurn) {
+          // Completed turn: hide tool, subagent, intermediate; show only final AI
+          if (message.type === "tool") return;
           if (message.type === "ai") {
-            // 서브에이전트 메시지는 항상 숨김
-            if (subagentContext.subagentMessageIds.has(message.id || "")) {
+            if (subagentContext.subagentMessageIds.has(message.id || ""))
+              return;
+            if (isIntermediateNodeMessage(message)) return;
+            if (!completedTurnFinalAiIds.has(message.id || "")) return;
+          }
+        } else {
+          // Current turn (or pre-turn messages): existing logic
+          const isAfterLastHuman =
+            lastHumanIndex >= 0 && index > lastHumanIndex;
+          // Apply compact filter during streaming (isLoading) OR when there's visible content
+          // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
+          const shouldApplyCompactFilter =
+            compactView &&
+            (hasVisibleContent || isLoading) &&
+            (isAfterLastHuman || lastHumanIndex === -1);
+
+          if (shouldApplyCompactFilter) {
+            if (message.type === "tool") {
               return;
             }
-            // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
-            if (isIntermediateNodeMessage(message)) {
-              return;
-            }
-            // 스트리밍 중에는 마지막 AI 메시지만 표시
-            // Use lastAiMessageId if found, otherwise use lastAiMessageIndex
-            if (isLoading) {
-              const isLastAiMessage = lastAiMessageId
-                ? message.id === lastAiMessageId
-                : index === lastAiMessageIndex;
-              if (!isLastAiMessage) {
+            if (message.type === "ai") {
+              // 서브에이전트 메시지는 항상 숨김
+              if (subagentContext.subagentMessageIds.has(message.id || "")) {
                 return;
+              }
+              // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
+              if (isIntermediateNodeMessage(message)) {
+                return;
+              }
+              // 스트리밍 중에는 마지막 AI 메시지만 표시
+              // Use lastAiMessageId if found, otherwise use lastAiMessageIndex
+              if (isLoading) {
+                const isLastAiMessage = lastAiMessageId
+                  ? message.id === lastAiMessageId
+                  : index === lastAiMessageIndex;
+                if (!isLastAiMessage) {
+                  return;
+                }
               }
             }
           }
-        }
 
-        if (!shouldApplyCompactFilter) {
-          if (
-            !shouldRenderMessage(
-              message,
-              todoLifecycle,
-              compactView,
-              false,
-              subagentContext,
-              filteredMessages,
-            )
-          ) {
-            return;
+          if (!shouldApplyCompactFilter) {
+            if (
+              !shouldRenderMessage(
+                message,
+                todoLifecycle,
+                compactView,
+                false,
+                subagentContext,
+                filteredMessages,
+              )
+            ) {
+              return;
+            }
           }
         }
 
