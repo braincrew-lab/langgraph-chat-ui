@@ -1,8 +1,7 @@
 import { useContext } from "react";
-import StreamContext from "@/providers/Stream";
+import StreamContext, { type StreamContextType } from "@/providers/Stream";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useStreamContext = (): any => {
+export const useStreamContext = (): StreamContextType => {
   const context = useContext(StreamContext);
   if (context === undefined) {
     throw new Error("useStreamContext must be used within a StreamProvider");

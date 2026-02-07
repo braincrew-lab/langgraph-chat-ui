@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
+import { requireAuth } from "@/lib/auth/require-auth";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
@@ -13,6 +14,7 @@ export async function updateConnectionAction(connection: {
   assistantId?: string;
   apiKey?: string;
 }) {
+  await requireAuth();
   const cookieStore = await cookies();
 
   // Set cookies with proper options
@@ -41,6 +43,8 @@ export async function updateConnectionAction(connection: {
       path: "/",
       maxAge: COOKIE_MAX_AGE,
       sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
     });
   }
 
@@ -51,6 +55,7 @@ export async function updateConnectionAction(connection: {
  * Server action to update only the assistantId
  */
 export async function updateAssistantIdAction(assistantId: string | null) {
+  await requireAuth();
   const cookieStore = await cookies();
 
   if (assistantId) {
@@ -84,6 +89,7 @@ export async function getConnectionAction() {
  * Server action to clear all connection cookies (reset to defaults)
  */
 export async function clearConnectionCookiesAction() {
+  await requireAuth();
   const cookieStore = await cookies();
 
   cookieStore.delete(CONNECTION_COOKIE_NAMES.apiUrl);

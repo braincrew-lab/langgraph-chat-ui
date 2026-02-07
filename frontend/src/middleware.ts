@@ -55,7 +55,10 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // For API routes with Bearer token, let them through
+  // For API routes with Bearer token, let them through at the middleware level.
+  // Actual token validation is performed by individual route handlers
+  // (e.g., langsmith/runs, admin endpoints) - this is just a gate to avoid
+  // redirecting programmatic API clients to the login page.
   if (routeType === "api" && hasBearerToken(req)) {
     return NextResponse.next();
   }

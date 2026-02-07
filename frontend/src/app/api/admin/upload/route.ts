@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
-    const ext = path.extname(file.name) || getExtensionFromMimeType(file.type);
+    // Generate unique filename - derive extension from MIME type only (ignore client filename)
+    const ext = getExtensionFromMimeType(file.type);
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const filename = `${timestamp}-${randomStr}${ext}`;

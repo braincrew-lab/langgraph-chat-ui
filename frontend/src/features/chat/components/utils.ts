@@ -2,19 +2,8 @@ import type { Message } from "@langchain/langgraph-sdk";
 import { DO_NOT_RENDER_ID_PREFIX } from "@/lib/utils/ensure-tool-responses";
 import type { TodoLifecycleState } from "@/features/chat/hooks/useStreamingView";
 
-/**
- * Extracts a string summary from a message's content, supporting multimodal (text, image, file, etc.).
- * - If text is present, returns the joined text.
- * - If not, returns a label for the first non-text modality (e.g., 'Image', 'Other').
- * - If unknown, returns 'Multimodal message'.
- */
-export function getContentString(content: Message["content"]): string {
-  if (typeof content === "string") return content;
-  const texts = content
-    .filter((c): c is { type: "text"; text: string } => c.type === "text")
-    .map((c) => c.text);
-  return texts.join(" ");
-}
+// Re-export from shared location for backwards compatibility
+export { getContentString } from "@/lib/utils/message";
 
 /**
  * 서브에이전트 메시지 감지를 위한 컨텍스트
@@ -140,6 +129,7 @@ export function isSubagentMessage(
   message: Message,
   context?: SubagentMessageContext,
   messages?: Message[],
+  finalNodeNames?: string[],
 ): boolean {
   if (message.type === "tool") {
     return message.name?.toLowerCase() === "task";
@@ -206,8 +196,15 @@ export function isSubagentMessage(
       return true;
     }
 
-    // 노드 이름이 있으면 서브에이전트
+    // 노드 이름이 있으면 서브에이전트 (단, final 노드에서 온 메시지는 제외)
     if (message.name && message.name.length > 0) {
+      // If we know the final nodes, don't classify messages from them as subagent
+      if (finalNodeNames && finalNodeNames.length > 0) {
+        const isFinalNode = finalNodeNames.some(
+          (name) => message.name?.toLowerCase() === name.toLowerCase(),
+        );
+        if (isFinalNode) return false;
+      }
       return true;
     }
   }

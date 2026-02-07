@@ -54,13 +54,19 @@ export async function GET(
     const ext = path.extname(filename).toLowerCase();
     const mimeType = MIME_TYPES[ext] || "application/octet-stream";
 
-    // Return file with appropriate headers
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": mimeType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
+    // Build response headers
+    const headers: Record<string, string> = {
+      "Content-Type": mimeType,
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+    };
+
+    // SVG files can contain scripts - force download to prevent XSS
+    if (mimeType === "image/svg+xml") {
+      headers["Content-Disposition"] = `attachment; filename="${filename}"`;
+    }
+
+    return new NextResponse(fileBuffer, { headers });
   } catch (error) {
     console.error("File serve error:", error);
     return NextResponse.json(

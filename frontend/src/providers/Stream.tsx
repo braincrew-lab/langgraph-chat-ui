@@ -61,12 +61,21 @@ const useTypedStream = useStream<
 >;
 
 // 확장된 스트림 컨텍스트 타입 (노드 업데이트 정보 포함)
+// ReturnType<typeof useTypedStream>이 SDK의 제네릭 반환 타입을 올바르게 해석하지 못하므로
+// 누락되는 SDK 속성을 명시적으로 추가합니다.
 export type StreamContextType = ReturnType<typeof useTypedStream> & {
   nodeUpdates: NodeUpdateInfo[];
   clearNodeUpdates: () => void;
+  deactivateAllNodes: () => void;
   updateNodeCompletedOutput: (nodeName: string, output: string) => void;
-  /** Map of message index → node name (for intermediate node tracking) */
-  messageNodeMap: Map<number, string>;
+  /** Map of message ID → node name (for intermediate node tracking) */
+  messageNodeMap: Map<string, string>;
+  /** The resolved LangGraph API URL */
+  apiUrl: string;
+  // SDK properties not captured by ReturnType<typeof useTypedStream>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getMessagesMetadata: (message: Message, index?: number) => any;
+  setBranch: (branch: string) => void;
 };
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
@@ -121,10 +130,10 @@ const StreamSession = ({
   const [nodeUpdates, setNodeUpdates] = useState<NodeUpdateInfo[]>([]);
   const nodeUpdatesRef = useRef<NodeUpdateInfo[]>([]);
 
-  // 메시지 인덱스 → 노드 이름 매핑 (중간 노드 추적용)
-  const messageNodeMapRef = useRef(new Map<number, string>());
+  // 메시지 ID → 노드 이름 매핑 (중간 노드 추적용)
+  const messageNodeMapRef = useRef(new Map<string, string>());
   const [messageNodeMap, setMessageNodeMap] = useState(
-    new Map<number, string>(),
+    new Map<string, string>(),
   );
   const prevAiMessageCountRef = useRef(0);
   const currentActiveNodeRef = useRef<string | null>(null);
@@ -159,12 +168,6 @@ const StreamSession = ({
         ) => void;
       },
     ) => {
-      // DEBUG: 전체 SSE 이벤트 구조 확인
-      console.log(
-        `[SSE Event] namespace=${JSON.stringify(options.namespace)}, data keys=${Object.keys(data).join(", ")}`,
-        data,
-      );
-
       const nodeNames = Object.keys(data);
       const timestamp = Date.now();
 
@@ -181,23 +184,11 @@ const StreamSession = ({
         const nodeData = data[nodeName] as Record<string, unknown> | undefined;
         const hasMessages = nodeData && "messages" in nodeData;
 
-        // DEBUG: SSE 데이터 구조 확인
-        console.log(
-          `[SSE] Node: ${nodeName}, namespace: ${JSON.stringify(options.namespace)}, data keys:`,
-          nodeData ? Object.keys(nodeData) : "null",
-        );
-
         // SSE 이벤트에서 콘텐츠 추출 (다양한 소스 시도)
         let messageContent = "";
 
         if (nodeData) {
-          // DEBUG: 전체 nodeData 구조 확인
-          console.log(
-            `[SSE] Node: ${nodeName}, full nodeData:`,
-            JSON.stringify(nodeData, null, 2).slice(0, 500),
-          );
-
-          // 1. messages 필드에서 추출 (기존 로직)
+          // 1. messages 필드에서 추출
           if (hasMessages) {
             const rawMessages = nodeData.messages as unknown;
             const messages = Array.isArray(rawMessages)
@@ -242,10 +233,6 @@ const StreamSession = ({
               const value = nodeData[field];
               if (typeof value === "string" && value.length > 0) {
                 messageContent = value;
-                console.log(
-                  `[SSE] Found content in field "${field}":`,
-                  value.slice(0, 100),
-                );
                 break;
               }
             }
@@ -257,10 +244,6 @@ const StreamSession = ({
               if (key === "messages") continue; // already handled
               if (typeof value === "string" && value.length > 10) {
                 messageContent = value;
-                console.log(
-                  `[SSE] Found content in arbitrary field "${key}":`,
-                  value.slice(0, 100),
-                );
                 break;
               }
             }
@@ -285,7 +268,9 @@ const StreamSession = ({
             hasMessages:
               nodeUpdatesRef.current[existingIndex].hasMessages ||
               !!hasMessages,
-            streamingContent: messageContent || existingContent, // 새 콘텐츠가 있으면 업데이트
+            // LangGraph SDK's onUpdateEvent delivers the full accumulated state per node,
+            // so replacement (not concatenation) is the correct behavior here.
+            streamingContent: messageContent || existingContent,
             isActive: true,
           };
         } else {
@@ -343,35 +328,22 @@ const StreamSession = ({
   });
 
   // 메시지-노드 매핑 업데이트 (새 AI 메시지가 추가될 때)
+  // Uses message ID as key for stability across message reordering/deletion
   useEffect(() => {
     const messages = streamValue.messages || [];
 
-    // DEBUG: 스트리밍 중 messages 상태 확인
-    if (streamValue.isLoading) {
-      console.log(`[Stream] isLoading=true, messages count=${messages.length}`);
-      if (messages.length > 0) {
-        const lastMsg = messages[messages.length - 1];
-        console.log(
-          `[Stream] Last message type=${lastMsg.type}, content length=${
-            typeof lastMsg.content === "string"
-              ? lastMsg.content.length
-              : Array.isArray(lastMsg.content)
-                ? lastMsg.content.length
-                : 0
-          }`,
-        );
-      }
-    }
-
     let aiIndex = 0;
+    let hasNewMappings = false;
 
-    // AI 메시지만 카운트하고 새 메시지 매핑
     for (let i = 0; i < messages.length; i++) {
-      if (messages[i].type === "ai") {
+      const msg = messages[i];
+      if (msg.type === "ai") {
+        const msgId = msg.id;
         // 새로운 AI 메시지인 경우 현재 활성 노드에 매핑
         if (
           aiIndex >= prevAiMessageCountRef.current &&
-          !messageNodeMapRef.current.has(i)
+          msgId &&
+          !messageNodeMapRef.current.has(msgId)
         ) {
           const nodeName =
             currentActiveNodeRef.current ||
@@ -380,7 +352,8 @@ const StreamSession = ({
                   .nodeName
               : null);
           if (nodeName) {
-            messageNodeMapRef.current.set(i, nodeName);
+            messageNodeMapRef.current.set(msgId, nodeName);
+            hasNewMappings = true;
           }
         }
         aiIndex++;
@@ -388,11 +361,22 @@ const StreamSession = ({
     }
 
     // 새 AI 메시지가 추가된 경우 상태 업데이트
-    if (aiIndex > prevAiMessageCountRef.current) {
+    if (hasNewMappings) {
       setMessageNodeMap(new Map(messageNodeMapRef.current));
     }
     prevAiMessageCountRef.current = aiIndex;
   }, [streamValue.messages, streamValue.isLoading]);
+
+  // 2-3: Auto-deactivate all nodes when streaming stops
+  useEffect(() => {
+    if (!streamValue.isLoading && nodeUpdatesRef.current.some(n => n.isActive)) {
+      nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => ({
+        ...u,
+        isActive: false,
+      }));
+      setNodeUpdates([...nodeUpdatesRef.current]);
+    }
+  }, [streamValue.isLoading]);
 
   // 스트리밍 완료 시 노드 업데이트 유지 (다음 Human 메시지까지)
   // 주의: nodeUpdates를 즉시 초기화하면 중간 노드 정보가 사라짐
@@ -407,6 +391,15 @@ const StreamSession = ({
     setMessageNodeMap(new Map());
     prevAiMessageCountRef.current = 0;
     currentActiveNodeRef.current = null;
+  }, []);
+
+  // Deactivate all node streaming indicators (used when stopping stream)
+  const deactivateAllNodes = useCallback(() => {
+    nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => ({
+      ...u,
+      isActive: false,
+    }));
+    setNodeUpdates([...nodeUpdatesRef.current]);
   }, []);
 
   // 노드 완료 출력 업데이트 함수 (노드가 비활성화될 때 출력 저장)
@@ -432,15 +425,19 @@ const StreamSession = ({
       ...streamValue,
       nodeUpdates,
       clearNodeUpdates,
+      deactivateAllNodes,
       updateNodeCompletedOutput,
       messageNodeMap,
+      apiUrl,
     }),
     [
       streamValue,
       nodeUpdates,
       clearNodeUpdates,
+      deactivateAllNodes,
       updateNodeCompletedOutput,
       messageNodeMap,
+      apiUrl,
     ],
   );
 

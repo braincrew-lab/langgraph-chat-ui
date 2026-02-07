@@ -198,18 +198,20 @@ export async function updateSettings(
     });
   });
 
-  await prisma.$transaction(operations);
-
-  // Log the action
+  // Include audit log in the same transaction
   if (updatedById) {
-    await prisma.auditLog.create({
-      data: {
-        userId: updatedById,
-        action: "setting.bulkUpdate",
-        details: JSON.stringify({ keys: Object.keys(settings) }),
-      },
-    });
+    operations.push(
+      prisma.auditLog.create({
+        data: {
+          userId: updatedById,
+          action: "setting.bulkUpdate",
+          details: JSON.stringify({ keys: Object.keys(settings) }),
+        },
+      }) as unknown as ReturnType<typeof prisma.globalSetting.upsert>,
+    );
   }
+
+  await prisma.$transaction(operations);
 }
 
 /**

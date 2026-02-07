@@ -105,14 +105,6 @@ export function MessageList({
       const nodeName = (meta?.streamMetadata as Record<string, unknown>)
         ?.langgraph_node as string | undefined;
 
-      // DEBUG: 실제 값 확인
-      console.log("[isIntermediateNodeMessage]", {
-        messageId: message.id,
-        nodeName,
-        finalNodeNames,
-        streamMetadata: meta?.streamMetadata,
-      });
-
       // If no node name, treat as final (main agent output)
       if (!nodeName) return false;
 
@@ -123,8 +115,6 @@ export function MessageList({
       const isFinal = finalNodeNames.some(
         (name) => nodeName.toLowerCase() === name.toLowerCase(),
       );
-
-      console.log("[isIntermediateNodeMessage] isFinal:", isFinal);
 
       return !isFinal;
     },

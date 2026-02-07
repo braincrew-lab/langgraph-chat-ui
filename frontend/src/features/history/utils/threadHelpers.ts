@@ -1,5 +1,5 @@
 import { Thread } from "@langchain/langgraph-sdk";
-import { getContentString } from "@/features/chat/components/utils";
+import { getContentString } from "@/lib/utils/message";
 
 /**
  * Extracts display text from a thread

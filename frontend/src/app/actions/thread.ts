@@ -10,6 +10,7 @@
 import { Client } from "@langchain/langgraph-sdk";
 import { getAuthHeaders } from "@/lib/auth/jwt";
 import { resolveConnection } from "@/lib/connections/resolve";
+import { requireAuth } from "@/lib/auth/require-auth";
 
 // Helper to create server client with JWT Bearer token auth
 async function createServerClient(apiUrl: string, apiKey?: string) {
@@ -34,6 +35,7 @@ export async function deleteThreadAction(threadId: string): Promise<{
   }
 
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { success: false, error: "No API URL configured" };
@@ -66,6 +68,7 @@ export async function updateThreadAction(
   }
 
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { success: false, error: "No API URL configured" };

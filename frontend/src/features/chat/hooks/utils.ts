@@ -38,15 +38,8 @@ export interface TaskScope {
   toolCallIds: string[];
 }
 
-export interface NodeUpdateInfo {
-  nodeName: string;
-  namespace: string[];
-  timestamp: number;
-  hasMessages: boolean;
-  streamingContent: string;
-  isActive: boolean;
-  completedOutput: string;
-}
+// Re-export NodeUpdateInfo from Stream provider (single source of truth)
+export type { NodeUpdateInfo } from "@/providers/Stream";
 
 // ============================================
 // Tool Name Helpers

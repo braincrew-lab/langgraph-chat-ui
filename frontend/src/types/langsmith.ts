@@ -209,7 +209,7 @@ function extractTokenUsage(
 }
 
 // 모델 이름 추출
-function extractModelName(run: LangSmithRun): string | undefined {
+export function extractModelName(run: LangSmithRun): string | undefined {
   // metadata에서 추출
   if (run.metadata?.ls_model_name) {
     return run.metadata.ls_model_name as string;

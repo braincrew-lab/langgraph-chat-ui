@@ -97,8 +97,10 @@ export const AssistantConfigProvider: React.FC<{
   const [assistantsLoading, setAssistantsLoading] = useState(false);
 
   // Fetch graph data on mount if we have an assistant ID from SSR
+  const graphFetchAttemptedRef = React.useRef(false);
   useEffect(() => {
-    if (initialData?.assistantId && !graphStructure) {
+    if (initialData?.assistantId && !graphStructure && !graphFetchAttemptedRef.current) {
+      graphFetchAttemptedRef.current = true;
       startTransition(async () => {
         const result = await refetchAssistantDataAction(
           initialData.assistantId!,
@@ -106,12 +108,6 @@ export const AssistantConfigProvider: React.FC<{
         if (result.graphStructure) {
           setGraphStructure(result.graphStructure);
           setFinalNodeNames(result.finalNodeNames);
-          // DEBUG: Log graph structure and final nodes
-          console.log("[AssistantConfig] Graph structure loaded:", {
-            nodes: result.graphStructure.nodes?.map((n) => n.id),
-            edges: result.graphStructure.edges,
-            finalNodeNames: result.finalNodeNames,
-          });
         }
       });
     }
