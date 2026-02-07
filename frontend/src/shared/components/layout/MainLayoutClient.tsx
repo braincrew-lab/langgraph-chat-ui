@@ -186,13 +186,13 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
       />
 
       {/* Main Content Area */}
-        <main
-          className={cn(
-            "flex flex-1 flex-col overflow-hidden transition-all",
-            isLargeScreen ? "duration-300" : "duration-0",
-          )}
-          style={{
-            marginLeft:
+      <main
+        className={cn(
+          "flex flex-1 flex-col overflow-hidden transition-all",
+          isLargeScreen ? "duration-300" : "duration-0",
+        )}
+        style={{
+          marginLeft:
             config.threads.showHistory && chatHistoryOpen
               ? isLargeScreen
                 ? UI.CHAT_SIDEBAR_WIDTH
@@ -205,7 +205,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
           className={cn(
             "relative flex flex-shrink-0 items-center justify-between gap-3 p-4",
             useUnifiedDarkSurface
-              ? "bg-background dark:bg-[#242424]"
+              ? "bg-card"
               : "bg-background",
           )}
         >
@@ -216,11 +216,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                   size="icon"
                   variant="ghost"
                   onClick={handleToggleChatHistory}
-                  className={cn(
-                    "text-foreground/75 !h-10 !w-10 !rounded-lg !border-0 !bg-transparent !shadow-none transition-colors",
-                    "hover:!bg-accent/70 hover:text-foreground",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                  )}
+                  className="text-foreground/75 hover:bg-accent/70 hover:text-foreground transition-colors"
                   aria-label={
                     chatHistoryOpen ? "Close sidebar" : "Open sidebar"
                   }
@@ -304,7 +300,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
             className={cn(
               "pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b",
               useUnifiedDarkSurface
-                ? "from-background dark:from-[#242424]/95 to-transparent"
+                ? "from-card to-transparent"
                 : "from-background/95 to-transparent",
             )}
           />
@@ -314,7 +310,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         <div
           className={cn(
             "flex-1 overflow-hidden",
-            isOnChatPage && "bg-background dark:bg-[#242424]",
+            isOnChatPage && "bg-card",
           )}
         >
           <TracingPanelContext.Provider

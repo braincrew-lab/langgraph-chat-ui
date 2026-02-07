@@ -58,9 +58,9 @@ export function ChatOpeners({
                 onClick={openerButtonHandler(opener)}
                 disabled={disabled}
                 className={cn(
-                  "group border-border/80 bg-background dark:bg-input/80 hover:bg-muted/70 dark:hover:bg-input relative flex min-h-[5rem] cursor-pointer items-center overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-colors",
+                  "group border-border/80 bg-card hover:bg-accent relative flex min-h-[5rem] cursor-pointer items-center overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-colors",
                   disabled &&
-                    "hover:bg-background dark:hover:bg-input/80 hover:border-border/80 cursor-not-allowed opacity-50",
+                    "hover:bg-card hover:border-border/80 cursor-not-allowed opacity-50",
                 )}
               >
                 <p className="text-foreground/90 group-hover:text-foreground line-clamp-2 text-sm break-keep transition-colors">
@@ -76,7 +76,7 @@ export function ChatOpeners({
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={goToPrevPage}
-            className="border-border/80 bg-background dark:bg-input/80 hover:bg-muted/70 dark:hover:bg-input flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+            className="border-border/80 bg-card hover:bg-accent flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -100,7 +100,7 @@ export function ChatOpeners({
 
           <button
             onClick={goToNextPage}
-            className="border-border/80 bg-background dark:bg-input/80 hover:bg-muted/70 dark:hover:bg-input flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+            className="border-border/80 bg-card hover:bg-accent flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />

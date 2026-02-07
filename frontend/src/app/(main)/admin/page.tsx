@@ -114,7 +114,7 @@ export default async function AdminDashboardPage() {
         {statCards.map((stat) => (
           <Card
             key={stat.title}
-            className="border-border/70 bg-card/75 dark:bg-[#303030] overflow-hidden"
+            className="border-border/70 bg-secondary overflow-hidden"
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -135,7 +135,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/70 bg-card/75 dark:bg-[#303030] h-fit self-start">
+        <Card className="border-border/70 bg-secondary h-fit self-start">
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -243,13 +243,13 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/75 dark:bg-[#303030]">
+        <Card className="border-border/70 bg-secondary">
           <CardHeader>
             <CardTitle>운영 알림</CardTitle>
             <CardDescription>즉시 확인이 필요한 항목</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="bg-muted/55 dark:bg-[#363636] flex items-start gap-3 rounded-lg border p-3">
+            <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <UserPlus className="text-primary mt-0.5 h-4 w-4" />
               <div className="text-sm">
                 <p className="font-medium">승인 대기 요청</p>
@@ -258,7 +258,7 @@ export default async function AdminDashboardPage() {
                 </p>
               </div>
             </div>
-            <div className="bg-muted/55 dark:bg-[#363636] flex items-start gap-3 rounded-lg border p-3">
+            <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <Settings2 className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="text-sm">
                 <p className="font-medium">운영 점검</p>

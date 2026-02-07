@@ -38,7 +38,7 @@ export function AdminSectionNav() {
   return (
     <nav
       aria-label="관리자 섹션"
-      className="border-border/70 bg-card/70 dark:bg-[#2f2f2f] rounded-xl border p-2"
+      className="border-border/70 bg-muted rounded-xl border p-2"
     >
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {NAV_ITEMS.map((item) => {
