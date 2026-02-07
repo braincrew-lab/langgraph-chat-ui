@@ -39,11 +39,12 @@ export const TIMING = {
  * Stream configuration options
  * Used for consistent streaming behavior across components
  */
-export const STREAM_OPTIONS = {
-  streamMode: ["values", "custom"] as const,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const STREAM_OPTIONS: any = {
+  streamMode: ["values", "custom"],
   streamSubgraphs: true,
   streamResumable: true,
-} as const;
+};
 
 /**
  * Placeholder text for chat input

@@ -41,8 +41,8 @@ interface UseStreamingViewOptions {
   updateNodeCompletedOutput?: (nodeName: string, output: string) => void;
   /** Function to get message metadata (for extracting langgraph_node) */
   getMessagesMetadata?: (message: Message) => MessageMetadata | undefined;
-  /** Map of message index → node name (from Stream context) */
-  messageNodeMap?: Map<number, string>;
+  /** Map of message ID → node name (from Stream context) */
+  messageNodeMap?: Map<string, string>;
 }
 
 interface UseStreamingViewReturn {
@@ -128,6 +128,9 @@ export function useStreamingView(
       // Skip if no streaming content
       if (!node.streamingContent && !node.completedOutput) continue;
 
+      // If finalNodeNames is empty, treat all nodes as final (show nothing intermediate)
+      if (finalNodeNames.length === 0) continue;
+
       // Check if this is a final node
       const isFinal = finalNodeNames.some(
         (name) => node.nodeName.toLowerCase() === name.toLowerCase(),
@@ -173,13 +176,13 @@ export function useStreamingView(
 
     const outputs: IntermediateLLMOutput[] = [];
 
-    // Build outputs using messageNodeMap from Stream context
+    // Build outputs using messageNodeMap from Stream context (keyed by message ID)
     for (let i = 0; i < typedMessages.length; i++) {
       const msg = typedMessages[i];
       if (msg.type !== "ai") continue;
 
-      // Get node name from map (managed by Stream.tsx)
-      const nodeName = messageNodeMap.get(i);
+      // Get node name from map (keyed by message ID, managed by Stream.tsx)
+      const nodeName = msg.id ? messageNodeMap.get(msg.id) : undefined;
 
       // Skip if no node name
       if (!nodeName) continue;
@@ -241,8 +244,10 @@ export function useStreamingView(
 
     // Add message-based outputs for nodes not in nodeUpdates
     // (e.g., messages that came before nodeUpdates tracking started)
+    // Use nodeId (which includes namespace) for dedup to distinguish
+    // same-named nodes in different subgraphs or loop iterations
     for (const msgOutput of intermediateMessageOutputs) {
-      const exists = allOutputs.some((o) => o.nodeName === msgOutput.nodeName);
+      const exists = allOutputs.some((o) => o.nodeId === msgOutput.nodeId);
       if (!exists) {
         allOutputs.push(msgOutput);
       }

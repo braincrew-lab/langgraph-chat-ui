@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   type LangSmithRun,
   type LangSmithRunsResponse,
@@ -152,10 +152,10 @@ export function useLangSmithRuns(
     };
   }, [stopPolling]);
 
-  // 필터링된 runs
-  const middlewareRuns = filterMiddlewareRuns(runs);
-  const toolRuns = filterToolRuns(runs);
-  const llmRuns = filterLLMRuns(runs);
+  // 필터링된 runs (memoized to avoid recomputation on every render)
+  const middlewareRuns = useMemo(() => filterMiddlewareRuns(runs), [runs]);
+  const toolRuns = useMemo(() => filterToolRuns(runs), [runs]);
+  const llmRuns = useMemo(() => filterLLMRuns(runs), [runs]);
 
   return {
     runs,

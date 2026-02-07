@@ -112,9 +112,7 @@ export function EmailLoginForm() {
             <br />
             으로 로그인 링크를 보냈습니다.
           </p>
-          <p className="mt-4">
-            이메일의 링크를 클릭하여 로그인을 완료하세요.
-          </p>
+          <p className="mt-4">이메일의 링크를 클릭하여 로그인을 완료하세요.</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -170,7 +168,11 @@ export function EmailLoginForm() {
         </div>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        noValidate
+      >
         {/* Error message */}
         {error && (
           <motion.div
@@ -186,12 +188,18 @@ export function EmailLoginForm() {
           </motion.div>
         )}
 
-        <motion.div variants={itemVariants} className="space-y-2">
+        <motion.div
+          variants={itemVariants}
+          className="space-y-2"
+        >
           <label
             htmlFor="email"
             className="flex items-center gap-2 text-sm font-medium"
           >
-            <Mail className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+            <Mail
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             이메일
           </label>
           <Input
@@ -227,14 +235,20 @@ export function EmailLoginForm() {
             ) : (
               <>
                 <span>로그인 링크 받기</span>
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ArrowRight
+                  className="ml-2 h-4 w-4"
+                  aria-hidden="true"
+                />
               </>
             )}
           </Button>
         </motion.div>
       </form>
 
-      <motion.div variants={itemVariants} className="text-center text-sm">
+      <motion.div
+        variants={itemVariants}
+        className="text-center text-sm"
+      >
         <p className="text-muted-foreground">
           입력하신 이메일로 로그인 링크가 전송됩니다.
           <br />

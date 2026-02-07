@@ -128,39 +128,39 @@ export async function approveUser(
   userId: string,
   approvedById: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { status: true },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Atomically check status and update to prevent TOCTOU
+      const updated = await tx.user.updateMany({
+        where: { id: userId, status: "pending" },
+        data: {
+          status: "active",
+          approvedAt: new Date(),
+          approvedById,
+        },
+      });
 
-  if (!user) {
-    return { success: false, error: "User not found" };
+      if (updated.count === 0) {
+        throw new Error("User not found or not pending approval");
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: approvedById,
+          action: "user.approve",
+          target: userId,
+          details: JSON.stringify({ newStatus: "active" }),
+        },
+      });
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to approve user",
+    };
   }
-
-  if (user.status !== "pending") {
-    return { success: false, error: "User is not pending approval" };
-  }
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      status: "active",
-      approvedAt: new Date(),
-      approvedById,
-    },
-  });
-
-  // Log the action
-  await prisma.auditLog.create({
-    data: {
-      userId: approvedById,
-      action: "user.approve",
-      target: userId,
-      details: JSON.stringify({ newStatus: "active" }),
-    },
-  });
-
-  return { success: true };
 }
 
 /**
@@ -171,36 +171,44 @@ export async function suspendUser(
   suspendedById: string,
   reason?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { status: true, role: true },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Atomically check role/existence and update, preventing TOCTOU
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
 
-  if (!user) {
-    return { success: false, error: "User not found" };
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      if (user.role === "super_admin") {
+        throw new Error("Cannot suspend a super admin");
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { status: "suspended" },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: suspendedById,
+          action: "user.suspend",
+          target: userId,
+          details: JSON.stringify({ reason }),
+        },
+      });
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to suspend user",
+    };
   }
-
-  // Prevent suspending super_admin
-  if (user.role === "super_admin") {
-    return { success: false, error: "Cannot suspend a super admin" };
-  }
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { status: "suspended" },
-  });
-
-  // Log the action
-  await prisma.auditLog.create({
-    data: {
-      userId: suspendedById,
-      action: "user.suspend",
-      target: userId,
-      details: JSON.stringify({ reason }),
-    },
-  });
-
-  return { success: true };
 }
 
 /**
@@ -305,51 +313,57 @@ export async function deleteUser(
   userId: string,
   deletedById: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const [user, deleter] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, email: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: deletedById },
-      select: { role: true },
-    }),
-  ]);
-
-  if (!user || !deleter) {
-    return { success: false, error: "User not found" };
-  }
-
   // Cannot delete self
   if (userId === deletedById) {
     return { success: false, error: "Cannot delete your own account" };
   }
 
-  // Cannot delete super_admin
-  if (user.role === "super_admin") {
-    return { success: false, error: "Cannot delete a super admin" };
+  try {
+    await prisma.$transaction(async (tx) => {
+      const [user, deleter] = await Promise.all([
+        tx.user.findUnique({
+          where: { id: userId },
+          select: { role: true, email: true },
+        }),
+        tx.user.findUnique({
+          where: { id: deletedById },
+          select: { role: true },
+        }),
+      ]);
+
+      if (!user || !deleter) {
+        throw new Error("User not found");
+      }
+
+      if (user.role === "super_admin") {
+        throw new Error("Cannot delete a super admin");
+      }
+
+      if (user.role === "admin" && deleter.role !== "super_admin") {
+        throw new Error("Only super admins can delete admins");
+      }
+
+      await tx.user.delete({
+        where: { id: userId },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: deletedById,
+          action: "user.delete",
+          target: userId,
+          details: JSON.stringify({ deletedEmail: user.email }),
+        },
+      });
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete user",
+    };
   }
-
-  // Only super_admin can delete admins
-  if (user.role === "admin" && deleter.role !== "super_admin") {
-    return { success: false, error: "Only super admins can delete admins" };
-  }
-
-  await prisma.user.delete({
-    where: { id: userId },
-  });
-
-  // Log the action
-  await prisma.auditLog.create({
-    data: {
-      userId: deletedById,
-      action: "user.delete",
-      target: userId,
-      details: JSON.stringify({ deletedEmail: user.email }),
-    },
-  });
-
-  return { success: true };
 }
 
 /**

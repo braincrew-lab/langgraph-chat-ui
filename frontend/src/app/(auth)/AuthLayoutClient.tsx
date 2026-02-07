@@ -57,7 +57,13 @@ export function AuthLayoutClient({
 }: AuthLayoutClientProps) {
   return (
     <AuthContext.Provider
-      value={{ authMode, allowRegistration, registrationPolicy, branding, oauthProviders }}
+      value={{
+        authMode,
+        allowRegistration,
+        registrationPolicy,
+        branding,
+        oauthProviders,
+      }}
     >
       <div className="from-background via-background to-muted/30 flex min-h-screen items-center justify-center bg-gradient-to-br px-4 py-8">
         {/* Subtle background pattern */}

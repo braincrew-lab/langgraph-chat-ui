@@ -1,6 +1,7 @@
 import { Client, type Run } from "langsmith";
 import { NextRequest, NextResponse } from "next/server";
 import { LangSmithRun, buildRunHierarchy } from "@/types/langsmith";
+import { requiresNextAuth } from "@/types/auth-mode";
 
 // LangSmith Run 객체를 LangSmithRun 형식으로 변환
 function convertRun(run: Run): LangSmithRun {
@@ -41,13 +42,39 @@ function convertRun(run: Run): LangSmithRun {
   };
 }
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(req: NextRequest) {
+  // Authenticate: in auth modes, require a valid session
+  if (requiresNextAuth()) {
+    const { auth } = await import("@/lib/auth");
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const threadId = req.nextUrl.searchParams.get("threadId");
   const traceId = req.nextUrl.searchParams.get("traceId");
 
   if (!threadId && !traceId) {
     return NextResponse.json(
       { error: "threadId or traceId required" },
+      { status: 400 },
+    );
+  }
+
+  // Validate UUID format to prevent filter injection
+  if (threadId && !UUID_REGEX.test(threadId)) {
+    return NextResponse.json(
+      { error: "Invalid threadId format" },
+      { status: 400 },
+    );
+  }
+  if (traceId && !UUID_REGEX.test(traceId)) {
+    return NextResponse.json(
+      { error: "Invalid traceId format" },
       { status: 400 },
     );
   }

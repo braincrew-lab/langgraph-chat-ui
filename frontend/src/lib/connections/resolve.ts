@@ -48,7 +48,9 @@ export async function resolveConnection(): Promise<ResolvedConnection> {
   const cookieApiKey = cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value;
 
   // Get admin default API URL from DB
-  const adminDefaultApiUrl = await getSetting("features.defaultConnectionApiUrl");
+  const adminDefaultApiUrl = await getSetting(
+    "features.defaultConnectionApiUrl",
+  );
 
   const apiUrl = resolveApiUrl(cookieApiUrl, adminDefaultApiUrl);
   const apiKey =

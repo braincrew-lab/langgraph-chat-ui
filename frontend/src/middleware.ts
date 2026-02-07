@@ -27,7 +27,11 @@ export default async function middleware(req: NextRequest) {
   // STANDALONE / OAUTH-DIRECT MODE: No NextAuth required
   if (isPublicMode()) {
     // Admin routes and auth pages are blocked in these modes
-    if (routeType === "admin" || pathname === "/login" || pathname === "/register") {
+    if (
+      routeType === "admin" ||
+      pathname === "/login" ||
+      pathname === "/register"
+    ) {
       return NextResponse.redirect(new URL("/", nextUrl));
     }
     return NextResponse.next();
@@ -55,7 +59,10 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // For API routes with Bearer token, let them through
+  // For API routes with Bearer token, let them through at the middleware level.
+  // Actual token validation is performed by individual route handlers
+  // (e.g., langsmith/runs, admin endpoints) - this is just a gate to avoid
+  // redirecting programmatic API clients to the login page.
   if (routeType === "api" && hasBearerToken(req)) {
     return NextResponse.next();
   }

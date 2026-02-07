@@ -1,4 +1,11 @@
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+} from "react";
 import { ChatConfig, defaultConfig, loadConfig } from "@/lib/config/client";
 import { GlobalSettings, DEFAULT_SETTINGS } from "@/types/global-settings";
 
@@ -126,23 +133,37 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     );
 
     // Apply color scheme
+    const applyColorScheme = () => {
+      if (userSettings.colorScheme === "auto") {
+        const isDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        root.classList.toggle("dark", isDark);
+      } else {
+        root.classList.toggle("dark", userSettings.colorScheme === "dark");
+      }
+    };
+
+    applyColorScheme();
+
+    // Listen for system theme changes when in auto mode
     if (userSettings.colorScheme === "auto") {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", isDark);
-    } else {
-      root.classList.toggle("dark", userSettings.colorScheme === "dark");
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => applyColorScheme();
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
     }
   }, [userSettings]);
 
-  const updateUserSettings = (settings: Partial<UserSettings>) => {
+  const updateUserSettings = useCallback((settings: Partial<UserSettings>) => {
     setUserSettings((prev) => {
       const newSettings = { ...prev, ...settings };
       saveUserSettings(newSettings);
       return newSettings;
     });
-  };
+  }, []);
 
-  const resetUserSettings = () => {
+  const resetUserSettings = useCallback(() => {
     const defaultUserSettings: UserSettings = {
       fontFamily: config.theme.fontFamily,
       fontSize: config.theme.fontSize,
@@ -154,18 +175,27 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     };
     setUserSettings(defaultUserSettings);
     saveUserSettings(defaultUserSettings);
-  };
+  }, [config]);
+
+  const contextValue = useMemo(
+    () => ({
+      config,
+      userSettings,
+      updateUserSettings,
+      resetUserSettings,
+      globalSettings,
+    }),
+    [
+      config,
+      userSettings,
+      updateUserSettings,
+      resetUserSettings,
+      globalSettings,
+    ],
+  );
 
   return (
-    <SettingsContext.Provider
-      value={{
-        config,
-        userSettings,
-        updateUserSettings,
-        resetUserSettings,
-        globalSettings,
-      }}
-    >
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );

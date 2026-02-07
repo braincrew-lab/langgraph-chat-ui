@@ -12,6 +12,7 @@ import { Client } from "@langchain/langgraph-sdk";
 import { isValidUUID } from "@/lib/utils/uuid";
 import { getAuthHeaders } from "@/lib/auth/jwt";
 import { resolveConnection } from "@/lib/connections/resolve";
+import { requireAuth } from "@/lib/auth/require-auth";
 
 // Types
 export interface AssistantConfig {
@@ -133,6 +134,7 @@ export async function searchAssistantsAction(): Promise<{
   error: string | null;
 }> {
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { assistants: [], error: "No API URL configured" };
@@ -170,6 +172,7 @@ export async function getAssistantDataAction(
   };
 
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { ...emptyResult, error: "No API URL configured" };
@@ -287,6 +290,7 @@ export async function updateAssistantConfigAction(
   }
 
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return {
@@ -337,6 +341,7 @@ export async function refetchAssistantDataAction(assistantId: string): Promise<{
   }
 
   try {
+    await requireAuth();
     const { apiUrl, apiKey } = await resolveConnection();
     if (!apiUrl) {
       return { ...emptyResult, error: "No API URL configured" };

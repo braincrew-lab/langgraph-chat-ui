@@ -16,6 +16,7 @@ import type {
   LangSmithEnrichment,
 } from "@/types/task-progress";
 import type { LangSmithRun } from "@/types/langsmith";
+import { extractToolCallIdFromRun, extractModelName } from "@/types/langsmith";
 
 // ============================================
 // Types
@@ -39,74 +40,8 @@ interface UseLangSmithEnrichmentReturn {
 // ============================================
 
 /**
- * Extract tool_call_id from a LangSmith run
- * Tries multiple locations where the ID might be stored
- */
-function extractToolCallIdFromRun(run: LangSmithRun): string | null {
-  // Check inputs.tool_call_id
-  if (run.inputs && typeof run.inputs === "object") {
-    const inputs = run.inputs as Record<string, unknown>;
-
-    if (typeof inputs.tool_call_id === "string" && inputs.tool_call_id) {
-      return inputs.tool_call_id;
-    }
-
-    // Check nested inputs.input.tool_call_id
-    if (inputs.input && typeof inputs.input === "object") {
-      const input = inputs.input as Record<string, unknown>;
-      if (typeof input.tool_call_id === "string" && input.tool_call_id) {
-        return input.tool_call_id;
-      }
-    }
-
-    // Check inputs.messages for tool_call_id
-    if (Array.isArray(inputs.messages)) {
-      for (const msg of inputs.messages) {
-        if (msg && typeof msg === "object") {
-          const message = msg as Record<string, unknown>;
-          if (
-            typeof message.tool_call_id === "string" &&
-            message.tool_call_id
-          ) {
-            return message.tool_call_id;
-          }
-          // Check tool_calls array for AI messages
-          if (
-            Array.isArray(message.tool_calls) &&
-            message.tool_calls.length > 0
-          ) {
-            const toolCall = message.tool_calls[0] as Record<string, unknown>;
-            if (typeof toolCall.id === "string" && toolCall.id) {
-              return toolCall.id;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Check metadata.tool_call_id
-  if (run.metadata && typeof run.metadata === "object") {
-    const metadata = run.metadata as Record<string, unknown>;
-
-    if (typeof metadata.tool_call_id === "string" && metadata.tool_call_id) {
-      return metadata.tool_call_id;
-    }
-
-    // Check LangGraph-specific field
-    if (
-      typeof metadata.langgraph_tool_call_id === "string" &&
-      metadata.langgraph_tool_call_id
-    ) {
-      return metadata.langgraph_tool_call_id;
-    }
-  }
-
-  return null;
-}
-
-/**
  * Extract token usage from LangSmith run outputs
+ * (Adapts to LangSmithEnrichment format with input/output fields)
  */
 function extractTokenUsage(
   run: LangSmithRun,
@@ -127,7 +62,6 @@ function extractTokenUsage(
       };
     }
 
-    // Check usage (Anthropic format)
     if (llmOutput.usage && typeof llmOutput.usage === "object") {
       const usage = llmOutput.usage as Record<string, number>;
       return {
@@ -137,46 +71,12 @@ function extractTokenUsage(
     }
   }
 
-  // Direct usage field
   if (outputs.usage && typeof outputs.usage === "object") {
     const usage = outputs.usage as Record<string, number>;
     return {
       input: usage.input_tokens || usage.prompt_tokens || 0,
       output: usage.output_tokens || usage.completion_tokens || 0,
     };
-  }
-
-  return undefined;
-}
-
-/**
- * Extract model name from LangSmith run
- */
-function extractModelName(run: LangSmithRun): string | undefined {
-  // Check metadata
-  if (run.metadata?.ls_model_name) {
-    return run.metadata.ls_model_name as string;
-  }
-
-  // Check invocation_params
-  if (run.inputs && typeof run.inputs === "object") {
-    const inputs = run.inputs as Record<string, unknown>;
-
-    if (
-      inputs.invocation_params &&
-      typeof inputs.invocation_params === "object"
-    ) {
-      const params = inputs.invocation_params as Record<string, unknown>;
-      if (params.model_name) return params.model_name as string;
-      if (params.model) return params.model as string;
-    }
-
-    // Check kwargs
-    if (inputs.kwargs && typeof inputs.kwargs === "object") {
-      const kwargs = inputs.kwargs as Record<string, unknown>;
-      if (kwargs.model_name) return kwargs.model_name as string;
-      if (kwargs.model) return kwargs.model as string;
-    }
   }
 
   return undefined;

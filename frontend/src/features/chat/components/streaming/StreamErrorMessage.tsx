@@ -91,7 +91,7 @@ export function StreamErrorMessage({
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "border-destructive/20 bg-destructive/5 rounded-lg border p-4",
-        className
+        className,
       )}
     >
       <div className="flex items-start gap-3">
@@ -123,7 +123,7 @@ export function StreamErrorMessage({
               <ChevronDown
                 className={cn(
                   "mr-1 h-3.5 w-3.5 transition-transform",
-                  showDetails && "rotate-180"
+                  showDetails && "rotate-180",
                 )}
               />
               상세 정보

@@ -1,29 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { SignJWT } from "jose";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
 import { resolveApiUrl } from "@/lib/connections/resolve";
-import { getAuthMode, requiresNextAuth } from "@/types/auth-mode";
+import { requiresNextAuth } from "@/types/auth-mode";
+import { generateUserJWT } from "@/lib/auth/jwt";
+import { isPrivateUrl } from "@/lib/utils/url-validation";
 
-function getCorsHeaders() {
+function getCorsHeaders(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+  // Determine allowed origin: configured app URL, or same-origin only
+  let allowedOrigin = "";
+  if (appUrl && origin === appUrl) {
+    allowedOrigin = appUrl;
+  } else if (origin) {
+    // Allow same-origin requests (origin matches the request host)
+    const requestHost = req.headers.get("host");
+    try {
+      const originHost = new URL(origin).host;
+      if (requestHost && originHost === requestHost) {
+        allowedOrigin = origin;
+      }
+    } catch {
+      // Invalid origin - don't set allow header
+    }
+  }
+
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 
 async function handleRequest(req: NextRequest, method: string) {
-  const authMode = getAuthMode();
   const needsAuth = requiresNextAuth();
 
   // Get user session (only for auth modes that require it)
-  type SessionType = { user?: { id: string; email?: string | null; name?: string | null; role?: string; status?: string } } | null;
+  type SessionType = {
+    user?: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      role?: string;
+      status?: string;
+    };
+  } | null;
   let session: SessionType = null;
   if (needsAuth) {
     const { auth } = await import("@/lib/auth");
-    session = await auth() as SessionType;
+    session = (await auth()) as SessionType;
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -46,6 +74,15 @@ async function handleRequest(req: NextRequest, method: string) {
       );
     }
 
+    // SSRF prevention: validate user-provided URLs (from cookies)
+    // Server env vars (LANGGRAPH_API_URL) are trusted and skip validation
+    if (cookieApiUrl && cookieApiUrl === apiUrl && isPrivateUrl(apiUrl)) {
+      return NextResponse.json(
+        { error: "Invalid API URL: private network addresses are not allowed" },
+        { status: 400 },
+      );
+    }
+
     // Extract path from the catch-all route
     const path = req.nextUrl.pathname.replace(/^\/?api\//, "");
 
@@ -58,32 +95,17 @@ async function handleRequest(req: NextRequest, method: string) {
       ? `?${searchParams.toString()}`
       : "";
 
-    // Build headers
+    // Build headers - preserve original Content-Type or default to application/json
+    const contentType = req.headers.get("content-type") || "application/json";
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      "Content-Type": contentType,
     };
 
-    // Generate signed JWT token for LangGraph server (only if authenticated)
-    if (session?.user) {
-      const token = await new SignJWT({
-        sub: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        role: session.user.role,
-        status: session.user.status,
-      })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("1h")
-        .sign(new TextEncoder().encode(process.env.NEXTAUTH_SECRET!));
-
+    // Generate signed JWT token for LangGraph server using shared utility
+    const token = await generateUserJWT();
+    if (token) {
       headers["Authorization"] = `Bearer ${token}`;
-      console.log("[LangGraph Proxy] User:", session.user.email);
-    } else {
-      console.log("[LangGraph Proxy] Mode:", authMode, "(no auth)");
     }
-
-    console.log("[LangGraph Proxy] API URL:", apiUrl);
 
     // Build request options
     const options: RequestInit = {
@@ -98,10 +120,8 @@ async function handleRequest(req: NextRequest, method: string) {
 
     // Make request to LangGraph server
     const targetUrl = `${apiUrl}/${path}${queryString}`;
-    console.log("[LangGraph Proxy] Target URL:", targetUrl);
 
     const res = await fetch(targetUrl, options);
-    console.log("[LangGraph Proxy] Response status:", res.status);
 
     // Return response with CORS headers
     return new NextResponse(res.body, {
@@ -109,7 +129,7 @@ async function handleRequest(req: NextRequest, method: string) {
       statusText: res.statusText,
       headers: {
         ...Object.fromEntries(res.headers.entries()),
-        ...getCorsHeaders(),
+        ...getCorsHeaders(req),
       },
     });
   } catch (e) {
@@ -140,9 +160,9 @@ export async function DELETE(req: NextRequest) {
   return handleRequest(req, "DELETE");
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: getCorsHeaders(req),
   });
 }
