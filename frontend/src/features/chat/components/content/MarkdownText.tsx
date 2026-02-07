@@ -119,7 +119,7 @@ const defaultComponents: Record<string, unknown> = {
   p: ({ className, ...props }: { className?: string }) => (
     <p
       className={cn(
-        "text-foreground/90 mt-5 mb-5 leading-relaxed first:mt-0 last:mb-0",
+        "text-foreground/90 mt-4 mb-4 leading-[1.62] first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -143,7 +143,7 @@ const defaultComponents: Record<string, unknown> = {
   ul: ({ className, ...props }: { className?: string }) => (
     <ul
       className={cn(
-        "my-5 ml-6 list-disc [&>li]:mt-2 [&>li]:leading-relaxed",
+        "my-4 ml-6 list-disc [&>li]:mt-1.5 [&>li]:leading-[1.6]",
         className,
       )}
       {...props}
@@ -152,7 +152,7 @@ const defaultComponents: Record<string, unknown> = {
   ol: ({ className, ...props }: { className?: string }) => (
     <ol
       className={cn(
-        "my-5 ml-6 list-decimal [&>li]:mt-2 [&>li]:leading-relaxed",
+        "my-4 ml-6 list-decimal [&>li]:mt-1.5 [&>li]:leading-[1.6]",
         className,
       )}
       {...props}
@@ -160,14 +160,14 @@ const defaultComponents: Record<string, unknown> = {
   ),
   hr: ({ className, ...props }: { className?: string }) => (
     <hr
-      className={cn("my-5 border-b", className)}
+      className={cn("my-4 border-b", className)}
       {...props}
     />
   ),
   table: ({ className, ...props }: { className?: string }) => (
     <table
       className={cn(
-        "my-5 w-full border-separate border-spacing-0 overflow-y-auto",
+        "my-4 w-full border-separate border-spacing-0 overflow-y-auto",
         className,
       )}
       {...props}
