@@ -114,7 +114,7 @@ export default async function AdminDashboardPage() {
         {statCards.map((stat) => (
           <Card
             key={stat.title}
-            className="border-border/70 bg-secondary overflow-hidden"
+            className="border-border/70 bg-card overflow-hidden"
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -135,7 +135,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/70 bg-secondary h-fit self-start">
+        <Card className="border-border/70 bg-card h-fit self-start">
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -243,7 +243,7 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-secondary">
+        <Card className="border-border/70 bg-card">
           <CardHeader>
             <CardTitle>운영 알림</CardTitle>
             <CardDescription>즉시 확인이 필요한 항목</CardDescription>

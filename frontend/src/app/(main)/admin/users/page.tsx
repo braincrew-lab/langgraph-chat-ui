@@ -58,7 +58,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         </div>
       </AdminPageHeader>
 
-      <Card className="border-border/70 bg-secondary">
+      <Card className="border-border/70 bg-card">
         <CardHeader>
           <CardTitle>사용자 목록</CardTitle>
           <CardDescription>총 {result.total}명의 사용자</CardDescription>
