@@ -36,7 +36,7 @@ export default async function ApprovalsPage() {
         </div>
       </AdminPageHeader>
 
-      <Card className="border-border/70 bg-card/75">
+      <Card className="border-border/70 bg-card/75 dark:bg-[#303030]">
         <CardHeader>
           <CardTitle>대기 중인 사용자</CardTitle>
           <CardDescription>

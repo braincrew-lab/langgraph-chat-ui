@@ -16,7 +16,7 @@ export function AdminPageHeader({
   children,
 }: AdminPageHeaderProps) {
   return (
-    <section className="border-border/70 bg-card/75 rounded-xl border px-5 py-4">
+    <section className="border-border/70 bg-card/75 dark:bg-[#303030] rounded-xl border px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           {eyebrow && (

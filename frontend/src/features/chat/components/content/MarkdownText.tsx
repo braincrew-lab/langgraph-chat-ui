@@ -51,7 +51,7 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   };
 
   return (
-    <div className="bg-muted text-foreground border-border flex items-center justify-between gap-4 rounded-t-xl border-b px-5 py-2.5 text-sm font-medium dark:border-zinc-600 dark:bg-zinc-800 dark:text-white/90">
+    <div className="bg-muted text-foreground border-border flex items-center justify-between gap-4 rounded-t-xl border-b px-5 py-2.5 text-sm font-medium">
       <span className="font-mono text-xs lowercase">{language}</span>
       <TooltipIconButton
         tooltip="Copy"
@@ -209,7 +209,7 @@ const defaultComponents: Record<string, unknown> = {
   pre: ({ className, ...props }: { className?: string }) => (
     <pre
       className={cn(
-        "bg-muted/50 text-foreground border-border/30 w-full max-w-full overflow-x-auto rounded-xl border shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:text-white",
+        "bg-muted/50 text-foreground border-border/30 w-full max-w-full overflow-x-auto rounded-xl border shadow-md",
         className,
       )}
       {...props}

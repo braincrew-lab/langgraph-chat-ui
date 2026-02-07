@@ -1,12 +1,9 @@
 import { Thread } from "@langchain/langgraph-sdk";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   LayoutDashboard,
-  PanelRightOpen,
-  PanelRightClose,
   BookOpen,
   Settings,
   Users,
@@ -26,8 +23,6 @@ import { cn } from "@/lib/utils";
 interface DesktopSidebarProps {
   threads: Thread[];
   threadsLoading: boolean;
-  chatHistoryOpen: boolean;
-  onToggleChatHistory: () => void;
   onNewChat: () => void;
   onShowGuide?: () => void;
 }
@@ -35,8 +30,6 @@ interface DesktopSidebarProps {
 export function DesktopSidebar({
   threads,
   threadsLoading,
-  chatHistoryOpen,
-  onToggleChatHistory,
   onNewChat,
   onShowGuide,
 }: DesktopSidebarProps) {
@@ -46,25 +39,8 @@ export function DesktopSidebar({
 
   return (
     <div className="shadow-inner-right border-border flex h-screen w-[300px] shrink-0 flex-col items-stretch justify-start border-r-[1px]">
-      {/* Header with collapse button on right */}
-      <div className="flex w-full items-center justify-end px-4 pt-1.5">
-        <Button
-          size="icon"
-          className="hover:bg-accent"
-          variant="ghost"
-          onClick={onToggleChatHistory}
-          aria-label={chatHistoryOpen ? "사이드바 접기" : "사이드바 펼치기"}
-        >
-          {chatHistoryOpen ? (
-            <PanelRightOpen className="size-5" />
-          ) : (
-            <PanelRightClose className="size-5" />
-          )}
-        </Button>
-      </div>
-
       {/* New Chat button */}
-      <div className="mb-2 px-3">
+      <div className="mb-2 px-3 pt-4">
         <NewChatButton onClick={onNewChat} />
       </div>
 

@@ -226,7 +226,7 @@ export function SettingsForm({
           {leftColumn.map(({ category, settings }) => (
             <Card
               key={category}
-              className="border-border/70 bg-card/75"
+              className="border-border/70 bg-card/75 dark:bg-[#303030]"
             >
               <CardHeader>
                 <CardTitle className="text-bold text-xl">
@@ -249,7 +249,7 @@ export function SettingsForm({
           {rightColumn.map(({ category, settings }) => (
             <Card
               key={category}
-              className="border-border/70 bg-card/75"
+              className="border-border/70 bg-card/75 dark:bg-[#303030]"
             >
               <CardHeader>
                 <CardTitle className="text-bold text-xl">

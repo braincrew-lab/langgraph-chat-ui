@@ -159,7 +159,7 @@ export function UnifiedInputArea({
     <div
       ref={isFormMode ? undefined : dropRef}
       className={cn(
-        "bg-card mb-4 rounded-3xl border shadow-md dark:bg-[#212121]",
+        "bg-card dark:bg-[#313131] mb-4 rounded-3xl border shadow-md",
         !isFormMode && dragOver
           ? "border-primary border-2 border-dotted"
           : "border-border",
