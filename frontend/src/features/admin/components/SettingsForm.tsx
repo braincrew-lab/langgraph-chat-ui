@@ -211,32 +211,63 @@ export function SettingsForm({
   };
 
   const categories = [...new Set(SETTING_DEFINITIONS.map((d) => d.category))];
+  const categoryEntries = categories.map((category) => ({
+    category,
+    settings: SETTING_DEFINITIONS.filter((d) => d.category === category),
+  }));
+
+  const leftColumn = categoryEntries.filter((_, index) => index % 2 === 0);
+  const rightColumn = categoryEntries.filter((_, index) => index % 2 === 1);
 
   return (
     <div className="space-y-6">
-      {categories.map((category) => {
-        const categorySettings = SETTING_DEFINITIONS.filter(
-          (d) => d.category === category,
-        );
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          {leftColumn.map(({ category, settings }) => (
+            <Card
+              key={category}
+              className="border-border/70 bg-card/75"
+            >
+              <CardHeader>
+                <CardTitle className="text-bold text-xl">
+                  {CATEGORY_LABELS[category]}
+                </CardTitle>
+                <CardDescription>
+                  {CATEGORY_LABELS[category]} 설정을 구성합니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {settings.map((definition) => (
+                  <div key={definition.key}>{renderField(definition)}</div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-        return (
-          <Card key={category}>
-            <CardHeader>
-              <CardTitle className="text-bold text-xl">
-                {CATEGORY_LABELS[category]}
-              </CardTitle>
-              <CardDescription>
-                {CATEGORY_LABELS[category]} 설정을 구성합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {categorySettings.map((definition) => (
-                <div key={definition.key}>{renderField(definition)}</div>
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
+        <div className="space-y-4">
+          {rightColumn.map(({ category, settings }) => (
+            <Card
+              key={category}
+              className="border-border/70 bg-card/75"
+            >
+              <CardHeader>
+                <CardTitle className="text-bold text-xl">
+                  {CATEGORY_LABELS[category]}
+                </CardTitle>
+                <CardDescription>
+                  {CATEGORY_LABELS[category]} 설정을 구성합니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {settings.map((definition) => (
+                  <div key={definition.key}>{renderField(definition)}</div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <Button

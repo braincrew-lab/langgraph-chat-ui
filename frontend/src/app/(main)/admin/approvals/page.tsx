@@ -8,8 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
 import type { UserRole } from "@/types/auth-mode";
 import { AlertCircle } from "lucide-react";
+import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
 
 export default async function ApprovalsPage() {
   const session = await auth();
@@ -24,14 +26,17 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">승인 대기</h1>
-        <p className="text-muted-foreground">
-          회원가입 요청을 검토하고 승인합니다
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="승인 요청"
+        title="가입 승인 대기 목록"
+        description="가입 요청을 검토하고 승인 또는 보류 처리합니다."
+      >
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">대기 {result.total}건</Badge>
+        </div>
+      </AdminPageHeader>
 
-      <Card>
+      <Card className="border-border/70 bg-card/75">
         <CardHeader>
           <CardTitle>대기 중인 사용자</CardTitle>
           <CardDescription>

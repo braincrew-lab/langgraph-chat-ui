@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { getUsers } from "@/lib/services/user.service";
 import { UserTable } from "@/features/admin/components/UserTable";
+import { UserFilters } from "@/features/admin/components/UserFilters";
+import { Pagination } from "@/features/admin/components/Pagination";
 import {
   Card,
   CardContent,
@@ -8,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
+import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
 
 interface UsersPageProps {
   searchParams: Promise<{
@@ -23,10 +27,11 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   const session = await auth();
   const params = await searchParams;
 
-  const page = parseInt(params.page || "1");
+  const parsedPage = Number.parseInt(params.page || "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const status = (params.status || "all") as UserStatus | "all";
   const role = (params.role || "all") as UserRole | "all";
-  const search = params.search;
+  const search = params.search?.trim();
 
   const result = await getUsers({
     page,
@@ -40,17 +45,26 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">사용자 관리</h1>
-        <p className="text-muted-foreground">등록된 모든 사용자를 관리합니다</p>
-      </div>
+      <AdminPageHeader
+        eyebrow="사용자 관리"
+        title="전체 사용자"
+        description={`검색/필터 조건에 맞는 사용자 ${result.total}명`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">총 {result.total}명</Badge>
+          {status !== "all" && <Badge variant="secondary">상태: {status}</Badge>}
+          {role !== "all" && <Badge variant="secondary">권한: {role}</Badge>}
+          {search && <Badge variant="secondary">검색: {search}</Badge>}
+        </div>
+      </AdminPageHeader>
 
-      <Card>
+      <Card className="border-border/70 bg-card/75">
         <CardHeader>
-          <CardTitle>전체 사용자</CardTitle>
+          <CardTitle>사용자 목록</CardTitle>
           <CardDescription>총 {result.total}명의 사용자</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <UserFilters />
           {result.users.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">
               사용자가 없습니다
@@ -66,6 +80,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
               currentUserRole={session!.user.role as UserRole}
             />
           )}
+          <Pagination
+            page={result.page}
+            pageSize={result.pageSize}
+            total={result.total}
+            totalPages={result.totalPages}
+          />
         </CardContent>
       </Card>
     </div>
