@@ -54,6 +54,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
   const pathname = usePathname();
   const isOnAdminPage = pathname?.startsWith("/admin");
   const isOnChatPage = pathname === "/" || pathname === "";
+  const useUnifiedDarkSurface = isOnChatPage || isOnAdminPage;
   const showHeaderLogo = isOnAdminPage || !!threadId; // Show logo on admin pages or when chat started
 
   // Sidebar state from settings (persisted)
@@ -162,8 +163,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                 <DesktopSidebar
                   threads={threads}
                   threadsLoading={threadsLoading}
-                  chatHistoryOpen={chatHistoryOpen}
-                  onToggleChatHistory={handleToggleChatHistory}
                   onNewChat={handleNewChat}
                   onShowGuide={handleShowGuide}
                 />
@@ -202,14 +201,22 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         }}
       >
         {/* Shared Header */}
-        <header className="relative flex flex-shrink-0 items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-2">
+        <header
+          className={cn(
+            "relative flex flex-shrink-0 items-center justify-between gap-3 p-4",
+            useUnifiedDarkSurface
+              ? "bg-card"
+              : "bg-background",
+          )}
+        >
+          <div className="flex items-center gap-6">
             {config.threads.showHistory &&
-              (!chatHistoryOpen || !isLargeScreen) && (
+              (isLargeScreen || !chatHistoryOpen) && (
                 <Button
-                  className="hover:bg-accent"
+                  size="icon"
                   variant="ghost"
                   onClick={handleToggleChatHistory}
+                  className="text-foreground/75 hover:bg-accent/70 hover:text-foreground transition-colors"
                   aria-label={
                     chatHistoryOpen ? "Close sidebar" : "Open sidebar"
                   }
@@ -287,12 +294,25 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
               </Tooltip>
             </TooltipProvider>
           </div>
-          {/* Gradient fade */}
-          <div className="from-background to-background/0 pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
+
+          {/* Header bottom fade */}
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b",
+              useUnifiedDarkSurface
+                ? "from-card to-transparent"
+                : "from-background/95 to-transparent",
+            )}
+          />
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-hidden">
+        <div
+          className={cn(
+            "flex-1 overflow-hidden",
+            isOnChatPage && "bg-card",
+          )}
+        >
           <TracingPanelContext.Provider
             value={{ isOpen: tracingPanelOpen, setIsOpen: setTracingPanelOpen }}
           >

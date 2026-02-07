@@ -13,18 +13,17 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
@@ -71,16 +70,10 @@ const providerConfig = {
   google: {
     name: "Google",
     icon: GoogleIcon,
-    bgColor: "bg-white hover:bg-gray-50",
-    textColor: "text-gray-900",
-    borderColor: "border-gray-300",
   },
   github: {
     name: "GitHub",
     icon: GitHubIcon,
-    bgColor: "bg-[#24292F] hover:bg-[#1b1f23]",
-    textColor: "text-white",
-    borderColor: "border-transparent",
   },
 };
 
@@ -133,7 +126,7 @@ export function OAuthLoginForm() {
 
         <motion.div
           variants={itemVariants}
-          className="rounded-xl bg-amber-50 p-4 text-center text-sm text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
+          className="bg-muted/60 border-border text-foreground rounded-xl border p-4 text-center text-sm"
         >
           OAuth 공급자가 설정되지 않았습니다.
           <br />
@@ -155,11 +148,7 @@ export function OAuthLoginForm() {
         variants={itemVariants}
         className="flex flex-col items-center gap-4 pb-2"
       >
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
+        <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
@@ -168,7 +157,7 @@ export function OAuthLoginForm() {
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
           />
-        </motion.div>
+        </div>
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
             {branding.appName}
@@ -184,7 +173,7 @@ export function OAuthLoginForm() {
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
+          className="border-destructive/35 bg-destructive/10 text-destructive rounded-xl border p-3 text-sm"
           role="alert"
         >
           {error}
@@ -209,7 +198,7 @@ export function OAuthLoginForm() {
               <Button
                 type="button"
                 variant="outline"
-                className={`h-12 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${config.bgColor} ${config.textColor} border ${config.borderColor}`}
+                className="bg-background text-foreground border-input hover:bg-accent h-12 w-full rounded-xl border font-medium transition-colors"
                 onClick={() => handleOAuthSignIn(provider)}
                 disabled={loadingProvider !== null}
               >

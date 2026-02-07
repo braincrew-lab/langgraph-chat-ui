@@ -3,6 +3,7 @@ import {
   getServerDefaults,
 } from "@/lib/services/settings.service";
 import { SettingsForm } from "@/features/admin/components/SettingsForm";
+import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
 
 export default async function SettingsPage() {
   const settings = await getAllSettings();
@@ -10,12 +11,11 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">설정</h1>
-        <p className="text-muted-foreground">
-          전역 애플리케이션 설정을 관리합니다
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="시스템 설정"
+        title="전역 환경 설정"
+        description="브랜딩, 기능 플래그, 연결 기본값 등 운영 전반 설정을 관리합니다."
+      />
 
       <SettingsForm
         initialSettings={settings}

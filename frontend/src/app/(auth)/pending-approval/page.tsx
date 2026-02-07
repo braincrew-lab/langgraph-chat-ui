@@ -12,18 +12,17 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
@@ -62,12 +61,12 @@ export default function PendingApprovalPage() {
         className="flex flex-col items-center gap-4 pb-2"
       >
         <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="bg-muted/70 border-border flex h-16 w-16 items-center justify-center rounded-full border"
         >
-          <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+          <Clock className="text-primary h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">승인 대기 중</h1>
@@ -104,7 +103,7 @@ export default function PendingApprovalPage() {
         <Button
           onClick={handleRefresh}
           variant="outline"
-          className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
           상태 확인
@@ -112,7 +111,7 @@ export default function PendingApprovalPage() {
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
           로그아웃
