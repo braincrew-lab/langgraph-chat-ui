@@ -10,18 +10,17 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
@@ -45,12 +44,12 @@ export default function AccountSuspendedPage() {
         className="flex flex-col items-center gap-4 pb-2"
       >
         <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="border-destructive/35 bg-destructive/10 flex h-16 w-16 items-center justify-center rounded-full border"
         >
-          <Ban className="h-8 w-8 text-red-600 dark:text-red-400" />
+          <Ban className="text-destructive h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">계정 정지됨</h1>
@@ -87,7 +86,7 @@ export default function AccountSuspendedPage() {
         <Button
           onClick={() => (window.location.href = "mailto:support@example.com")}
           variant="outline"
-          className="h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <Mail className="mr-2 h-4 w-4" />
           문의하기
@@ -95,7 +94,7 @@ export default function AccountSuspendedPage() {
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
           로그아웃

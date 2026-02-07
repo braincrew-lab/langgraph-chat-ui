@@ -160,7 +160,6 @@ export function UnifiedInputArea({
       ref={isFormMode ? undefined : dropRef}
       className={cn(
         "bg-card mb-4 rounded-3xl border shadow-md dark:bg-[#212121]",
-        "animate-in fade-in-0 slide-in-from-bottom-2 duration-200",
         !isFormMode && dragOver
           ? "border-primary border-2 border-dotted"
           : "border-border",
