@@ -35,6 +35,7 @@ function ContentCopyable({
       variant="ghost"
       tooltip="Copy content"
       disabled={disabled}
+      className="text-muted-foreground/40 hover:text-muted-foreground"
     >
       <AnimatePresence
         mode="wait"
@@ -189,7 +190,7 @@ export function CommandBar({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <ContentCopyable
         content={content}
         disabled={isLoading}
@@ -199,6 +200,7 @@ export function CommandBar({
           disabled={isLoading}
           tooltip="Refresh"
           variant="ghost"
+          className="text-muted-foreground/40 hover:text-muted-foreground"
           onClick={handleRegenerate}
         >
           <RefreshCcw />
@@ -209,6 +211,7 @@ export function CommandBar({
           disabled={isLoading}
           tooltip="Edit"
           variant="ghost"
+          className="text-muted-foreground/40 hover:text-muted-foreground"
           onClick={() => {
             setIsEditing?.(true);
           }}

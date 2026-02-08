@@ -25,6 +25,7 @@ import {
   Loader2,
   Wrench,
   Clock,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/shared/hooks/useSettings";
@@ -55,6 +56,8 @@ interface ToolCardProps {
   className?: string;
   /** Auto-collapse when completed */
   autoCollapse?: boolean;
+  /** Retry callback - regenerates from the checkpoint before this tool call */
+  onRetry?: () => void;
 }
 
 // ============================================
@@ -102,9 +105,9 @@ const StatusIcon = memo(function StatusIcon({
 }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      return <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />;
     case "error":
-      return <XCircle className="h-4 w-4 text-red-500" />;
+      return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
     case "running":
     default:
       return <Loader2 className="h-4 w-4 animate-spin text-orange-500" />;
@@ -117,7 +120,7 @@ const LatencyBadge = memo(function LatencyBadge({
   latency: number;
 }) {
   return (
-    <span className="bg-muted/70 text-muted-foreground border-border/30 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs">
+    <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px]">
       <Clock className="h-3 w-3" />
       {formatLatency(latency)}
     </span>
@@ -302,6 +305,7 @@ export const ToolCard = memo(function ToolCard({
   variant = "full",
   className,
   autoCollapse = true,
+  onRetry,
 }: ToolCardProps) {
   const { userSettings } = useSettings();
   // Start collapsed by default (more compact), expand when user clicks
@@ -322,32 +326,24 @@ export const ToolCard = memo(function ToolCard({
   const hasResult = result && result.length > 0;
   const isCompact = variant === "compact";
 
-  // Get status-specific styling
-  const getStatusColor = () => {
-    switch (status) {
-      case "completed":
-        return "border-green-300 dark:border-green-700/50 bg-green-50/30 dark:bg-green-950/10";
-      case "error":
-        return "border-red-300 dark:border-red-700/50 bg-red-50/30 dark:bg-red-950/10";
-      case "running":
-      default:
-        return "border-purple-300 dark:border-purple-700/50 bg-purple-50/30 dark:bg-purple-950/10";
-    }
-  };
+  // Tool calls use blue accent to distinguish from green tool results
+  const iconBg = status === "error"
+    ? "bg-red-100 dark:bg-red-900/40"
+    : "bg-blue-100 dark:bg-blue-900/40";
 
   // Compact variant: minimal inline display
   if (isCompact) {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 px-2 py-1.5 text-xs",
-          "rounded-r border-l-2",
-          getStatusColor(),
+          "bg-card border-border flex items-center gap-2.5 rounded-lg border px-3 py-2 text-xs shadow-sm",
           className,
         )}
       >
-        <Wrench className="text-muted-foreground h-3 w-3 flex-shrink-0" />
-        <span className="text-foreground/80 font-medium">{name}</span>
+        <div className={cn("flex h-5 w-5 items-center justify-center rounded", iconBg)}>
+          <Wrench className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+        </div>
+        <span className="text-foreground font-medium">{name}</span>
         <StatusIcon status={status} />
         {latency && <LatencyBadge latency={latency} />}
         {hasArgs && (
@@ -364,32 +360,36 @@ export const ToolCard = memo(function ToolCard({
     );
   }
 
-  // Full variant: unified inline style with border-left (matches TaskProgressList)
+  // Full variant: card with border and proper spacing
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border-l-2",
-        getStatusColor(),
+        "group/toolcard bg-card border-border w-full overflow-hidden rounded-xl border shadow-sm",
         "transition-all duration-150",
         className,
       )}
     >
-      {/* Header - compact inline style */}
+      {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="hover:bg-muted/30 w-full px-3 py-2 text-left transition-colors"
+        className="hover:bg-muted/50 w-full px-4 py-3 text-left transition-colors"
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Wrench className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-            <span className="text-foreground truncate text-sm font-medium">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <div className={cn(
+              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg",
+              iconBg,
+            )}>
+              <Wrench className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span className="text-foreground truncate text-sm font-semibold">
               {name}
             </span>
             <StatusIcon status={status} />
             {latency && <LatencyBadge latency={latency} />}
             {/* Show args preview when collapsed */}
             {!isExpanded && hasArgs && (
-              <span className="text-muted-foreground max-w-[150px] truncate text-xs">
+              <span className="text-muted-foreground hidden max-w-[200px] truncate text-xs sm:inline">
                 (
                 {Object.entries(args)
                   .map(
@@ -401,9 +401,21 @@ export const ToolCard = memo(function ToolCard({
               </span>
             )}
           </div>
-          <div className="flex flex-shrink-0 items-center gap-1.5">
+          <div className="relative flex flex-shrink-0 items-center gap-2">
+            {onRetry && status !== "running" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRetry();
+                }}
+                className="text-muted-foreground hover:text-foreground hover:bg-muted absolute -left-8 rounded-md p-1 opacity-0 transition-opacity group-hover/toolcard:opacity-100"
+                title="Retry from this point"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            )}
             {toolCallId && (
-              <code className="bg-muted/50 text-muted-foreground/70 hidden rounded px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+              <code className="bg-muted text-muted-foreground/70 hidden rounded-md px-1.5 py-0.5 font-mono text-[10px] sm:inline">
                 {toolCallId.slice(0, 6)}
               </code>
             )}
@@ -411,7 +423,7 @@ export const ToolCard = memo(function ToolCard({
               animate={{ rotate: isExpanded ? 0 : -90 }}
               transition={{ duration: 0.15, ease: "easeInOut" }}
             >
-              <ChevronDown className="text-muted-foreground/60 h-3.5 w-3.5" />
+              <ChevronDown className="text-muted-foreground/60 h-4 w-4" />
             </motion.div>
           </div>
         </div>
@@ -425,7 +437,7 @@ export const ToolCard = memo(function ToolCard({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="border-border/30 overflow-hidden border-t"
+            className="border-border/50 overflow-hidden border-t"
           >
             {/* Args Section */}
             {hasArgs && (
@@ -440,16 +452,6 @@ export const ToolCard = memo(function ToolCard({
                 result={result}
                 error={error}
               />
-            )}
-
-            {/* Running State */}
-            {status === "running" && !hasResult && (
-              <div className="bg-purple-50/20 px-3 py-2 dark:bg-purple-950/10">
-                <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Running...</span>
-                </div>
-              </div>
             )}
           </motion.div>
         )}
@@ -475,23 +477,21 @@ interface ToolCardListProps {
   }>;
   variant?: "compact" | "full";
   className?: string;
+  onRetry?: () => void;
 }
 
 export const ToolCardList = memo(function ToolCardList({
   tools,
   variant = "full",
   className,
+  onRetry,
 }: ToolCardListProps) {
-  const { userSettings } = useSettings();
-
   if (tools.length === 0) return null;
 
   return (
     <div
       className={cn(
-        "grid gap-3",
-        userSettings.chatWidth === "default" ? "max-w-3xl" : "max-w-5xl",
-        "mx-auto",
+        "grid gap-4",
         className,
       )}
     >
@@ -506,6 +506,7 @@ export const ToolCardList = memo(function ToolCardList({
           latency={tool.latency}
           toolCallId={tool.toolCallId}
           variant={variant}
+          onRetry={onRetry}
         />
       ))}
     </div>
