@@ -151,9 +151,7 @@ export function MessageList({
       if (filteredMessages[i].type === "human") humanIndices.push(i);
     }
     const lastHumanIndex =
-      humanIndices.length > 0
-        ? humanIndices[humanIndices.length - 1]
-        : -1;
+      humanIndices.length > 0 ? humanIndices[humanIndices.length - 1] : -1;
 
     // Collect final AI message IDs for completed turns (all turns except the last)
     const completedTurnFinalAiIds = new Set<string>();
@@ -236,6 +234,13 @@ export function MessageList({
         : `${message.type}-${index}`;
 
       if (message.type === "human") {
+        // Named human messages (e.g. HumanMessage(name="critic")) are agent-generated,
+        // not actual user input — hide in compact view
+        const isAgentHumanMessage = !!message.name && message.name.length > 0;
+        if (compactView && isAgentHumanMessage) {
+          return;
+        }
+
         elements.push(
           <HumanMessage
             key={messageKey}

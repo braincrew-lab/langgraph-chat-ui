@@ -1,4 +1,4 @@
-import { useMemo, memo } from "react";
+import { useMemo, useRef, memo } from "react";
 import { parsePartialJson } from "@langchain/core/output_parsers";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
@@ -6,7 +6,6 @@ import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../content/MarkdownText";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
-import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./ToolCalls";
 import { ToolCardList } from "../ToolCard";
 import { isNewTaskUIEnabled } from "@/types/task-progress";
@@ -14,7 +13,6 @@ import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
 import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
-import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./GenericInterrupt";
 import { useArtifact } from "../Artifact";
 
@@ -127,13 +125,9 @@ export const AssistantMessage = memo(function AssistantMessage({
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
   compactView?: boolean;
 }) {
+  const mountTime = useRef(new Date());
   const content = useMemo(() => message?.content ?? [], [message?.content]);
   const contentString = getContentString(content);
-  const [hideToolCalls] = useQueryState(
-    "hideToolCalls",
-    parseAsBoolean.withDefault(false),
-  );
-
   const thread = useStreamContext();
   const isLastMessage =
     thread.messages.length > 0 &&
@@ -143,6 +137,10 @@ export const AssistantMessage = memo(function AssistantMessage({
   );
   const meta = message ? thread.getMessagesMetadata(message) : undefined;
   const threadInterrupt = thread.interrupt;
+  const nodeName = (meta?.streamMetadata as Record<string, unknown>)
+    ?.langgraph_node as string | undefined;
+  // Show node label in non-compact view when message comes from a named node
+  const showNodeLabel = !compactView && !!nodeName && message?.type === "ai";
 
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
   const anthropicStreamedToolCalls = useMemo(
@@ -175,8 +173,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   const hasAnthropicToolCalls = !!filteredAnthropicToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
-  // compactView 또는 hideToolCalls일 때 tool 메시지 숨김
-  if (isToolResult && (hideToolCalls || compactView)) {
+  // compactView일 때 tool 메시지 숨김
+  if (isToolResult && compactView) {
     return null;
   }
 
@@ -192,7 +190,7 @@ export const AssistantMessage = memo(function AssistantMessage({
     threadInterrupt?.value && (isLastMessage || hasNoAIOrToolMessages);
   const hasContent = contentString.length > 0;
   const hasVisibleToolCalls =
-    !hideToolCalls && !compactView && (hasToolCalls || hasAnthropicToolCalls);
+    !compactView && (hasToolCalls || hasAnthropicToolCalls);
 
   // During streaming, show loading indicator for last message even without content
   const isStreamingEmptyMessage = isLoading && isLastMessage && !hasContent;
@@ -208,8 +206,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   }
 
   return (
-    <div className="group mr-auto flex items-start gap-3">
-      <div className="flex flex-col gap-3">
+    <div className="group flex w-full items-start gap-3">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         {isToolResult ? (
           <>
             <ToolResult
@@ -226,6 +224,11 @@ export const AssistantMessage = memo(function AssistantMessage({
           <>
             {contentString.length > 0 ? (
               <div className="min-w-0 overflow-hidden py-1 leading-relaxed">
+                {showNodeLabel && (
+                  <span className="text-muted-foreground mb-2 block text-sm font-semibold">
+                    {nodeName}
+                  </span>
+                )}
                 <MarkdownText>{contentString}</MarkdownText>
               </div>
             ) : isStreamingEmptyMessage ? (
@@ -239,7 +242,7 @@ export const AssistantMessage = memo(function AssistantMessage({
               </div>
             ) : null}
 
-            {!hideToolCalls && !compactView && (
+            {!compactView && (
               <>
                 {isNewTaskUIEnabled() ? (
                   // New ToolCard UI
@@ -250,10 +253,11 @@ export const AssistantMessage = memo(function AssistantMessage({
                           id: tc.id || `tool-${tc.name}`,
                           name: tc.name || "Unknown",
                           args: tc.args as Record<string, unknown>,
-                          status: isLoading ? "running" : "completed",
+                          status: "completed" as const,
                           toolCallId: tc.id,
                         }))}
                         variant="full"
+                        onRetry={() => handleRegenerate(parentCheckpoint)}
                       />
                     )}
                     {!hasToolCalls &&
@@ -264,10 +268,11 @@ export const AssistantMessage = memo(function AssistantMessage({
                             id: tc.id || `tool-${tc.name}`,
                             name: tc.name || "Unknown",
                             args: tc.args as Record<string, unknown>,
-                            status: isLoading ? "running" : "completed",
+                            status: "completed" as const,
                             toolCallId: tc.id,
                           }))}
                           variant="full"
+                          onRetry={() => handleRegenerate(parentCheckpoint)}
                         />
                       )}
                   </>
@@ -308,12 +313,17 @@ export const AssistantMessage = memo(function AssistantMessage({
               isLastMessage={isLastMessage}
               hasNoAIOrToolMessages={hasNoAIOrToolMessages}
             />
-            <div
-              className={cn(
-                "mr-auto flex items-center gap-2 transition-opacity",
-                "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
-              )}
-            >
+            <div className="mr-auto flex items-center gap-2">
+              <span className="text-muted-foreground/40 text-sm font-medium tabular-nums">
+                {mountTime.current.toLocaleDateString([], {
+                  month: "short",
+                  day: "numeric",
+                })}{" "}
+                {mountTime.current.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
               <BranchSwitcher
                 branch={meta?.branch}
                 branchOptions={meta?.branchOptions}
@@ -336,7 +346,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 
 export function AssistantMessageLoading() {
   return (
-    <div className="mr-auto flex items-start gap-3">
+    <div className="flex w-full items-start gap-3">
       <div className="bg-muted border-border/20 flex h-9 items-center gap-1.5 rounded-2xl border px-5 py-2.5 shadow-sm">
         <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
         <div className="bg-foreground/40 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>

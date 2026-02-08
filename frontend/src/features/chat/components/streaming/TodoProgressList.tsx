@@ -24,7 +24,7 @@ import type { TaskProgressItem } from "@/types/task-progress";
 // Constants
 // ============================================
 
-const MAX_HEIGHT = 300;
+const MAX_HEIGHT = 200;
 
 // ============================================
 // Types
@@ -73,7 +73,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
   return (
     <div
       className={cn(
-        "flex items-start gap-2 px-3 py-2 text-sm",
+        "flex items-start gap-2 px-3 py-1.5 text-sm",
         "transition-colors duration-150",
         item.status === "completed" && "text-muted-foreground",
         item.status === "in_progress" && "bg-blue-50/50 dark:bg-blue-950/20",
@@ -138,7 +138,7 @@ export const TodoProgressList = memo(function TodoProgressList({
     <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
       {/* Header */}
       <div
-        className="bg-muted/30 border-border/50 hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b px-3 py-2 transition-colors"
+        className="bg-muted/30 border-border/50 hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b px-3 py-1.5 transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">

@@ -72,10 +72,6 @@ export function Thread() {
     [sidebarOpen, updateUserSettings],
   );
 
-  const [hideToolCalls, setHideToolCalls] = useQueryState(
-    "hideToolCalls",
-    parseAsBoolean.withDefault(false),
-  );
   // 컴팩트 뷰 모드 (스트리밍 태스크 뷰 사용)
   const [compactView, setCompactView] = useQueryState(
     "compactView",
@@ -576,8 +572,6 @@ export function Thread() {
                       isAssistantSelected={isAssistantSelected}
                       enableFileUpload={config.buttons.enableFileUpload}
                       placeholder={config.buttons.chatInputPlaceholder}
-                      hideToolCalls={hideToolCalls ?? false}
-                      onHideToolCallsChange={(value) => setHideToolCalls(value)}
                       compactView={compactView ?? true}
                       onCompactViewChange={(value) => setCompactView(value)}
                       assistants={assistants}

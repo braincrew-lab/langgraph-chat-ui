@@ -70,7 +70,8 @@ export default async function AdminDashboardPage() {
     },
   ];
 
-  const activeRatio = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
+  const activeRatio =
+    stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
   const getToggleLabel = (enabled: boolean) => (enabled ? "활성" : "비활성");
 
   const getModeLabel = (mode: string) => {
@@ -114,7 +115,7 @@ export default async function AdminDashboardPage() {
         {statCards.map((stat) => (
           <Card
             key={stat.title}
-            className="border-border/70 bg-secondary overflow-hidden"
+            className="border-border/70 bg-card overflow-hidden"
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -135,7 +136,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/70 bg-secondary h-fit self-start">
+        <Card className="border-border/70 bg-card h-fit self-start">
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -225,7 +226,7 @@ export default async function AdminDashboardPage() {
                 <dt className="text-muted-foreground text-sm font-medium">
                   기본 커넥션 API
                 </dt>
-                <dd className="max-w-full break-all text-sm font-semibold">
+                <dd className="max-w-full text-sm font-semibold break-all">
                   {settings["features.defaultConnectionApiUrl"] || "미설정"}
                 </dd>
               </div>
@@ -243,7 +244,7 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-secondary">
+        <Card className="border-border/70 bg-card">
           <CardHeader>
             <CardTitle>운영 알림</CardTitle>
             <CardDescription>즉시 확인이 필요한 항목</CardDescription>

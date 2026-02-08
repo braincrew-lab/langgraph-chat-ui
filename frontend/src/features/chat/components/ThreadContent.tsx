@@ -50,10 +50,6 @@ export function ThreadContent() {
     [sidebarOpen, updateUserSettings],
   );
 
-  const [hideToolCalls, setHideToolCalls] = useQueryState(
-    "hideToolCalls",
-    parseAsBoolean.withDefault(false),
-  );
   const [compactView, setCompactView] = useQueryState(
     "compactView",
     parseAsBoolean.withDefault(true),
@@ -282,7 +278,7 @@ export function ThreadContent() {
                 )}
                 contentClassName={cn(
                   messages.length > 0 || formSubmissions.length > 0
-                    ? "pt-8 pb-16 flex flex-col gap-6"
+                    ? "pt-8 pb-16 flex flex-col gap-4"
                     : "",
                   "mx-auto w-full",
                   userSettings.chatWidth === "default"
@@ -368,10 +364,6 @@ export function ThreadContent() {
                         isAssistantSelected={isAssistantSelected}
                         enableFileUpload={config.buttons.enableFileUpload}
                         placeholder={config.buttons.chatInputPlaceholder}
-                        hideToolCalls={hideToolCalls ?? false}
-                        onHideToolCallsChange={(value) =>
-                          setHideToolCalls(value)
-                        }
                         compactView={compactView ?? true}
                         onCompactViewChange={(value) => setCompactView(value)}
                         assistants={assistants}

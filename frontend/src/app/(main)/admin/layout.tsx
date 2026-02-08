@@ -22,14 +22,16 @@ export default async function AdminLayout({
   return (
     <div className="from-card to-muted/20 h-full overflow-y-auto bg-gradient-to-b">
       <div className="mx-auto max-w-7xl px-4 pt-6 pb-16 lg:px-8">
-        <div className="border-border/70 bg-secondary mb-4 rounded-2xl border px-5 py-4 shadow-sm backdrop-blur-sm">
+        <div className="border-border/70 bg-card mb-4 rounded-2xl border px-5 py-4 shadow-sm backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
                 <Shield className="h-3.5 w-3.5" />
                 Admin Console
               </div>
-              <h1 className="text-xl font-semibold tracking-tight">관리자 페이지</h1>
+              <h1 className="text-xl font-semibold tracking-tight">
+                관리자 페이지
+              </h1>
               <p className="text-muted-foreground text-sm">
                 사용자, 승인 요청, 전역 설정을 관리합니다.
               </p>

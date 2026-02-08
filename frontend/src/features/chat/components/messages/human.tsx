@@ -1,6 +1,6 @@
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState, memo } from "react";
+import { useState, useRef, memo } from "react";
 import { getContentString } from "../utils";
 import { cn } from "@/lib/utils";
 import { STREAM_OPTIONS } from "@/lib/constants";
@@ -8,6 +8,7 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MultimodalPreview } from "@/features/chat/components/content/MultimodalPreview";
 import { isBase64ContentBlock } from "@/lib/utils/multimodal";
+import { MarkdownText } from "../content/MarkdownText";
 
 function EditableContent({
   value,
@@ -46,9 +47,11 @@ export const HumanMessage = memo(function HumanMessage({
   const meta = thread.getMessagesMetadata(message);
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
 
+  const mountTime = useRef(new Date());
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState("");
   const contentString = getContentString(message.content);
+  const isAgentGenerated = !!message.name && message.name.length > 0;
 
   const handleSubmitEdit = () => {
     setIsEditing(false);
@@ -71,6 +74,22 @@ export const HumanMessage = memo(function HumanMessage({
       },
     );
   };
+
+  // Agent-generated human messages (e.g. from reflection critic) render differently
+  if (isAgentGenerated) {
+    return (
+      <div className="group mr-auto flex items-start gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground mb-2 text-sm font-semibold">
+            {message.name}
+          </span>
+          <div className="min-w-0 overflow-hidden py-1 leading-relaxed">
+            <MarkdownText>{contentString}</MarkdownText>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -117,13 +136,17 @@ export const HumanMessage = memo(function HumanMessage({
           </div>
         )}
 
-        <div
-          className={cn(
-            "flex items-center gap-2 transition-opacity",
-            "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
-            isEditing && "opacity-100",
-          )}
-        >
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground/40 text-sm font-medium tabular-nums">
+            {mountTime.current.toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            {mountTime.current.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
           <BranchSwitcher
             branch={meta?.branch}
             branchOptions={meta?.branchOptions}

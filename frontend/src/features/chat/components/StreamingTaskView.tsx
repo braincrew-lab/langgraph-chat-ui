@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { LoaderCircle } from "lucide-react";
 import {
   type HierarchicalTask,
@@ -10,7 +10,7 @@ import type { TaskProgressItem } from "@/types/task-progress";
 import { TodoProgressList } from "./streaming/TodoProgressList";
 import { TaskProgressList } from "./streaming/TaskProgressList";
 import { ActiveTasksList } from "./streaming/ActiveTask";
-// import { IntermediateLLMOutputList } from "./streaming/IntermediateLLMOutputs"; // Disabled: Now integrated into TaskProgressList
+import { IntermediateLLMOutputList } from "./streaming/IntermediateLLMOutputs";
 import { cn } from "@/lib/utils";
 
 interface StreamingTaskViewProps {
@@ -102,6 +102,11 @@ export function StreamingTaskView({
           tasks={activeLeafTasks}
           isStreaming={isStreaming}
         />
+      )}
+
+      {/* Intermediate node outputs (background activity) */}
+      {hasIntermediateOutputs && intermediateOutputs && (
+        <IntermediateLLMOutputList outputs={intermediateOutputs} />
       )}
     </motion.div>
   );

@@ -41,7 +41,7 @@ export const TIMING = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const STREAM_OPTIONS: any = {
-  streamMode: ["values", "custom"],
+  streamMode: ["values", "updates", "custom"],
   streamSubgraphs: true,
   streamResumable: true,
 };
