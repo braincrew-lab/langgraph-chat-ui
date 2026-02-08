@@ -178,8 +178,9 @@ const StreamSession = ({
       }));
 
       for (const nodeName of nodeNames) {
-        // 내부 노드(__start__, __end__) 제외
+        // 내부 노드(__start__, __end__) 및 미들웨어 노드 제외
         if (nodeName.startsWith("__") && nodeName.endsWith("__")) continue;
+        if (nodeName.toLowerCase().includes("middleware")) continue;
 
         const nodeData = data[nodeName] as Record<string, unknown> | undefined;
         const hasMessages = nodeData && "messages" in nodeData;

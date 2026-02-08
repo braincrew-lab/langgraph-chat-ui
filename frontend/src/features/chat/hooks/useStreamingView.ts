@@ -79,7 +79,24 @@ export function useStreamingView(
   const typedMessages = messages as Message[];
 
   // ========================================
-  // Task Progress Extraction (Messages)
+  // Current Turn Messages (after last human message)
+  // ========================================
+
+  const currentTurnMessages = useMemo(() => {
+    let lastHumanIndex = -1;
+    for (let i = typedMessages.length - 1; i >= 0; i--) {
+      if (typedMessages[i].type === "human") {
+        lastHumanIndex = i;
+        break;
+      }
+    }
+    return lastHumanIndex >= 0
+      ? typedMessages.slice(lastHumanIndex + 1)
+      : typedMessages;
+  }, [typedMessages]);
+
+  // ========================================
+  // Task Progress Extraction (Current turn only)
   // ========================================
 
   const {
@@ -87,7 +104,7 @@ export function useStreamingView(
     hasContent,
     lifecycle,
   } = useTaskProgress({
-    messages,
+    messages: currentTurnMessages,
     nodeUpdates,
     isStreaming,
     finalNodeNames,

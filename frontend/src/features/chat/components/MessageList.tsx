@@ -236,6 +236,13 @@ export function MessageList({
         : `${message.type}-${index}`;
 
       if (message.type === "human") {
+        // Named human messages (e.g. HumanMessage(name="critic")) are agent-generated,
+        // not actual user input — hide in compact view
+        const isAgentHumanMessage = !!message.name && message.name.length > 0;
+        if (compactView && isAgentHumanMessage) {
+          return;
+        }
+
         elements.push(
           <HumanMessage
             key={messageKey}
