@@ -62,8 +62,6 @@ interface UnifiedInputAreaProps {
   className?: string;
 
   // Toolbar controls
-  hideToolCalls: boolean;
-  onHideToolCallsChange: (value: boolean) => void;
   compactView: boolean;
   onCompactViewChange: (value: boolean) => void;
 
@@ -101,8 +99,6 @@ export function UnifiedInputArea({
   enableFileUpload,
   placeholder = "메시지를 입력하세요...",
   className,
-  hideToolCalls,
-  onHideToolCallsChange,
   compactView,
   onCompactViewChange,
   assistants,
@@ -251,8 +247,6 @@ export function UnifiedInputArea({
                 isLoading={isLoading}
                 disabled={true}
                 onStop={onStop}
-                hideToolCalls={hideToolCalls}
-                onHideToolCallsChange={onHideToolCallsChange}
                 compactView={compactView}
                 onCompactViewChange={onCompactViewChange}
                 assistants={assistants}
@@ -284,8 +278,6 @@ export function UnifiedInputArea({
                 isFormMode={true}
                 isLoading={isLoading}
                 disabled={!isFormValid || isLoading}
-                hideToolCalls={hideToolCalls}
-                onHideToolCallsChange={onHideToolCallsChange}
                 compactView={compactView}
                 onCompactViewChange={onCompactViewChange}
                 assistants={assistants}
@@ -339,8 +331,6 @@ export function UnifiedInputArea({
               onStop={onStop}
               enableFileUpload={enableFileUpload}
               onFileUpload={onFileUpload}
-              hideToolCalls={hideToolCalls}
-              onHideToolCallsChange={onHideToolCallsChange}
               compactView={compactView}
               onCompactViewChange={onCompactViewChange}
               assistants={assistants}

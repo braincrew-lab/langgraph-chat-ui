@@ -12,7 +12,6 @@ import {
   LoaderCircle,
   ArrowUp,
   Paperclip,
-  Wrench,
   Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,8 +37,6 @@ interface ActionBarProps {
   onFileUpload?: (e: ChangeEvent<HTMLInputElement>) => void;
 
   // Settings controls
-  hideToolCalls: boolean;
-  onHideToolCallsChange: (value: boolean) => void;
   compactView: boolean;
   onCompactViewChange: (value: boolean) => void;
 
@@ -59,8 +56,6 @@ export function ActionBar({
   onStop,
   enableFileUpload = false,
   onFileUpload,
-  hideToolCalls,
-  onHideToolCallsChange,
   compactView,
   onCompactViewChange,
   assistants,
@@ -74,28 +69,6 @@ export function ActionBar({
     <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-3">
       {/* Left: Settings controls */}
       <div className="flex items-center gap-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => onHideToolCallsChange(!hideToolCalls)}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                  hideToolCalls
-                    ? "bg-muted text-muted-foreground hover:bg-accent"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90",
-                )}
-              >
-                <Wrench className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>{hideToolCalls ? "도구 호출 표시" : "도구 호출 숨기기"}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
