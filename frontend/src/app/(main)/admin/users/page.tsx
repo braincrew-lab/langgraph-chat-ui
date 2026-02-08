@@ -52,7 +52,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       >
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">총 {result.total}명</Badge>
-          {status !== "all" && <Badge variant="secondary">상태: {status}</Badge>}
+          {status !== "all" && (
+            <Badge variant="secondary">상태: {status}</Badge>
+          )}
           {role !== "all" && <Badge variant="secondary">권한: {role}</Badge>}
           {search && <Badge variant="secondary">검색: {search}</Badge>}
         </div>

@@ -70,7 +70,8 @@ export default async function AdminDashboardPage() {
     },
   ];
 
-  const activeRatio = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
+  const activeRatio =
+    stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
   const getToggleLabel = (enabled: boolean) => (enabled ? "활성" : "비활성");
 
   const getModeLabel = (mode: string) => {
@@ -225,7 +226,7 @@ export default async function AdminDashboardPage() {
                 <dt className="text-muted-foreground text-sm font-medium">
                   기본 커넥션 API
                 </dt>
-                <dd className="max-w-full break-all text-sm font-semibold">
+                <dd className="max-w-full text-sm font-semibold break-all">
                   {settings["features.defaultConnectionApiUrl"] || "미설정"}
                 </dd>
               </div>

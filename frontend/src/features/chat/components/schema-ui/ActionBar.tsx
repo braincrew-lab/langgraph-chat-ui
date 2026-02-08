@@ -7,13 +7,7 @@
  */
 
 import React, { ChangeEvent } from "react";
-import {
-  Send,
-  LoaderCircle,
-  ArrowUp,
-  Paperclip,
-  Layers,
-} from "lucide-react";
+import { Send, LoaderCircle, ArrowUp, Paperclip, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";

@@ -204,9 +204,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         <header
           className={cn(
             "relative flex flex-shrink-0 items-center justify-between gap-3 p-4",
-            useUnifiedDarkSurface
-              ? "bg-card"
-              : "bg-background",
+            useUnifiedDarkSurface ? "bg-card" : "bg-background",
           )}
         >
           <div className="flex items-center gap-6">
@@ -308,10 +306,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
 
         {/* Page Content */}
         <div
-          className={cn(
-            "flex-1 overflow-hidden",
-            isOnChatPage && "bg-card",
-          )}
+          className={cn("flex-1 overflow-hidden", isOnChatPage && "bg-card")}
         >
           <TracingPanelContext.Provider
             value={{ isOpen: tracingPanelOpen, setIsOpen: setTracingPanelOpen }}

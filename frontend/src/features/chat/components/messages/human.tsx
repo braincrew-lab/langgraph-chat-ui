@@ -138,8 +138,14 @@ export const HumanMessage = memo(function HumanMessage({
 
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground/40 text-sm font-medium tabular-nums">
-            {mountTime.current.toLocaleDateString([], { month: "short", day: "numeric" })}{" "}
-            {mountTime.current.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {mountTime.current.toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            {mountTime.current.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </span>
           <BranchSwitcher
             branch={meta?.branch}

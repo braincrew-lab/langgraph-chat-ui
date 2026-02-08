@@ -105,7 +105,9 @@ const StatusIcon = memo(function StatusIcon({
 }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />;
+      return (
+        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+      );
     case "error":
       return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
     case "running":
@@ -327,9 +329,10 @@ export const ToolCard = memo(function ToolCard({
   const isCompact = variant === "compact";
 
   // Tool calls use blue accent to distinguish from green tool results
-  const iconBg = status === "error"
-    ? "bg-red-100 dark:bg-red-900/40"
-    : "bg-blue-100 dark:bg-blue-900/40";
+  const iconBg =
+    status === "error"
+      ? "bg-red-100 dark:bg-red-900/40"
+      : "bg-blue-100 dark:bg-blue-900/40";
 
   // Compact variant: minimal inline display
   if (isCompact) {
@@ -340,7 +343,12 @@ export const ToolCard = memo(function ToolCard({
           className,
         )}
       >
-        <div className={cn("flex h-5 w-5 items-center justify-center rounded", iconBg)}>
+        <div
+          className={cn(
+            "flex h-5 w-5 items-center justify-center rounded",
+            iconBg,
+          )}
+        >
           <Wrench className="h-3 w-3 text-blue-600 dark:text-blue-400" />
         </div>
         <span className="text-foreground font-medium">{name}</span>
@@ -376,10 +384,12 @@ export const ToolCard = memo(function ToolCard({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <div className={cn(
-              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg",
-              iconBg,
-            )}>
+            <div
+              className={cn(
+                "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg",
+                iconBg,
+              )}
+            >
               <Wrench className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
             </div>
             <span className="text-foreground truncate text-sm font-semibold">
@@ -489,12 +499,7 @@ export const ToolCardList = memo(function ToolCardList({
   if (tools.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        "grid gap-4",
-        className,
-      )}
-    >
+    <div className={cn("grid gap-4", className)}>
       {tools.map((tool) => (
         <ToolCard
           key={tool.id}

@@ -29,7 +29,9 @@ export default async function AdminLayout({
                 <Shield className="h-3.5 w-3.5" />
                 Admin Console
               </div>
-              <h1 className="text-xl font-semibold tracking-tight">관리자 페이지</h1>
+              <h1 className="text-xl font-semibold tracking-tight">
+                관리자 페이지
+              </h1>
               <p className="text-muted-foreground text-sm">
                 사용자, 승인 요청, 전역 설정을 관리합니다.
               </p>

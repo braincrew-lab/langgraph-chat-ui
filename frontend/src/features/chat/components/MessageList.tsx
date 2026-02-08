@@ -151,9 +151,7 @@ export function MessageList({
       if (filteredMessages[i].type === "human") humanIndices.push(i);
     }
     const lastHumanIndex =
-      humanIndices.length > 0
-        ? humanIndices[humanIndices.length - 1]
-        : -1;
+      humanIndices.length > 0 ? humanIndices[humanIndices.length - 1] : -1;
 
     // Collect final AI message IDs for completed turns (all turns except the last)
     const completedTurnFinalAiIds = new Set<string>();
