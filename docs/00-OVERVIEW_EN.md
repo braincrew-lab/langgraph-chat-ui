@@ -11,7 +11,6 @@ This guide explains how to set up authentication when integrating LangGraph back
 | [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)                 | NextAuth + Email (Magic Link)            |
 | [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)                     | Direct OAuth Token Verification (without NextAuth) |
 | [05-STANDALONE.md](./05-STANDALONE.md)                         | Integration with Backend's Own Auth System |
-| [06-FRONTEND-COMPATIBILITY.md](./06-FRONTEND-COMPATIBILITY.md) | Frontend Compatibility Analysis          |
 
 ---
 
