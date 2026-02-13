@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function SchemaFieldsSection({
   disabled = false,
   className,
 }: SchemaFieldsSectionProps) {
+  const t = useTranslations("chat");
   const {
     parsedSchema,
     formState,
@@ -53,7 +55,7 @@ export function SchemaFieldsSection({
             className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-xs font-medium transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>고급 입력</span>
+            <span>{t("form.advancedInput")}</span>
             <motion.span
               animate={{ rotate: advancedExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}

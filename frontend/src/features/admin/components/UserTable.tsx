@@ -11,6 +11,7 @@ import {
   Shield,
   ShieldOff,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   Table,
   TableBody,
@@ -70,6 +71,8 @@ export function UserTable({
   currentUserRole,
 }: UserTableProps) {
   const router = useRouter();
+  const t = useTranslations('admin');
+  const tc = useTranslations('common');
   const [isPending, startTransition] = useTransition();
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<User | null>(null);
@@ -140,19 +143,19 @@ export function UserTable({
       case "active":
         return (
           <Badge className="border-green-200 bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-900/50 dark:text-green-400">
-            활성
+            {t('table.active')}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-400">
-            대기중
+            {t('table.pendingStatus')}
           </Badge>
         );
       case "suspended":
         return (
           <Badge className="border-red-200 bg-red-100 text-red-700 dark:border-red-800 dark:bg-red-900/50 dark:text-red-400">
-            정지됨
+            {t('table.suspendedStatus')}
           </Badge>
         );
       default:
@@ -165,17 +168,17 @@ export function UserTable({
       case "super_admin":
         return (
           <Badge className="border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-900/50 dark:text-purple-400">
-            최고관리자
+            {t('table.superAdmin')}
           </Badge>
         );
       case "admin":
         return (
           <Badge className="border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-900/50 dark:text-blue-400">
-            관리자
+            {t('table.adminRole')}
           </Badge>
         );
       default:
-        return <Badge variant="outline">일반회원</Badge>;
+        return <Badge variant="outline">{t('table.userRole')}</Badge>;
     }
   };
 
@@ -197,10 +200,10 @@ export function UserTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>사용자</TableHead>
-            <TableHead>권한</TableHead>
-            <TableHead>상태</TableHead>
-            <TableHead>가입일</TableHead>
+            <TableHead>{t('table.name')}</TableHead>
+            <TableHead>{t('table.role')}</TableHead>
+            <TableHead>{t('table.status')}</TableHead>
+            <TableHead>{t('table.joined')}</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -242,7 +245,7 @@ export function UserTable({
                           onClick={() => handleAction(user.id, "approve")}
                         >
                           <UserCheck className="mr-2 h-4 w-4" />
-                          승인
+                          {t('table.approve')}
                         </DropdownMenuItem>
                       )}
                       {user.status === "active" && (
@@ -251,7 +254,7 @@ export function UserTable({
                           className="text-red-600"
                         >
                           <UserX className="mr-2 h-4 w-4" />
-                          정지
+                          {t('table.suspend')}
                         </DropdownMenuItem>
                       )}
                       {user.status === "suspended" && (
@@ -259,7 +262,7 @@ export function UserTable({
                           onClick={() => handleAction(user.id, "reactivate")}
                         >
                           <RefreshCw className="mr-2 h-4 w-4" />
-                          재활성화
+                          {t('table.reactivate')}
                         </DropdownMenuItem>
                       )}
                       {currentUserRole === "super_admin" && (
@@ -270,14 +273,14 @@ export function UserTable({
                               onClick={() => handleRoleChange(user.id, "admin")}
                             >
                               <Shield className="mr-2 h-4 w-4" />
-                              관리자로 승격
+                              {t('table.promoteToAdmin')}
                             </DropdownMenuItem>
                           ) : user.role === "admin" ? (
                             <DropdownMenuItem
                               onClick={() => handleRoleChange(user.id, "user")}
                             >
                               <ShieldOff className="mr-2 h-4 w-4" />
-                              일반회원으로 강등
+                              {t('table.demoteToUser')}
                             </DropdownMenuItem>
                           ) : null}
                         </>
@@ -288,7 +291,7 @@ export function UserTable({
                         className="text-red-600"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        사용자 삭제
+                        {t('table.deleteUser')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -305,21 +308,20 @@ export function UserTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>사용자 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t('table.deleteUser')}</AlertDialogTitle>
             <AlertDialogDescription>
-              <span className="font-medium">{deleteDialog?.email}</span>을(를)
-              삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              {t('table.deleteConfirm', { email: deleteDialog?.email || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteDialog && handleAction(deleteDialog.id, "delete")
               }
               className="bg-red-600 hover:bg-red-700"
             >
-              삭제
+              {tc('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Clock, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
@@ -29,6 +30,8 @@ const itemVariants = {
 export default function PendingApprovalPage() {
   const { data: session, update } = useSession();
   const router = useRouter();
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
 
   // Redirect if user is approved
   useEffect(() => {
@@ -69,9 +72,9 @@ export default function PendingApprovalPage() {
           <Clock className="text-primary h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">승인 대기 중</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('pending.title')}</h1>
           <p className="text-muted-foreground text-sm">
-            관리자의 승인을 기다리고 있습니다
+            {t('pending.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -82,12 +85,11 @@ export default function PendingApprovalPage() {
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
         <p>
-          회원가입이 완료되었습니다. 관리자가 계정을 검토한 후 승인하면 서비스를
-          이용하실 수 있습니다.
+          {t('pending.description')}
         </p>
         {session?.user?.email && (
           <p className="mt-4">
-            등록 이메일:{" "}
+            {t('pending.registeredEmail')}{" "}
             <span className="text-foreground font-medium">
               {session.user.email}
             </span>
@@ -106,7 +108,7 @@ export default function PendingApprovalPage() {
           className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
-          상태 확인
+          {t('pending.checkStatus')}
         </Button>
         <Button
           onClick={handleSignOut}
@@ -114,7 +116,7 @@ export default function PendingApprovalPage() {
           className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          로그아웃
+          {tc('logout')}
         </Button>
       </motion.div>
     </motion.div>

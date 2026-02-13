@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTransition } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface PaginationProps {
   page: number;
@@ -22,6 +23,8 @@ export function Pagination({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('admin');
+  const tc = useTranslations('common');
 
   if (totalPages <= 1) return null;
 
@@ -44,7 +47,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between pt-4">
       <p className="text-muted-foreground text-sm">
-        {total}명 중 {start}-{end}
+        {t('pagination.showing', { total, start, end })}
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -54,10 +57,10 @@ export function Pagination({
           disabled={page <= 1 || isPending}
         >
           <ChevronLeft className="h-4 w-4" />
-          이전
+          {tc('previous')}
         </Button>
         <span className="text-muted-foreground text-sm">
-          {page} / {totalPages}
+          {t('pagination.pageOf', { page, totalPages })}
         </span>
         <Button
           variant="outline"
@@ -65,7 +68,7 @@ export function Pagination({
           onClick={() => goToPage(page + 1)}
           disabled={page >= totalPages || isPending}
         >
-          다음
+          {tc('next')}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

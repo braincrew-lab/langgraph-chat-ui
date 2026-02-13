@@ -12,9 +12,11 @@ import { Badge } from "@/shared/components/ui/badge";
 import type { UserRole } from "@/types/auth-mode";
 import { AlertCircle } from "lucide-react";
 import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
+import { getTranslations } from "next-intl/server";
 
 export default async function ApprovalsPage() {
   const session = await auth();
+  const t = await getTranslations('admin');
 
   const result = await getUsers({
     page: 1,
@@ -27,29 +29,29 @@ export default async function ApprovalsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="승인 요청"
-        title="가입 승인 대기 목록"
-        description="가입 요청을 검토하고 승인 또는 보류 처리합니다."
+        eyebrow={t('approvals.eyebrow')}
+        title={t('approvals.title')}
+        description={t('approvals.description')}
       >
         <div className="flex items-center gap-2">
-          <Badge variant="outline">대기 {result.total}건</Badge>
+          <Badge variant="outline">{t('approvals.pendingBadge', { total: result.total })}</Badge>
         </div>
       </AdminPageHeader>
 
       <Card className="border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>대기 중인 사용자</CardTitle>
+          <CardTitle>{t('approvals.listTitle')}</CardTitle>
           <CardDescription>
-            {result.total}명의 사용자가 승인 대기 중
+            {t('approvals.listDescription', { total: result.total })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {result.users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="text-muted-foreground/50 mb-4 h-12 w-12" />
-              <h3 className="text-lg font-medium">대기 중인 요청이 없습니다</h3>
+              <h3 className="text-lg font-medium">{t('approvals.noRequests')}</h3>
               <p className="text-muted-foreground mt-1 text-sm">
-                모든 가입 요청이 처리되었습니다
+                {t('approvals.allProcessed')}
               </p>
             </div>
           ) : (

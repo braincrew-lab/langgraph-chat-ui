@@ -19,7 +19,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryState } from "nuqs";
 import { ConnectionList } from "./ConnectionList";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { clearConnectionCookiesAction } from "@/app/actions";
+import { useTranslations } from "next-intl";
 
 export function SettingsDialog() {
   const {
@@ -31,20 +33,15 @@ export function SettingsDialog() {
   const { threads, getThreads, setThreads, client } = useThreads();
   const router = useRouter();
   const [threadId, setThreadId] = useQueryState("threadId");
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   // Reset all settings to server-side defaults
   const handleResetToDefaults = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to reset all settings to defaults?\n\n" +
-        "This will reset:\n" +
-        "- UI settings (font, color scheme, etc.)\n" +
-        "- Connection settings\n" +
-        "- Sidebar states\n\n" +
-        "You will be redirected to the home page.",
-    );
+    const confirmed = window.confirm(t("resetConfirm"));
 
     if (!confirmed) return;
 
@@ -62,14 +59,14 @@ export function SettingsDialog() {
         localStorage.removeItem("lg:chat:apiKey");
       }
 
-      toast.success("Settings have been reset to defaults");
+      toast.success(t("resetSuccess"));
 
       // Refresh to apply changes
       router.refresh();
       window.location.href = window.location.pathname;
     } catch (error) {
       console.error("Error resetting settings:", error);
-      toast.error("Failed to reset settings");
+      toast.error(t("resetError"));
     } finally {
       setIsResetting(false);
     }
@@ -77,7 +74,7 @@ export function SettingsDialog() {
 
   const handleDeleteAllThreads = async () => {
     if (!client) {
-      toast.error("API client is not configured");
+      toast.error(t("apiClientError"));
       return;
     }
 
@@ -85,15 +82,13 @@ export function SettingsDialog() {
     const threadsToDelete = threads.length > 0 ? threads : await getThreads();
 
     if (threadsToDelete.length === 0) {
-      toast.info("No conversations to delete");
+      toast.info(t("noConversations"));
       return;
     }
 
     // Show native confirm dialog
     const confirmed = window.confirm(
-      `Are you sure you want to delete all conversation history?\n\n` +
-        `All ${threadsToDelete.length} conversation${threadsToDelete.length !== 1 ? "s" : ""} will be permanently deleted.\n\n` +
-        `This action cannot be undone.`,
+      t("deleteConfirm", { count: threadsToDelete.length }),
     );
 
     if (!confirmed) {
@@ -117,15 +112,13 @@ export function SettingsDialog() {
         setThreadId(null);
       }
 
-      toast.success(
-        `Successfully deleted ${threadsToDelete.length} conversation${threadsToDelete.length > 1 ? "s" : ""}`,
-      );
+      toast.success(t("deleteSuccess", { count: threadsToDelete.length }));
 
       // Reload the page to reset the chat interface
       window.location.reload();
     } catch (err) {
       console.error("Error deleting threads:", err);
-      toast.error("Failed to delete all conversations");
+      toast.error(t("deleteError"));
     } finally {
       setIsDeleting(false);
     }
@@ -139,23 +132,31 @@ export function SettingsDialog() {
           className="hover:bg-accent w-full cursor-pointer justify-start gap-2"
         >
           <SettingsIcon className="size-5" />
-          <span>설정</span>
+          <span>{tc("settings")}</span>
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">Settings</DialogTitle>
-          <DialogDescription>Customize your chat experience</DialogDescription>
+          <DialogTitle className="text-2xl font-semibold">{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Language Section */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">{t("language")}</h3>
+            <div className="space-y-4 rounded-lg border p-4">
+              <LanguageSwitcher />
+            </div>
+          </div>
+
           {/* Font Family Section */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Appearance</h3>
+            <h3 className="text-lg font-semibold">{t("appearance")}</h3>
             <div className="space-y-4 rounded-lg border p-4">
               <div className="space-y-2">
-                <Label htmlFor="font-family">Font Style</Label>
+                <Label htmlFor="font-family">{t("fontStyle")}</Label>
                 <div className="flex gap-2">
                   <Button
                     variant={
@@ -190,7 +191,7 @@ export function SettingsDialog() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="font-size">Font Size</Label>
+                <Label htmlFor="font-size">{t("fontSize")}</Label>
                 <div className="flex gap-2">
                   <Button
                     variant={
@@ -223,7 +224,7 @@ export function SettingsDialog() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="color-scheme">Color Scheme</Label>
+                <Label htmlFor="color-scheme">{t("colorScheme")}</Label>
                 <div className="flex gap-2">
                   <Button
                     variant={
@@ -265,16 +266,15 @@ export function SettingsDialog() {
 
           {/* UI Behavior Section */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold">UI Behavior</h3>
+            <h3 className="text-lg font-semibold">{t("uiBehavior")}</h3>
             <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="auto-collapse">
-                    Auto-collapse Tool Calls
+                    {t("autoCollapse")}
                   </Label>
                   <p className="text-muted-foreground text-sm">
-                    Automatically collapse tool call details after response
-                    completes
+                    {t("autoCollapseDesc")}
                   </p>
                 </div>
                 <Switch
@@ -287,7 +287,7 @@ export function SettingsDialog() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="chat-width">Chat Width</Label>
+                <Label htmlFor="chat-width">{t("chatWidth")}</Label>
                 <div className="flex gap-2">
                   <Button
                     variant={
@@ -317,7 +317,7 @@ export function SettingsDialog() {
           {/* Connections Section - only show if connection selection is enabled */}
           {globalSettings["features.enableConnectionSelection"] && (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Connections</h3>
+              <h3 className="text-lg font-semibold">{t("connections")}</h3>
               <ConnectionList />
             </div>
           )}
@@ -325,15 +325,14 @@ export function SettingsDialog() {
           {/* Delete All Conversations Section */}
           <div className="space-y-3">
             <h3 className="text-destructive text-lg font-semibold">
-              Danger Zone
+              {t("dangerZone")}
             </h3>
             <div className="border-destructive/50 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-base">Delete All Conversations</Label>
+                  <Label className="text-base">{t("deleteAll")}</Label>
                   <p className="text-muted-foreground text-sm">
-                    Permanently delete all conversation history. This action
-                    cannot be undone.
+                    {t("deleteAllDesc")}
                   </p>
                 </div>
                 <Button
@@ -342,7 +341,7 @@ export function SettingsDialog() {
                   disabled={isDeleting}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {isDeleting ? "Deleting..." : "Delete All"}
+                  {isDeleting ? t("deleting") : t("deleteButton")}
                 </Button>
               </div>
             </div>
@@ -355,7 +354,7 @@ export function SettingsDialog() {
               onClick={handleResetToDefaults}
               disabled={isResetting}
             >
-              {isResetting ? "Resetting..." : "Reset to Defaults"}
+              {isResetting ? t("resetting") : t("resetToDefaults")}
             </Button>
           </div>
         </div>

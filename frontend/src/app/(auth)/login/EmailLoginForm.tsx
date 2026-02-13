@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { LoaderCircle, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
@@ -32,6 +33,8 @@ export function EmailLoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { branding } = useAuthContext();
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -60,12 +63,12 @@ export function EmailLoginForm() {
       });
 
       if (result?.error) {
-        setError("이메일 전송에 실패했습니다. 다시 시도해 주세요.");
+        setError(t('emailLogin.sendError'));
       } else {
         setEmailSent(true);
       }
     } catch {
-      setError("오류가 발생했습니다. 다시 시도해 주세요.");
+      setError(t('login.genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -94,10 +97,10 @@ export function EmailLoginForm() {
           </motion.div>
           <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              이메일을 확인하세요
+              {t('emailLogin.checkEmail')}
             </h1>
             <p className="text-muted-foreground text-sm">
-              로그인 링크를 보냈습니다
+              {t('emailLogin.linkSent')}
             </p>
           </div>
         </motion.div>
@@ -109,9 +112,9 @@ export function EmailLoginForm() {
           <p>
             <span className="text-foreground font-medium">{email}</span>
             <br />
-            으로 로그인 링크를 보냈습니다.
+            {t('emailLogin.linkSentTo')}
           </p>
-          <p className="mt-4">이메일의 링크를 클릭하여 로그인을 완료하세요.</p>
+          <p className="mt-4">{t('emailLogin.clickLink')}</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -124,7 +127,7 @@ export function EmailLoginForm() {
               setEmail("");
             }}
           >
-            다른 이메일로 시도
+            {t('emailLogin.tryDifferentEmail')}
           </Button>
         </motion.div>
       </motion.div>
@@ -147,7 +150,7 @@ export function EmailLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} 로고`}
+            alt={`${branding.appName} ${tc('logo')}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -158,7 +161,7 @@ export function EmailLoginForm() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            이메일로 로그인 링크를 받으세요
+            {t('emailLogin.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -195,7 +198,7 @@ export function EmailLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            이메일
+            {t('login.email')}
           </label>
           <Input
             ref={emailRef}
@@ -225,11 +228,11 @@ export function EmailLoginForm() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>전송 중…</span>
+                <span>{t('emailLogin.sending')}</span>
               </>
             ) : (
               <>
-                <span>로그인 링크 받기</span>
+                <span>{t('emailLogin.getLoginLink')}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -245,9 +248,9 @@ export function EmailLoginForm() {
         className="text-center text-sm"
       >
         <p className="text-muted-foreground">
-          입력하신 이메일로 로그인 링크가 전송됩니다.
+          {t('emailLogin.linkWillBeSent')}
           <br />
-          비밀번호 없이 안전하게 로그인하세요.
+          {t('emailLogin.secureLogin')}
         </p>
       </motion.div>
     </motion.div>

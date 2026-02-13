@@ -7,6 +7,7 @@
  */
 
 import React, { ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Send, LoaderCircle, ArrowUp, Paperclip, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
@@ -59,6 +60,8 @@ export function ActionBar({
   onRefreshAssistants,
   enableGraphSelection = true,
 }: ActionBarProps) {
+  const t = useTranslations("chat");
+
   return (
     <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-3">
       {/* Left: Settings controls */}
@@ -80,7 +83,7 @@ export function ActionBar({
               </button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{compactView ? "일반 뷰" : "컴팩트 뷰"}</p>
+              <p>{compactView ? t("form.normalView") : t("form.compactView")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -98,7 +101,7 @@ export function ActionBar({
                 />
               </TooltipTrigger>
               <TooltipContent side="top">
-                <p>그래프 선택</p>
+                <p>{t("assistant.selectGraph")}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -145,7 +148,7 @@ export function ActionBar({
               onClick={onStop}
             >
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-              중지
+              {t("form.stop")}
             </Button>
           ) : (
             // Form mode: Submit button
@@ -156,12 +159,12 @@ export function ActionBar({
               {isLoading ? (
                 <>
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  처리 중...
+                  {t("form.processing")}
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  실행
+                  {t("form.run")}
                 </>
               )}
             </Button>

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import { LoaderCircle, BookOpen } from "lucide-react";
 import { ChatOpeners } from "./input/ChatOpeners";
 import type { ChatConfig } from "@/lib/config/client";
@@ -24,6 +25,8 @@ export function WelcomeScreen({
   onSelectOpener,
   onFullDescriptionOpen,
 }: WelcomeScreenProps) {
+  const t = useTranslations("chat");
+
   return (
     <div
       className={cn(
@@ -56,7 +59,7 @@ export function WelcomeScreen({
             className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
           >
             <BookOpen className="h-4 w-4" />
-            <span>자세한 설명 보기</span>
+            <span>{t("viewFullDescription")}</span>
           </button>
         )}
       </div>

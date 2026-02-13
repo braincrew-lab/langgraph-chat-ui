@@ -48,8 +48,5 @@ export const STREAM_OPTIONS: any = {
 
 /**
  * Placeholder text for chat input
- * TODO: Replace with i18n system for localization
+ * Use t('placeholder') from useTranslations('chat') in components instead
  */
-export const PLACEHOLDERS = {
-  CHAT_INPUT: "무엇이든 물어보세요",
-} as const;

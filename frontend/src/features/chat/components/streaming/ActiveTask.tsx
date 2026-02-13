@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatValue } from "@/lib/utils/format";
 import { type HierarchicalTask } from "@/types/task-hierarchy";
+import { useTranslations } from "next-intl";
 
 interface ActiveTaskProps {
   task: HierarchicalTask;
@@ -109,6 +110,8 @@ interface ActiveTasksListProps {
 }
 
 export function ActiveTasksList({ tasks, isStreaming }: ActiveTasksListProps) {
+  const t = useTranslations("chat");
+
   if (tasks.length === 0 && !isStreaming) {
     return null;
   }
@@ -117,7 +120,7 @@ export function ActiveTasksList({ tasks, isStreaming }: ActiveTasksListProps) {
     <div className="border-border/50 bg-card overflow-hidden rounded-lg border">
       <div className="bg-muted/30 border-border/50 flex items-center gap-2 border-b px-3 py-2">
         <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-        <span className="text-sm font-medium">실행 중</span>
+        <span className="text-sm font-medium">{t("activeTask.running")}</span>
         {tasks.length > 0 && (
           <span className="text-muted-foreground text-xs">
             ({tasks.length})
@@ -140,7 +143,7 @@ export function ActiveTasksList({ tasks, isStreaming }: ActiveTasksListProps) {
               className="text-muted-foreground flex items-center justify-center py-4 text-sm"
             >
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              대기 중...
+              {t("activeTask.waiting")}
             </motion.div>
           )}
         </AnimatePresence>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { LoaderCircle } from "lucide-react";
 import { useAuthContext } from "../AuthLayoutClient";
@@ -81,6 +82,8 @@ export function OAuthLoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { oauthProviders, branding } = useAuthContext();
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +95,7 @@ export function OAuthLoginForm() {
     try {
       await signIn(provider, { callbackUrl });
     } catch {
-      setError("로그인 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setError(t('oauthLogin.error'));
       setLoadingProvider(null);
     }
   };
@@ -112,7 +115,7 @@ export function OAuthLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} 로고`}
+            alt={`${branding.appName} ${tc('logo')}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -128,9 +131,9 @@ export function OAuthLoginForm() {
           variants={itemVariants}
           className="bg-muted/60 border-border text-foreground rounded-xl border p-4 text-center text-sm"
         >
-          OAuth 공급자가 설정되지 않았습니다.
+          {t('oauthLogin.noProviders')}
           <br />
-          관리자에게 문의해 주세요.
+          {t('oauthLogin.contactAdmin')}
         </motion.div>
       </motion.div>
     );
@@ -152,7 +155,7 @@ export function OAuthLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} 로고`}
+            alt={`${branding.appName} ${tc('logo')}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -163,7 +166,7 @@ export function OAuthLoginForm() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            계정으로 로그인하여 시작하세요
+            {t('oauthLogin.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -207,7 +210,7 @@ export function OAuthLoginForm() {
                 ) : (
                   <Icon className="mr-3 h-5 w-5" />
                 )}
-                {config.name}로 계속하기
+                {t('oauthLogin.continueWith', { provider: config.name })}
               </Button>
             </motion.div>
           );

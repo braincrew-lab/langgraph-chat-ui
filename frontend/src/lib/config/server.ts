@@ -1,7 +1,10 @@
 import { ChatConfig } from "./client";
 import { fullConfig } from "@/configs";
-import { getAllSettings } from "@/lib/services/settings.service";
-import type { GlobalSettings } from "@/types/global-settings";
+import {
+  getDbOnlySettings,
+  getLocalizedTextDefaults,
+} from "@/lib/services/settings.service";
+import { DEFAULT_SETTINGS, type GlobalSettings } from "@/types/global-settings";
 
 /**
  * Apply global settings from DB to config
@@ -68,15 +71,27 @@ function applyGlobalSettings(
 
 /**
  * Loads configuration from src/configs on the server side,
- * merged with global settings from the database.
+ * using a 3-layer merge:
+ *   1. base:  DEFAULT_SETTINGS (booleans, URLs, non-text values)
+ *   2. layer: i18n translations (locale-aware text defaults)
+ *   3. top:   DB-only settings (admin-set overrides)
  *
- * @returns The site configuration with DB overrides
+ * @returns The site configuration with locale + DB overrides
  */
 export async function loadServerConfig(): Promise<ChatConfig> {
   try {
-    // Load global settings from DB
-    const settings = await getAllSettings();
-    // Merge with static config
+    const [localizedText, dbOnly] = await Promise.all([
+      getLocalizedTextDefaults(),
+      getDbOnlySettings(),
+    ]);
+
+    // 3-layer merge: defaults → i18n text → DB overrides
+    const settings: GlobalSettings = {
+      ...DEFAULT_SETTINGS,
+      ...localizedText,
+      ...dbOnly,
+    };
+
     const mergedConfig = applyGlobalSettings(fullConfig, settings);
     return mergedConfig;
   } catch (error) {

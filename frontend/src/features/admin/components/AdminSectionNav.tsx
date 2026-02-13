@@ -4,29 +4,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Settings2, UserCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 const NAV_ITEMS = [
   {
     href: "/admin",
-    label: "대시보드",
+    labelKey: "nav.dashboard" as const,
     icon: LayoutDashboard,
     matches: (pathname: string) => pathname === "/admin",
   },
   {
     href: "/admin/users",
-    label: "사용자",
+    labelKey: "nav.users" as const,
     icon: Users,
     matches: (pathname: string) => pathname.startsWith("/admin/users"),
   },
   {
     href: "/admin/approvals",
-    label: "승인 요청",
+    labelKey: "nav.approvals" as const,
     icon: UserCheck,
     matches: (pathname: string) => pathname.startsWith("/admin/approvals"),
   },
   {
     href: "/admin/settings",
-    label: "설정",
+    labelKey: "nav.settings" as const,
     icon: Settings2,
     matches: (pathname: string) => pathname.startsWith("/admin/settings"),
   },
@@ -34,10 +35,11 @@ const NAV_ITEMS = [
 
 export function AdminSectionNav() {
   const pathname = usePathname() || "";
+  const t = useTranslations('admin');
 
   return (
     <nav
-      aria-label="관리자 섹션"
+      aria-label={t('nav.adminSection')}
       className="border-border/70 bg-muted rounded-xl border p-2"
     >
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -58,7 +60,7 @@ export function AdminSectionNav() {
                 aria-current={active ? "page" : undefined}
               >
                 <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
             </li>
           );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import {
   Tooltip,
@@ -12,6 +13,7 @@ import { LogOut, User } from "lucide-react";
 
 export function UserMenu() {
   const { user, isLoading, isStandalone, signOut } = useAuth();
+  const tc = useTranslations('common');
 
   // In standalone mode, hide user menu entirely
   if (isStandalone) {
@@ -57,7 +59,7 @@ export function UserMenu() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>로그아웃</p>
+            <p>{tc('logout')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

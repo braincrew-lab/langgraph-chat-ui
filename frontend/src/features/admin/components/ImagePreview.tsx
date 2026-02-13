@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface ImagePreviewProps {
   value: string;
@@ -28,12 +29,14 @@ interface ImagePreviewProps {
 export function ImagePreview({
   value,
   onChange,
-  placeholder = "이미지 URL 입력 또는 파일 업로드...",
+  placeholder,
   defaultValue = "",
 }: ImagePreviewProps) {
+  const t = useTranslations('admin');
   const [error, setError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resolvedPlaceholder = placeholder || t('imagePreview.placeholder');
 
   const handleChange = (newValue: string) => {
     setError(false);
@@ -72,15 +75,13 @@ export function ImagePreview({
       "image/x-icon",
     ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error(
-        "지원하지 않는 파일 형식입니다. (JPEG, PNG, GIF, WEBP, SVG, ICO)",
-      );
+      toast.error(t('imagePreview.unsupportedFormat'));
       return;
     }
 
     // Validate file size (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("파일 크기는 2MB 이하여야 합니다.");
+      toast.error(t('imagePreview.fileTooLarge'));
       return;
     }
 
@@ -96,16 +97,16 @@ export function ImagePreview({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "업로드 실패");
+        throw new Error(data.error || t('imagePreview.uploadFailed'));
       }
 
       const data = await response.json();
       handleChange(data.url);
-      toast.success("이미지가 업로드되었습니다.");
+      toast.success(t('imagePreview.uploadSuccess'));
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(
-        err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.",
+        err instanceof Error ? err.message : t('imagePreview.uploadError'),
       );
     } finally {
       setUploading(false);
@@ -120,7 +121,7 @@ export function ImagePreview({
         <Input
           value={value}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className="flex-1"
         />
 
@@ -162,7 +163,7 @@ export function ImagePreview({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>기본값으로 초기화</p>
+              <p>{t('imagePreview.resetToDefault')}</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -206,7 +207,7 @@ export function ImagePreview({
                 </div>
               ) : (
                 <div className="text-destructive p-2 text-sm">
-                  이미지를 로드할 수 없습니다
+                  {t('imagePreview.cannotLoad')}
                 </div>
               )}
             </TooltipContent>
@@ -216,7 +217,7 @@ export function ImagePreview({
 
       {error && (
         <p className="text-destructive text-xs">
-          이미지를 로드할 수 없습니다. URL을 확인해주세요.
+          {t('imagePreview.cannotLoadCheck')}
         </p>
       )}
     </div>

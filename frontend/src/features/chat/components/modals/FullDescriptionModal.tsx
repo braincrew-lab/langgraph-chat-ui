@@ -9,6 +9,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { MarkdownText } from "../content/MarkdownText";
 import { useSettings } from "@/shared/hooks/useSettings";
+import { useLocale, useTranslations } from "next-intl";
 
 interface FullDescriptionModalProps {
   open: boolean;
@@ -20,6 +21,8 @@ export function FullDescriptionModal({
   onOpenChange,
 }: FullDescriptionModalProps) {
   const { config } = useSettings();
+  const locale = useLocale();
+  const t = useTranslations("chat");
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +33,13 @@ export function FullDescriptionModal({
     setLoading(true);
     setError(null);
 
-    fetch(config.branding.fullDescription)
+    // Load locale-specific description file
+    let descUrl = config.branding.fullDescription;
+    if (locale === "en") {
+      descUrl = descUrl.replace(/\.md$/, "-en.md");
+    }
+
+    fetch(descUrl)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load description");
@@ -45,7 +54,7 @@ export function FullDescriptionModal({
         setError(err.message);
         setLoading(false);
       });
-  }, [open, config.branding.fullDescription]);
+  }, [open, config.branding.fullDescription, locale]);
 
   return (
     <Dialog
@@ -54,7 +63,7 @@ export function FullDescriptionModal({
     >
       <DialogContent className="flex max-h-[85vh] max-w-5xl flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-bold">사용 가이드</DialogTitle>
+          <DialogTitle className="text-xl font-bold">{t("fullDescriptionTitle")}</DialogTitle>
         </DialogHeader>
         <div className="[&::-webkit-scrollbar-thumb]:bg-border mt-6 flex-1 overflow-y-auto px-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
           {loading && (
@@ -64,7 +73,7 @@ export function FullDescriptionModal({
           )}
           {error && (
             <div className="text-destructive py-8 text-center">
-              <p>가이드를 불러오는 중 오류가 발생했습니다.</p>
+              <p>{t("fullDescriptionError")}</p>
               <p className="mt-2 text-sm">{error}</p>
             </div>
           )}

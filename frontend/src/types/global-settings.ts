@@ -101,6 +101,16 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 };
 
 /**
+ * Setting keys whose default values are locale-sensitive.
+ * These are overridden by i18n translations when no DB value is set.
+ */
+export const LOCALE_SENSITIVE_KEYS: SettingKey[] = [
+  "ui.welcomeMessage",
+  "ui.chatInputPlaceholder",
+  "branding.chatOpeners",
+];
+
+/**
  * Setting definitions with metadata for admin UI
  */
 export const SETTING_DEFINITIONS: SettingMeta[] = [

@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, File } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { getFieldLabel } from "@/lib/utils/schema";
 
@@ -34,6 +35,7 @@ export function FormSubmissionMessage({
   timestamp,
   className,
 }: FormSubmissionMessageProps) {
+  const t = useTranslations("chat");
   const [expanded, setExpanded] = useState(true);
 
   // Filter out empty fields
@@ -68,7 +70,7 @@ export function FormSubmissionMessage({
             className="text-foreground flex w-full items-center gap-2 text-left text-sm font-medium"
           >
             <FileText className="text-muted-foreground h-4 w-4" />
-            <span>폼 데이터 제출</span>
+            <span>{t("form.formSubmission")}</span>
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -92,6 +94,7 @@ export function FormSubmissionMessage({
                   key={field.name}
                   field={field}
                   value={formData[field.name]}
+                  t={t}
                 />
               ))}
             </motion.div>
@@ -100,14 +103,14 @@ export function FormSubmissionMessage({
               {summaryFields.map((field, idx) => (
                 <span key={field.name}>
                   {getFieldLabel(field)}:{" "}
-                  {formatValue(formData[field.name], field)}
+                  {formatValue(formData[field.name], field, t)}
                   {idx < summaryFields.length - 1 && ", "}
                 </span>
               ))}
               {remainingCount > 0 && (
                 <span className="text-muted-foreground/60">
                   {" "}
-                  외 {remainingCount}개
+                  {t("form.moreItems", { count: remainingCount })}
                 </span>
               )}
             </div>
@@ -129,9 +132,12 @@ export function FormSubmissionMessage({
 function FieldDisplay({
   field,
   value,
+  t,
 }: {
   field: SchemaFieldConfig;
   value: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: any;
 }) {
   const label = getFieldLabel(field);
   const isObject =
@@ -199,7 +205,7 @@ function FieldDisplay({
     );
   }
 
-  const formattedValue = formatValue(value);
+  const formattedValue = formatValue(value, undefined, t);
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -218,22 +224,23 @@ function FieldDisplay({
 }
 
 // Format value for display (used in collapsed summary)
-function formatValue(value: unknown, field?: SchemaFieldConfig): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatValue(value: unknown, field?: SchemaFieldConfig, t?: any): string {
   if (value === null || value === undefined) {
     return "-";
   }
   if (typeof value === "boolean") {
-    return value ? "예" : "아니오";
+    return value ? (t ? t("form.yes") : "Yes") : (t ? t("form.no") : "No");
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return "-";
     // For file fields, show count
     if (field && isFileField(field)) {
-      return `${value.length}개 파일`;
+      return t ? t("form.fileCount", { count: value.length }) : `${value.length} files`;
     }
     // For string arrays, show count if more than 2 items
     if (value.length > 2 && value.every((v) => typeof v === "string")) {
-      return `${value.length}개 항목`;
+      return t ? t("form.itemCount", { count: value.length }) : `${value.length} items`;
     }
     return value.join(", ");
   }

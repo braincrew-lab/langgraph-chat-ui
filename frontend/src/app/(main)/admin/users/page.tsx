@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
 import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
+import { getTranslations } from "next-intl/server";
 
 interface UsersPageProps {
   searchParams: Promise<{
@@ -25,6 +26,7 @@ interface UsersPageProps {
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const session = await auth();
+  const t = await getTranslations('admin');
   const params = await searchParams;
 
   const parsedPage = Number.parseInt(params.page || "1", 10);
@@ -46,30 +48,30 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="사용자 관리"
-        title="전체 사용자"
-        description={`검색/필터 조건에 맞는 사용자 ${result.total}명`}
+        eyebrow={t('users.eyebrow')}
+        title={t('users.title')}
+        description={t('users.description', { total: result.total })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">총 {result.total}명</Badge>
+          <Badge variant="outline">{t('users.totalBadge', { total: result.total })}</Badge>
           {status !== "all" && (
-            <Badge variant="secondary">상태: {status}</Badge>
+            <Badge variant="secondary">{t('users.statusBadge', { status })}</Badge>
           )}
-          {role !== "all" && <Badge variant="secondary">권한: {role}</Badge>}
-          {search && <Badge variant="secondary">검색: {search}</Badge>}
+          {role !== "all" && <Badge variant="secondary">{t('users.roleBadge', { role })}</Badge>}
+          {search && <Badge variant="secondary">{t('users.searchBadge', { search })}</Badge>}
         </div>
       </AdminPageHeader>
 
       <Card className="border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>사용자 목록</CardTitle>
-          <CardDescription>총 {result.total}명의 사용자</CardDescription>
+          <CardTitle>{t('users.listTitle')}</CardTitle>
+          <CardDescription>{t('users.listDescription', { total: result.total })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <UserFilters />
           {result.users.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">
-              사용자가 없습니다
+              {t('users.noUsers')}
             </p>
           ) : (
             <UserTable

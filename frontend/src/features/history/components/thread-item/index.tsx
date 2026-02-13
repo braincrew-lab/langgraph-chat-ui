@@ -1,6 +1,7 @@
 "use client";
 
 import { Thread } from "@langchain/langgraph-sdk";
+import { useTranslations } from "next-intl";
 import { ThreadItemEditing } from "./ThreadItemEditing";
 import { ThreadItemNormal } from "./ThreadItemNormal";
 import { useThreadItemEdit } from "../../hooks/useThreadItemEdit";
@@ -23,9 +24,10 @@ export function ThreadItem({
   onDelete,
   onUpdateTitle,
 }: ThreadItemProps) {
+  const t = useTranslations("history");
   const handleDelete = onDelete
     ? () => {
-        if (confirm(UI_TEXT.deleteConfirm)) {
+        if (confirm(t(UI_TEXT.deleteConfirm))) {
           onDelete(thread.thread_id);
         }
       }

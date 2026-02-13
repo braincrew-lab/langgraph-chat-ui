@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Mail } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import Link from "next/link";
@@ -27,6 +28,7 @@ const itemVariants = {
 
 export default function VerifyRequestPage() {
   const { branding } = useAuthContext();
+  const t = useTranslations('auth');
 
   return (
     <motion.div
@@ -49,10 +51,10 @@ export default function VerifyRequestPage() {
         </motion.div>
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
-            이메일을 확인하세요
+            {t('verify.title')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {branding.appName}에 로그인하기 위한 링크를 보냈습니다
+            {t('verify.subtitle', { appName: branding.appName })}
           </p>
         </div>
       </motion.div>
@@ -61,15 +63,11 @@ export default function VerifyRequestPage() {
         variants={itemVariants}
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
-        <p>
-          이메일에서 로그인 링크를 클릭하여
-          <br />
-          로그인을 완료하세요.
+        <p className="whitespace-pre-line">
+          {t('verify.clickLink')}
         </p>
-        <p className="mt-4">
-          이메일이 도착하지 않았다면
-          <br />
-          스팸 폴더를 확인해 주세요.
+        <p className="mt-4 whitespace-pre-line">
+          {t('verify.checkSpam')}
         </p>
       </motion.div>
 
@@ -79,7 +77,7 @@ export default function VerifyRequestPage() {
             variant="outline"
             className="h-11 w-full rounded-xl font-medium"
           >
-            로그인 페이지로 돌아가기
+            {t('verify.backToLogin')}
           </Button>
         </Link>
       </motion.div>

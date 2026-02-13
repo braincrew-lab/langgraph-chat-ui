@@ -1,5 +1,6 @@
 import { useThreads } from "@/shared/hooks/useThreads";
 import { useQueryState } from "nuqs";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { UI_TEXT } from "../constants";
 import { deleteThreadAction, updateThreadAction } from "@/app/actions/thread";
@@ -10,6 +11,7 @@ import { deleteThreadAction, updateThreadAction } from "@/app/actions/thread";
  * Uses server actions for proper authentication
  */
 export function useThreadOperations() {
+  const t = useTranslations("history");
   const { getThreads, setThreads } = useThreads();
   const [threadId, setThreadId] = useQueryState("threadId");
 
@@ -31,14 +33,14 @@ export function useThreadOperations() {
         throw new Error(result.error || "Failed to delete thread");
       }
 
-      toast.success(UI_TEXT.deleteSuccess);
+      toast.success(t(UI_TEXT.deleteSuccess));
 
       // Refresh threads list to ensure consistency
       const updatedThreads = await getThreads();
       setThreads(updatedThreads);
     } catch (error) {
       console.error("Error deleting thread:", error);
-      toast.error(UI_TEXT.deleteError);
+      toast.error(t(UI_TEXT.deleteError));
 
       // On error, refresh to restore the correct state
       const updatedThreads = await getThreads();
@@ -59,14 +61,14 @@ export function useThreadOperations() {
         throw new Error(result.error || "Failed to update thread");
       }
 
-      toast.success(UI_TEXT.updateSuccess);
+      toast.success(t(UI_TEXT.updateSuccess));
 
       // Refresh threads list
       const updatedThreads = await getThreads();
       setThreads(updatedThreads);
     } catch (error) {
       console.error("Error updating thread title:", error);
-      toast.error(UI_TEXT.updateError);
+      toast.error(t(UI_TEXT.updateError));
     }
   };
 

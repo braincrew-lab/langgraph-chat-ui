@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ export function FileField({
   disabled,
   compact,
 }: FileFieldProps) {
+  const t = useTranslations("chat");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback(
@@ -54,7 +56,7 @@ export function FileField({
         {value ? (
           <span className="truncate">{value}</span>
         ) : (
-          <span className="text-muted-foreground">파일 선택...</span>
+          <span className="text-muted-foreground">{t("form.selectFile")}...</span>
         )}
       </Button>
       {value && (

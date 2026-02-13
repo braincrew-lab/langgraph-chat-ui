@@ -23,48 +23,51 @@ import {
   UserX,
 } from "lucide-react";
 import { AdminPageHeader } from "@/features/admin/components/AdminPageHeader";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminDashboardPage() {
-  const [session, stats, settings] = await Promise.all([
+  const [session, stats, settings, t, tc] = await Promise.all([
     auth(),
     getUserStats(),
     getAllSettings(),
+    getTranslations('admin'),
+    getTranslations('common'),
   ]);
   const config = getAuthModeConfig();
 
   const statCards = [
     {
-      title: "전체 사용자",
+      title: t('dashboard.totalUsers'),
       value: stats.total,
-      description: "등록 계정",
+      description: t('dashboard.registeredAccounts'),
       icon: Users,
       iconTone: "bg-muted text-foreground",
     },
     {
-      title: "활성 사용자",
+      title: t('dashboard.activeUsers'),
       value: stats.active,
-      description: "정상 이용",
+      description: t('dashboard.normalUsage'),
       icon: UserCheck,
       iconTone: "bg-primary/15 text-primary",
     },
     {
-      title: "승인 대기",
+      title: t('dashboard.pendingApproval'),
       value: stats.pending,
-      description: "검토 필요",
+      description: t('dashboard.reviewRequired'),
       icon: Clock,
       iconTone: "bg-muted text-foreground",
     },
     {
-      title: "정지됨",
+      title: t('dashboard.suspended'),
       value: stats.suspended,
-      description: "조치 필요",
+      description: t('dashboard.actionRequired'),
       icon: UserX,
       iconTone: "bg-destructive/15 text-destructive",
     },
     {
-      title: "관리자",
+      title: t('dashboard.admins'),
       value: stats.admins,
-      description: "관리자 계정",
+      description: t('dashboard.adminAccounts'),
       icon: Shield,
       iconTone: "bg-muted text-foreground",
     },
@@ -72,14 +75,14 @@ export default async function AdminDashboardPage() {
 
   const activeRatio =
     stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
-  const getToggleLabel = (enabled: boolean) => (enabled ? "활성" : "비활성");
+  const getToggleLabel = (enabled: boolean) => (enabled ? tc('enabled') : tc('disabled'));
 
   const getModeLabel = (mode: string) => {
     switch (mode) {
       case "public":
-        return "공개 모드";
+        return t('dashboard.publicMode');
       case "authenticated":
-        return "인증 모드";
+        return t('dashboard.authenticatedMode');
       default:
         return mode;
     }
@@ -88,9 +91,9 @@ export default async function AdminDashboardPage() {
   const getPolicyLabel = (policy: string) => {
     switch (policy) {
       case "open":
-        return "자유 가입";
+        return t('dashboard.openRegistration');
       case "approval":
-        return "승인 필요";
+        return t('dashboard.approvalRequired');
       default:
         return policy;
     }
@@ -99,15 +102,15 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="운영 현황"
-        title="관리자 대시보드"
-        description="사용자 상태와 인증 정책을 한눈에 확인하고 조치할 수 있습니다."
-        trailing={`담당자: ${session?.user?.name || session?.user?.email}`}
+        eyebrow={t('dashboard.eyebrow')}
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
+        trailing={t('dashboard.manager', { name: session?.user?.name || session?.user?.email || '' })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">활성 비율 {activeRatio}%</Badge>
-          <Badge variant="secondary">승인 대기 {stats.pending}건</Badge>
-          <Badge variant="secondary">정지 계정 {stats.suspended}건</Badge>
+          <Badge variant="outline">{t('dashboard.activeRatio', { ratio: activeRatio })}</Badge>
+          <Badge variant="secondary">{t('dashboard.pendingCount', { count: stats.pending })}</Badge>
+          <Badge variant="secondary">{t('dashboard.suspendedCount', { count: stats.suspended })}</Badge>
         </div>
       </AdminPageHeader>
 
@@ -140,8 +143,8 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle>시스템 설정</CardTitle>
-                <CardDescription>현재 주요 운영 설정 요약</CardDescription>
+                <CardTitle>{t('dashboard.systemSettings')}</CardTitle>
+                <CardDescription>{t('dashboard.settingsSummary')}</CardDescription>
               </div>
               <Button
                 asChild
@@ -150,7 +153,7 @@ export default async function AdminDashboardPage() {
                 className="h-8 gap-1.5 border-0 px-2 shadow-none"
               >
                 <Link href="/admin/settings">
-                  바로가기
+                  {t('dashboard.goTo')}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -160,7 +163,7 @@ export default async function AdminDashboardPage() {
             <dl className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  인증 모드
+                  {t('dashboard.authMode')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getModeLabel(config.mode)}
@@ -168,7 +171,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  회원가입 허용
+                  {t('dashboard.allowRegistration')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["auth.allowRegistration"])}
@@ -176,7 +179,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  회원가입 정책
+                  {t('dashboard.registrationPolicy')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getPolicyLabel(settings["auth.registrationPolicy"])}
@@ -184,7 +187,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  파일 업로드
+                  {t('dashboard.fileUpload')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableFileUpload"])}
@@ -192,7 +195,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  채팅 히스토리
+                  {t('dashboard.chatHistory')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.showHistory"])}
@@ -200,7 +203,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  스레드 삭제
+                  {t('dashboard.threadDeletion')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableDeletion"])}
@@ -208,7 +211,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  고급 입력
+                  {t('dashboard.advancedInput')}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableAdvancedInput"])}
@@ -216,24 +219,24 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  기본 그래프 ID
+                  {t('dashboard.defaultGraphId')}
                 </dt>
                 <dd className="text-sm font-semibold">
-                  {settings["features.defaultGraphId"] || "미설정"}
+                  {settings["features.defaultGraphId"] || tc('notSet')}
                 </dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  기본 커넥션 API
+                  {t('dashboard.defaultConnectionApi')}
                 </dt>
                 <dd className="max-w-full text-sm font-semibold break-all">
-                  {settings["features.defaultConnectionApiUrl"] || "미설정"}
+                  {settings["features.defaultConnectionApiUrl"] || tc('notSet')}
                 </dd>
               </div>
               {config.initialAdminEmail && (
                 <div className="space-y-1 sm:col-span-2">
                   <dt className="text-muted-foreground text-sm font-medium">
-                    초기 관리자 이메일
+                    {t('dashboard.initialAdminEmail')}
                   </dt>
                   <dd className="text-sm font-semibold">
                     {config.initialAdminEmail}
@@ -246,26 +249,25 @@ export default async function AdminDashboardPage() {
 
         <Card className="border-border/70 bg-card">
           <CardHeader>
-            <CardTitle>운영 알림</CardTitle>
-            <CardDescription>즉시 확인이 필요한 항목</CardDescription>
+            <CardTitle>{t('dashboard.operationAlerts')}</CardTitle>
+            <CardDescription>{t('dashboard.alertsDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <UserPlus className="text-primary mt-0.5 h-4 w-4" />
               <div className="text-sm">
-                <p className="font-medium">승인 대기 요청</p>
+                <p className="font-medium">{t('dashboard.pendingRequests')}</p>
                 <p className="text-muted-foreground">
-                  현재 {stats.pending}건의 가입 요청이 검토를 기다리고 있습니다.
+                  {t('dashboard.pendingRequestsDesc', { count: stats.pending })}
                 </p>
               </div>
             </div>
             <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <Settings2 className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="text-sm">
-                <p className="font-medium">운영 점검</p>
+                <p className="font-medium">{t('dashboard.operationCheck')}</p>
                 <p className="text-muted-foreground">
-                  정지 계정 {stats.suspended}건, 관리자 계정 {stats.admins}건을
-                  주기적으로 확인하세요.
+                  {t('dashboard.operationCheckDesc', { suspended: stats.suspended, admins: stats.admins })}
                 </p>
               </div>
             </div>

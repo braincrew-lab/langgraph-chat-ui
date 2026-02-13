@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -44,6 +45,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const { allowRegistration, branding } = useAuthContext();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -69,11 +72,11 @@ export default function RegisterPage() {
     const errors: Record<string, string> = {};
 
     if (password.length < 8) {
-      errors.password = "비밀번호는 8자 이상이어야 합니다.";
+      errors.password = t('register.passwordMinLength');
     }
 
     if (password !== confirmPassword) {
-      errors.confirmPassword = "비밀번호가 일치하지 않습니다.";
+      errors.confirmPassword = t('register.passwordMismatch');
     }
 
     setFieldErrors(errors);
@@ -94,9 +97,9 @@ export default function RegisterPage() {
 
       if (!result.success) {
         if (result.error.includes("already exists")) {
-          setError("이미 등록된 이메일입니다.");
+          setError(t('register.emailExists'));
         } else {
-          setError(result.error || "회원가입에 실패했습니다.");
+          setError(result.error || t('register.genericError'));
         }
         return;
       }
@@ -125,7 +128,7 @@ export default function RegisterPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={branding.logoPath}
-              alt={`${branding.appName} 로고`}
+              alt={`${branding.appName} ${tc('logo')}`}
               width={branding.logoWidth * 2}
               height={branding.logoHeight * 2}
               className="flex-shrink-0"
@@ -145,12 +148,12 @@ export default function RegisterPage() {
           <Ban className="text-muted-foreground h-12 w-12" />
           <div className="space-y-2 text-center">
             <h2 className="text-lg font-semibold">
-              회원가입이 비활성화되어 있습니다
+              {t('register.disabled')}
             </h2>
             <p className="text-muted-foreground text-sm">
-              현재 새로운 회원가입을 받지 않고 있습니다.
+              {t('register.disabledDescription')}
               <br />
-              관리자에게 문의해 주세요.
+              {t('oauthLogin.contactAdmin')}
             </p>
           </div>
         </motion.div>
@@ -160,13 +163,13 @@ export default function RegisterPage() {
           className="text-center text-sm"
         >
           <span className="text-muted-foreground">
-            이미 계정이 있으신가요?{" "}
+            {t('register.hasAccount')}{" "}
           </span>
           <Link
             href="/login"
             className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            로그인
+            {t('login.signIn')}
           </Link>
         </motion.div>
       </motion.div>
@@ -202,12 +205,12 @@ export default function RegisterPage() {
           </motion.div>
           <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              {isPendingApproval ? "가입 신청 완료" : "회원가입 완료"}
+              {isPendingApproval ? t('register.requestComplete') : t('register.complete')}
             </h1>
             <p className="text-muted-foreground text-sm">
               {isPendingApproval
-                ? "관리자 승인 후 이용하실 수 있습니다"
-                : "지금 바로 로그인할 수 있습니다"}
+                ? t('register.pendingApprovalSubtitle')
+                : t('register.readySubtitle')}
             </p>
           </div>
         </motion.div>
@@ -217,22 +220,16 @@ export default function RegisterPage() {
           className="text-muted-foreground text-center text-sm leading-relaxed"
         >
           {isPendingApproval ? (
-            <p>
-              회원가입 신청이 완료되었습니다.
-              <br />
-              관리자가 계정을 검토한 후 승인하면
-              <br />
-              서비스를 이용하실 수 있습니다.
+            <p className="whitespace-pre-line">
+              {t('register.pendingDescription')}
             </p>
           ) : (
-            <p>
-              회원가입이 완료되었습니다.
-              <br />
-              아래 버튼을 클릭하여 로그인해 주세요.
+            <p className="whitespace-pre-line">
+              {t('register.completeDescription')}
             </p>
           )}
           <p className="mt-4">
-            등록 이메일:{" "}
+            {t('register.registeredEmail')}{" "}
             <span className="text-foreground font-medium">
               {registeredEmail}
             </span>
@@ -246,14 +243,14 @@ export default function RegisterPage() {
               className="h-11 w-full rounded-xl font-medium transition-colors"
               onClick={() => router.push("/login")}
             >
-              로그인 페이지로 이동
+              {t('register.goToLogin')}
             </Button>
           ) : (
             <Button
               className="h-11 w-full rounded-xl font-medium transition-colors"
               onClick={() => router.push("/login")}
             >
-              로그인하기
+              {t('register.signInNow')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}
@@ -278,7 +275,7 @@ export default function RegisterPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} 로고`}
+            alt={`${branding.appName} ${tc('logo')}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -289,7 +286,7 @@ export default function RegisterPage() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            새 계정을 만들어 시작하세요
+            {t('register.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -326,15 +323,15 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            이름{" "}
-            <span className="text-muted-foreground font-normal">(선택)</span>
+            {t('register.name')}{" "}
+            <span className="text-muted-foreground font-normal">{t('register.optional')}</span>
           </label>
           <Input
             id="name"
             name="name"
             type="text"
             autoComplete="name"
-            placeholder="홍길동"
+            placeholder={t('register.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={isPending}
@@ -354,7 +351,7 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            이메일
+            {t('login.email')}
           </label>
           <Input
             id="email"
@@ -384,14 +381,14 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            비밀번호
+            {t('login.password')}
           </label>
           <Input
             id="password"
             name="new-password"
             type="password"
             autoComplete="new-password"
-            placeholder="8자 이상 입력"
+            placeholder={t('register.passwordPlaceholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -426,14 +423,14 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            비밀번호 확인
+            {t('register.confirmPassword')}
           </label>
           <Input
             id="confirmPassword"
             name="confirm-password"
             type="password"
             autoComplete="new-password"
-            placeholder="비밀번호 재입력"
+            placeholder={t('register.confirmPasswordPlaceholder')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -468,11 +465,11 @@ export default function RegisterPage() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>가입 중…</span>
+                <span>{t('register.signingUp')}</span>
               </>
             ) : (
               <>
-                <span>회원가입</span>
+                <span>{t('register.signUp')}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -491,7 +488,7 @@ export default function RegisterPage() {
           <span className="border-border w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-card text-muted-foreground px-3">또는</span>
+          <span className="bg-card text-muted-foreground px-3">{tc('or')}</span>
         </div>
       </motion.div>
 
@@ -499,12 +496,12 @@ export default function RegisterPage() {
         variants={itemVariants}
         className="text-center text-sm"
       >
-        <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
+        <span className="text-muted-foreground">{t('register.hasAccount')} </span>
         <Link
           href="/login"
           className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          로그인
+          {t('login.signIn')}
         </Link>
       </motion.div>
     </motion.div>

@@ -1,4 +1,5 @@
 import { Thread } from "@langchain/langgraph-sdk";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/sheet";
@@ -25,6 +26,8 @@ export function MobileSidebar({
   onThreadClick,
   onShowGuide,
 }: MobileSidebarProps) {
+  const t = useTranslations("history");
+
   return (
     <div className="lg:hidden">
       <Sheet
@@ -36,7 +39,7 @@ export function MobileSidebar({
           className="flex flex-col gap-4 lg:hidden"
         >
           <VisuallyHidden>
-            <SheetTitle>Chat History</SheetTitle>
+            <SheetTitle>{t("chatHistory")}</SheetTitle>
           </VisuallyHidden>
 
           {/* New Chat button */}
@@ -53,7 +56,7 @@ export function MobileSidebar({
               }}
             >
               <BookOpen className={ICON_SIZE_SM} />
-              <span>사용 가이드</span>
+              <span>{t("sidebar.guide")}</span>
             </Button>
           )}
 
