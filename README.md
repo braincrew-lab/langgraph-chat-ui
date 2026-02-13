@@ -14,7 +14,7 @@
 
 [English](./README_EN.md) | 한국어
 
-[데모](https://agentchat.vercel.app) · [문서](docs/) · [예제](examples/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
+[문서](docs/) · [예제](examples/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
 
 </div>
 
