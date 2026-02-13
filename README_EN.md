@@ -297,7 +297,7 @@ Configurable from the admin dashboard:
 
 ### LangGraph Server Auth Integration
 
-For JWT-based authentication with LangGraph Platform, see the [LangGraph Auth Guide](docs/LANGGRAPH_AUTH_GUIDE.md).
+For JWT-based authentication with LangGraph Platform, see the [Auth Guide Overview](docs/00-OVERVIEW.md).
 
 ---
 
@@ -400,7 +400,6 @@ docker run -p 3000:3000 \
 | Document | Description |
 |---|---|
 | [Auth Guide Overview](docs/00-OVERVIEW.md) | Auth method comparison and selection guide |
-| [LangGraph Auth Guide](docs/LANGGRAPH_AUTH_GUIDE.md) | JWT verification, Supabase integration, resource access control |
 | [LangGraph Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose setup |
 | [Examples](examples/) | Per-auth-mode server/frontend configuration examples |
 
