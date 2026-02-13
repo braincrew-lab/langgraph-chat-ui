@@ -7,6 +7,7 @@ import {
   GlobalSettingRecord,
 } from "@/types/global-settings";
 import { requiresNextAuth } from "@/types/auth-mode";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Check if database is available (only in modes that require NextAuth)
@@ -101,6 +102,33 @@ export async function getAllSettings(): Promise<GlobalSettings> {
         (result as any)[key] = JSON.parse(setting.value);
       } catch {
         // Keep default value
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get only settings explicitly stored in the database (no DEFAULT_SETTINGS merge).
+ * Used for 3-layer config merge so we can distinguish admin-set values from defaults.
+ */
+export async function getDbOnlySettings(): Promise<Partial<GlobalSettings>> {
+  if (!isDatabaseAvailable()) {
+    return {};
+  }
+
+  const dbSettings = await prisma.globalSetting.findMany();
+  const result: Partial<GlobalSettings> = {};
+
+  for (const setting of dbSettings) {
+    const key = setting.key as SettingKey;
+    if (key in DEFAULT_SETTINGS) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (result as any)[key] = JSON.parse(setting.value);
+      } catch {
+        // Skip unparseable values
       }
     }
   }
@@ -267,12 +295,35 @@ export async function resetAllSettings(resetById?: string): Promise<void> {
 }
 
 /**
- * Get server defaults (includes environment variables)
+ * Get locale-aware text defaults from i18n messages.
+ * Returns text fields overridden with the current locale's translations.
+ */
+export async function getLocalizedTextDefaults(): Promise<
+  Partial<GlobalSettings>
+> {
+  const t = await getTranslations("defaults");
+  const chatOpenersStr = t("chatOpeners");
+  const chatOpeners = chatOpenersStr
+    ? chatOpenersStr.split("\n").filter(Boolean)
+    : [];
+
+  return {
+    "ui.welcomeMessage": t("welcomeMessage"),
+    "ui.chatInputPlaceholder": t("chatInputPlaceholder"),
+    "branding.chatOpeners": chatOpeners,
+  };
+}
+
+/**
+ * Get server defaults (includes environment variables + locale-aware text)
  * Used for placeholder display and reset functionality in admin UI
  */
-export function getServerDefaults(): GlobalSettings {
+export async function getServerDefaults(): Promise<GlobalSettings> {
+  const localizedText = await getLocalizedTextDefaults();
+
   return {
     ...DEFAULT_SETTINGS,
+    ...localizedText,
     // Override with environment variables where applicable
     "features.defaultConnectionApiUrl":
       process.env.NEXT_PUBLIC_API_URL ||

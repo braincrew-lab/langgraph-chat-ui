@@ -23,6 +23,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,7 @@ export function UnifiedInputArea({
   onStop,
   isAssistantSelected,
   enableFileUpload,
-  placeholder = "메시지를 입력하세요...",
+  placeholder,
   className,
   compactView,
   onCompactViewChange,
@@ -110,6 +111,7 @@ export function UnifiedInputArea({
   enableGraphSelection = true,
   enableAdvancedInput = true,
 }: UnifiedInputAreaProps) {
+  const t = useTranslations("chat");
   const {
     isFormValid,
     parsedSchema,
@@ -193,14 +195,14 @@ export function UnifiedInputArea({
                     {isLoading ? (
                       <>
                         <LoaderCircle className="h-4 w-4 animate-spin" />
-                        <span>실행 중...</span>
+                        <span>{t("form.running")}</span>
                       </>
                     ) : (
-                      <span>입력 폼 보기</span>
+                      <span>{t("form.showForm")}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs">입력 폼</span>
+                    <span className="text-xs">{t("form.inputForm")}</span>
                     {isFormCollapsed ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -314,7 +316,7 @@ export function UnifiedInputArea({
                   form?.requestSubmit();
                 }
               }}
-              placeholder={placeholder}
+              placeholder={placeholder || t("placeholder")}
               rows={1}
               style={{ maxHeight: `${UI.CHAT_TEXTAREA_MAX_HEIGHT}px` }}
               className="placeholder:text-muted-foreground [&::-webkit-scrollbar-thumb]:bg-border field-sizing-content resize-none overflow-y-auto border-none bg-transparent px-4 pt-4 pb-2 text-base leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"

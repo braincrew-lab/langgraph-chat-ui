@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Save, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -37,19 +38,20 @@ interface SettingsFormProps {
 import { StringArrayInput } from "./StringArrayInput";
 import { ImagePreview } from "./ImagePreview";
 
-const CATEGORY_LABELS: Record<SettingCategory, string> = {
-  auth: "인증 설정",
-  ui: "UI 설정",
-  features: "기능 설정",
-  branding: "브랜딩 설정",
-};
-
 export function SettingsForm({
   initialSettings,
   serverDefaults,
 }: SettingsFormProps) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [isPending, startTransition] = useTransition();
+
+  const CATEGORY_LABELS: Record<SettingCategory, string> = {
+    auth: t("settings.categoryAuth"),
+    ui: t("settings.categoryUi"),
+    features: t("settings.categoryFeatures"),
+    branding: t("settings.categoryBranding"),
+  };
   const [settings, setSettings] = useState<GlobalSettings>(initialSettings);
   const [saved, setSaved] = useState(false);
 
@@ -94,9 +96,11 @@ export function SettingsForm({
         return (
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor={definition.key}>{definition.label}</Label>
+              <Label htmlFor={definition.key}>
+                {t(`settings.labels.${definition.key}`)}
+              </Label>
               <p className="text-muted-foreground text-sm">
-                {definition.description}
+                {t(`settings.descriptions.${definition.key}`)}
               </p>
             </div>
             <Switch
@@ -115,7 +119,9 @@ export function SettingsForm({
       case "select":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <Select
               value={value as string}
               onValueChange={(val) =>
@@ -140,7 +146,7 @@ export function SettingsForm({
               </SelectContent>
             </Select>
             <p className="text-muted-foreground text-sm">
-              {definition.description}
+              {t(`settings.descriptions.${definition.key}`)}
             </p>
           </div>
         );
@@ -148,7 +154,9 @@ export function SettingsForm({
       case "url":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <ImagePreview
               value={value as string}
               onChange={(val) =>
@@ -161,7 +169,7 @@ export function SettingsForm({
               defaultValue={defaultValue as string}
             />
             <p className="text-muted-foreground text-sm">
-              {definition.description}
+              {t(`settings.descriptions.${definition.key}`)}
             </p>
           </div>
         );
@@ -169,7 +177,9 @@ export function SettingsForm({
       case "array":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <StringArrayInput
               value={value as string[]}
               onChange={(val) =>
@@ -181,7 +191,7 @@ export function SettingsForm({
               maxItems={definition.maxItems}
             />
             <p className="text-muted-foreground text-sm">
-              {definition.description}
+              {t(`settings.descriptions.${definition.key}`)}
             </p>
           </div>
         );
@@ -189,7 +199,9 @@ export function SettingsForm({
       default:
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{definition.label}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <Input
               id={definition.key}
               type="text"
@@ -203,7 +215,7 @@ export function SettingsForm({
               }
             />
             <p className="text-muted-foreground text-sm">
-              {definition.description}
+              {t(`settings.descriptions.${definition.key}`)}
             </p>
           </div>
         );
@@ -233,7 +245,9 @@ export function SettingsForm({
                   {CATEGORY_LABELS[category]}
                 </CardTitle>
                 <CardDescription>
-                  {CATEGORY_LABELS[category]} 설정을 구성합니다
+                  {t("settings.categoryDescription", {
+                    category: CATEGORY_LABELS[category],
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -256,7 +270,9 @@ export function SettingsForm({
                   {CATEGORY_LABELS[category]}
                 </CardTitle>
                 <CardDescription>
-                  {CATEGORY_LABELS[category]} 설정을 구성합니다
+                  {t("settings.categoryDescription", {
+                    category: CATEGORY_LABELS[category],
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -276,14 +292,18 @@ export function SettingsForm({
           disabled={isPending}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          기본값으로 초기화
+          {t("settings.resetToDefaults")}
         </Button>
         <Button
           onClick={handleSave}
           disabled={isPending}
         >
           <Save className="mr-2 h-4 w-4" />
-          {isPending ? "저장 중..." : saved ? "저장됨!" : "변경사항 저장"}
+          {isPending
+            ? t("settings.saving")
+            : saved
+              ? t("settings.saved")
+              : t("settings.saveChanges")}
         </Button>
       </div>
     </div>

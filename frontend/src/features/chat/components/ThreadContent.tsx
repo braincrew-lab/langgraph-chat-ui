@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { UI, TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
@@ -36,6 +37,7 @@ import {
 import { type LangSmithTimelineEvents } from "@/types/timeline";
 
 export function ThreadContent() {
+  const t = useTranslations("chat");
   const { config, userSettings, updateUserSettings, globalSettings } =
     useSettings();
   const [threadId] = useQueryState("threadId");
@@ -190,7 +192,7 @@ export function ThreadContent() {
 
   const assistantSelectValue = useMemo(
     () => currentAssistantId?.trim() || "none",
-    [currentAssistantId],
+    [currentAssistantId, t],
   );
 
   const handleAssistantChange = useCallback(
@@ -209,12 +211,12 @@ export function ThreadContent() {
       }
 
       await updateAssistantIdAction(trimmedValue);
-      toast.success("그래프가 변경되었습니다.", {
-        description: `선택한 assistant ID: ${value}`,
+      toast.success(t("graphChanged"), {
+        description: t("graphChangedDescription", { assistantId: value }),
       });
       window.location.reload();
     },
-    [currentAssistantId],
+    [currentAssistantId, t],
   );
 
   useEffect(() => {

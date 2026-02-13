@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { Message, Checkpoint } from "@langchain/langgraph-sdk";
 import { DO_NOT_RENDER_ID_PREFIX } from "@/lib/utils/ensure-tool-responses";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
@@ -101,6 +102,7 @@ export function MessageList({
   streamError,
   onRetry,
 }: MessageListProps) {
+  const t = useTranslations("chat");
   const stream = useStreamContext();
 
   // Build subagent context for message detection
@@ -378,7 +380,7 @@ export function MessageList({
         <div className="flex h-full w-full items-center justify-center py-12">
           <div className="text-muted-foreground flex items-center gap-3">
             <LoaderCircle className="h-5 w-5 animate-spin" />
-            <span className="text-sm">대화를 불러오는 중...</span>
+            <span className="text-sm">{t("loadingConversation")}</span>
           </div>
         </div>
       )}

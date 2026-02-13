@@ -305,7 +305,7 @@ export async function getAdminSettings(): Promise<
 
     const [settings, serverDefaults] = await Promise.all([
       getAllSettings(),
-      Promise.resolve(getServerDefaults()),
+      getServerDefaults(),
     ]);
 
     return {

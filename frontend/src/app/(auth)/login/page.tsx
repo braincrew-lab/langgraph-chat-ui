@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -43,6 +44,8 @@ function CredentialsLoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const registered = searchParams.get("registered") === "true";
   const { allowRegistration, branding } = useAuthContext();
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,13 +74,13 @@ function CredentialsLoginForm() {
       });
 
       if (result?.error) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        setError(t("login.invalidCredentials"));
       } else {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch {
-      setError("오류가 발생했습니다. 다시 시도해 주세요.");
+      setError(t("login.genericError"));
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +102,7 @@ function CredentialsLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} 로고`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -109,9 +112,7 @@ function CredentialsLoginForm() {
           <h1 className="text-2xl font-bold tracking-tight">
             {branding.appName}
           </h1>
-          <p className="text-muted-foreground text-sm">
-            계정에 로그인하여 시작하세요
-          </p>
+          <p className="text-muted-foreground text-sm">{t("login.subtitle")}</p>
         </div>
       </motion.div>
 
@@ -128,7 +129,7 @@ function CredentialsLoginForm() {
             className="h-4 w-4 flex-shrink-0"
             aria-hidden="true"
           />
-          <span>회원가입이 완료되었습니다. 로그인해 주세요.</span>
+          <span>{t("login.registrationComplete")}</span>
         </motion.div>
       )}
 
@@ -164,7 +165,7 @@ function CredentialsLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            이메일
+            {t("login.email")}
           </label>
           <Input
             ref={emailRef}
@@ -194,14 +195,14 @@ function CredentialsLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            비밀번호
+            {t("login.password")}
           </label>
           <Input
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
-            placeholder="비밀번호 입력"
+            placeholder={t("login.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -222,11 +223,11 @@ function CredentialsLoginForm() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>로그인 중…</span>
+                <span>{t("login.signingIn")}</span>
               </>
             ) : (
               <>
-                <span>로그인</span>
+                <span>{t("login.signIn")}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -247,7 +248,9 @@ function CredentialsLoginForm() {
               <span className="border-border w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card text-muted-foreground px-3">또는</span>
+              <span className="bg-card text-muted-foreground px-3">
+                {tc("or")}
+              </span>
             </div>
           </motion.div>
 
@@ -255,12 +258,14 @@ function CredentialsLoginForm() {
             variants={itemVariants}
             className="text-center text-sm"
           >
-            <span className="text-muted-foreground">계정이 없으신가요? </span>
+            <span className="text-muted-foreground">
+              {t("login.noAccount")}{" "}
+            </span>
             <Link
               href="/register"
               className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              회원가입
+              {t("login.signUp")}
             </Link>
           </motion.div>
         </>

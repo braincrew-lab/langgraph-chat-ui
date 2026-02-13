@@ -7,6 +7,12 @@ import {
   canAccessAdmin,
 } from "@/lib/auth/mode";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
+import {
+  LOCALE_COOKIE_NAME,
+  defaultLocale,
+  locales,
+  type Locale,
+} from "@/i18n/config";
 
 /**
  * Check if request has a Bearer token in the Authorization header.
@@ -14,6 +20,28 @@ import type { UserRole, UserStatus } from "@/types/auth-mode";
 function hasBearerToken(request: NextRequest): boolean {
   const authHeader = request.headers.get("authorization");
   return authHeader?.startsWith("Bearer ") ?? false;
+}
+
+/**
+ * Set locale cookie on response if not already present in request.
+ */
+function withLocaleCookie(
+  req: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  if (!req.cookies.get(LOCALE_COOKIE_NAME)?.value) {
+    const acceptLang = req.headers.get("accept-language") ?? "";
+    const detected = acceptLang
+      .split(",")
+      .map((part) => part.split(";")[0].trim().substring(0, 2).toLowerCase())
+      .find((lang) => locales.includes(lang as Locale)) as Locale | undefined;
+    response.cookies.set(LOCALE_COOKIE_NAME, detected ?? defaultLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+  return response;
 }
 
 /**
@@ -34,7 +62,7 @@ export default async function middleware(req: NextRequest) {
     ) {
       return NextResponse.redirect(new URL("/", nextUrl));
     }
-    return NextResponse.next();
+    return withLocaleCookie(req, NextResponse.next());
   }
 
   // CREDENTIALS / OAUTH / EMAIL MODE: Use NextAuth
@@ -56,7 +84,7 @@ export default async function middleware(req: NextRequest) {
       }
       return NextResponse.redirect(new URL("/", nextUrl));
     }
-    return NextResponse.next();
+    return withLocaleCookie(req, NextResponse.next());
   }
 
   // For API routes with Bearer token, let them through at the middleware level.
@@ -84,7 +112,7 @@ export default async function middleware(req: NextRequest) {
         new URL(adminAccess.redirectTo || "/", nextUrl),
       );
     }
-    return NextResponse.next();
+    return withLocaleCookie(req, NextResponse.next());
   }
 
   // Protected routes - check if user can access app
@@ -101,7 +129,7 @@ export default async function middleware(req: NextRequest) {
     );
   }
 
-  return NextResponse.next();
+  return withLocaleCookie(req, NextResponse.next());
 }
 
 export const config = {

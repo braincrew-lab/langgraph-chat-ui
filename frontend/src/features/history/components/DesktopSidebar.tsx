@@ -1,6 +1,7 @@
 import { Thread } from "@langchain/langgraph-sdk";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   LayoutDashboard,
@@ -33,6 +34,7 @@ export function DesktopSidebar({
   onNewChat,
   onShowGuide,
 }: DesktopSidebarProps) {
+  const t = useTranslations("history");
   const { user } = useAuth();
   const pathname = usePathname();
   const userIsAdmin = user && isAdmin(user.role as UserRole);
@@ -53,7 +55,7 @@ export function DesktopSidebar({
             onClick={onShowGuide}
           >
             <BookOpen className={ICON_SIZE_SM} />
-            <span className="text-sm font-medium">사용 가이드</span>
+            <span className="text-sm font-medium">{t("sidebar.guide")}</span>
           </button>
         </div>
       )}
@@ -63,7 +65,7 @@ export function DesktopSidebar({
         <div className="mt-4 px-3">
           <div className="border-border/60 bg-muted/35 rounded-lg border p-2">
             <p className="text-muted-foreground mb-2 px-2 text-xs font-medium">
-              관리자
+              {t("sidebar.admin")}
             </p>
             <nav className="space-y-1">
               <Link
@@ -76,7 +78,9 @@ export function DesktopSidebar({
                 )}
               >
                 <LayoutDashboard className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">대시보드</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.dashboard")}
+                </span>
               </Link>
               <Link
                 href="/admin/users"
@@ -88,7 +92,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Users className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">사용자 관리</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.userManagement")}
+                </span>
               </Link>
               <Link
                 href="/admin/approvals"
@@ -100,7 +106,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Shield className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">가입 승인</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.approvals")}
+                </span>
               </Link>
               <Link
                 href="/admin/settings"
@@ -112,7 +120,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Settings className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">설정</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.settings")}
+                </span>
               </Link>
             </nav>
           </div>

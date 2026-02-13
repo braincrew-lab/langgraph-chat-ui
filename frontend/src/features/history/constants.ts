@@ -13,14 +13,14 @@ export const THREAD_ITEM_PADDING = "px-3 py-2";
 export const ICON_SIZE_SM = "size-5";
 export const BUTTON_SIZE_SM = "h-7 w-7";
 
-// UI Text (Korean)
+// UI Text - i18n key references (used with t(UI_TEXT.xxx) pattern)
 export const UI_TEXT = {
-  newChat: "새 채팅",
-  rename: "이름 바꾸기",
-  delete: "삭제",
-  deleteConfirm: "Are you sure you want to delete this conversation?",
-  deleteSuccess: "Conversation deleted successfully",
-  deleteError: "Failed to delete conversation",
-  updateSuccess: "Conversation title updated",
-  updateError: "Failed to update title",
+  newChat: "newChat",
+  rename: "rename",
+  delete: "delete",
+  deleteConfirm: "deleteConfirm",
+  deleteSuccess: "deleteSuccess",
+  deleteError: "deleteError",
+  updateSuccess: "updateSuccess",
+  updateError: "updateError",
 } as const;

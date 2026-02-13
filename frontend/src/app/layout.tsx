@@ -6,10 +6,15 @@ import { siteConfig } from "@/configs/site";
 import { AuthProvider, StandaloneAuthProvider } from "@/providers/AuthProvider";
 import { getAllSettings } from "@/lib/services/settings.service";
 import { requiresNextAuth } from "@/types/auth-mode";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const settings = await getAllSettings();
+    const [settings, t] = await Promise.all([
+      getAllSettings(),
+      getTranslations("defaults"),
+    ]);
 
     // Branding fallback chain
     const logoUrl =
@@ -19,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     return {
       title: appTitle,
-      description: siteConfig.meta.description,
+      description: t("metaDescription"),
       icons: {
         icon: faviconUrl,
       },
@@ -41,16 +46,18 @@ export async function generateMetadata(): Promise<Metadata> {
 const defaultFaviconPath =
   siteConfig.meta.favicon || siteConfig.branding.logoPath;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const needsAuth = requiresNextAuth();
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
     <html
-      lang="ko"
+      lang={locale}
       suppressHydrationWarning
     >
       <head>
@@ -61,15 +68,17 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        {needsAuth ? (
-          <AuthProvider>
-            <NuqsAdapter>{children}</NuqsAdapter>
-          </AuthProvider>
-        ) : (
-          <StandaloneAuthProvider>
-            <NuqsAdapter>{children}</NuqsAdapter>
-          </StandaloneAuthProvider>
-        )}
+        <NextIntlClientProvider messages={messages}>
+          {needsAuth ? (
+            <AuthProvider>
+              <NuqsAdapter>{children}</NuqsAdapter>
+            </AuthProvider>
+          ) : (
+            <StandaloneAuthProvider>
+              <NuqsAdapter>{children}</NuqsAdapter>
+            </StandaloneAuthProvider>
+          )}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

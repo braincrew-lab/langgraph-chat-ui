@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Assistant } from "@/app/actions/assistant";
+import { useTranslations } from "next-intl";
 
 interface AssistantSelectorProps {
   assistants: Assistant[];
@@ -27,6 +28,8 @@ export function AssistantSelector({
   onSelect,
   onRefresh,
 }: AssistantSelectorProps) {
+  const t = useTranslations("chat");
+
   return (
     <div className="border-border bg-card flex cursor-pointer gap-1 rounded-lg border pr-1 pl-3 shadow-sm transition-all duration-200 hover:shadow-md">
       <select
@@ -44,10 +47,10 @@ export function AssistantSelector({
       >
         <option value="none">
           {isLoading
-            ? "그래프 목록을 불러오는 중..."
+            ? t("assistant.loading")
             : assistants.length === 0
-              ? "그래프가 없습니다"
-              : "그래프를 선택하세요"}
+              ? t("assistant.noGraphs")
+              : t("assistant.selectGraph")}
         </option>
         {assistants.map((assistant) => (
           <option

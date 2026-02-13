@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { File, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ export function FileArrayField({
   disabled,
   compact,
 }: FileArrayFieldProps) {
+  const t = useTranslations("chat");
   const inputRef = useRef<HTMLInputElement>(null);
   const items = useMemo(
     (): string[] => (Array.isArray(value) ? value : []),
@@ -54,7 +56,7 @@ export function FileArrayField({
       >
         {items.length === 0 ? (
           <span className="text-muted-foreground text-sm">
-            클릭하여 파일 선택...
+            {t("form.clickToSelect")}
           </span>
         ) : (
           <div className="space-y-1">

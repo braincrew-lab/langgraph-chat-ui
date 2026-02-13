@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useTranslations } from "next-intl";
 import type { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import type { Base64ContentBlock } from "@langchain/core/messages";
 import { STREAM_OPTIONS } from "@/lib/constants";
@@ -32,6 +33,7 @@ interface UseMessageSubmitOptions {
 }
 
 export function useMessageSubmit(options: UseMessageSubmitOptions) {
+  const t = useTranslations("chat");
   const {
     stream,
     isAssistantSelected,
@@ -68,7 +70,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     (e: FormEvent) => {
       e.preventDefault();
       if (!isAssistantSelected) {
-        toast.error("그래프를 먼저 선택해주세요.");
+        toast.error(t("selectGraph"));
         return;
       }
       if (
@@ -116,6 +118,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       setContentBlocks([]);
     },
     [
+      t,
       isAssistantSelected,
       input,
       contentBlocks,
@@ -171,7 +174,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
 
   const handleFormSubmit = useCallback(() => {
     if (!isAssistantSelected) {
-      toast.error("그래프를 먼저 선택해주세요.");
+      toast.error(t("selectGraph"));
       return;
     }
 
@@ -189,7 +192,14 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     setFirstTokenReceived(false);
     stream.submit(payload, STREAM_OPTIONS);
     resetForm();
-  }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
+  }, [
+    t,
+    isAssistantSelected,
+    getSubmitPayload,
+    parsedSchema,
+    stream,
+    resetForm,
+  ]);
 
   return {
     handleSubmit,

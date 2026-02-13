@@ -17,6 +17,7 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { useQueryState } from "nuqs";
+import { useTranslations } from "next-intl";
 import { useThreads } from "@/shared/hooks/useThreads";
 import { toast } from "sonner";
 import { AssistantConfigProvider } from "./AssistantConfig";
@@ -123,6 +124,7 @@ const StreamSession = ({
   enableGraphSelection?: boolean;
   defaultGraphId?: string;
 }) => {
+  const t = useTranslations("chat");
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads } = useThreads();
 
@@ -448,20 +450,15 @@ const StreamSession = ({
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
       if (!ok) {
-        toast.error("Failed to connect to LangGraph server", {
-          description: () => (
-            <p>
-              Please ensure your graph is running at <code>{apiUrl}</code> and
-              your API key is correctly set (if connecting to a deployed graph).
-            </p>
-          ),
+        toast.error(t("serverError"), {
+          description: () => <p>{t("serverErrorDescription", { apiUrl })}</p>,
           duration: 10000,
           richColors: true,
           closeButton: true,
         });
       }
     });
-  }, [apiKey, apiUrl]);
+  }, [apiKey, apiUrl, t]);
 
   return (
     <StreamContext.Provider value={extendedStreamValue}>

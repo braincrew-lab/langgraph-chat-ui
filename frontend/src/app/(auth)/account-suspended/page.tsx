@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Ban, LogOut, Mail } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
@@ -26,6 +27,8 @@ const itemVariants = {
 
 export default function AccountSuspendedPage() {
   const { data: session } = useSession();
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -52,9 +55,11 @@ export default function AccountSuspendedPage() {
           <Ban className="text-destructive h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">계정 정지됨</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("suspended.title")}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            계정이 관리자에 의해 정지되었습니다
+            {t("suspended.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -64,13 +69,10 @@ export default function AccountSuspendedPage() {
         variants={itemVariants}
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
-        <p>
-          계정이 정지되어 서비스를 이용할 수 없습니다. 문의사항이 있으시면
-          관리자에게 연락해 주세요.
-        </p>
+        <p>{t("suspended.description")}</p>
         {session?.user?.email && (
           <p className="mt-4">
-            계정:{" "}
+            {t("suspended.account")}{" "}
             <span className="text-foreground font-medium">
               {session.user.email}
             </span>
@@ -89,7 +91,7 @@ export default function AccountSuspendedPage() {
           className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <Mail className="mr-2 h-4 w-4" />
-          문의하기
+          {t("suspended.contact")}
         </Button>
         <Button
           onClick={handleSignOut}
@@ -97,7 +99,7 @@ export default function AccountSuspendedPage() {
           className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          로그아웃
+          {tc("logout")}
         </Button>
       </motion.div>
     </motion.div>

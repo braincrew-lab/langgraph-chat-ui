@@ -4,6 +4,7 @@ import { useState, KeyboardEvent } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { useTranslations } from "next-intl";
 
 interface StringArrayInputProps {
   value: string[];
@@ -15,10 +16,12 @@ interface StringArrayInputProps {
 export function StringArrayInput({
   value,
   onChange,
-  placeholder = "항목 추가...",
+  placeholder,
   maxItems = 20,
 }: StringArrayInputProps) {
+  const t = useTranslations("admin");
   const [inputValue, setInputValue] = useState("");
+  const resolvedPlaceholder = placeholder || t("stringArray.addPlaceholder");
 
   const handleAdd = () => {
     const trimmed = inputValue.trim();
@@ -81,7 +84,7 @@ export function StringArrayInput({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             className="flex-1"
           />
           <Button
@@ -99,7 +102,7 @@ export function StringArrayInput({
 
       {/* Item count */}
       <p className="text-muted-foreground text-xs">
-        {value.length} / {maxItems} 항목
+        {t("stringArray.itemCount", { count: value.length, max: maxItems })}
       </p>
     </div>
   );

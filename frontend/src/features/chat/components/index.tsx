@@ -7,6 +7,7 @@ import {
   useState,
   FormEvent,
 } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ import { MessageList } from "./MessageList";
 
 export function Thread() {
   const { config, userSettings, updateUserSettings } = useSettings();
+  const t = useTranslations("chat");
   const router = useRouter();
 
   const [threadId, setThreadId] = useQueryState("threadId");
@@ -216,13 +218,13 @@ export function Thread() {
 
       // Update cookie via server action and do full page reload
       await updateAssistantIdAction(trimmedValue);
-      toast.success("그래프가 변경되었습니다.", {
-        description: `선택한 assistant ID: ${value}`,
+      toast.success(t("graphChanged"), {
+        description: t("graphChangedDescription", { assistantId: value }),
       });
       // Full page reload to ensure cookie is properly read
       window.location.reload();
     },
-    [currentAssistantId, router, setThreadId, setContentBlocks],
+    [currentAssistantId, router, setThreadId, setContentBlocks, t],
   );
 
   useEffect(() => {
@@ -271,7 +273,7 @@ export function Thread() {
     (e: FormEvent) => {
       e.preventDefault();
       if (!isAssistantSelected) {
-        toast.error("그래프를 먼저 선택해주세요.");
+        toast.error(t("selectGraph"));
         return;
       }
       if (
@@ -324,6 +326,7 @@ export function Thread() {
       stream,
       setContentBlocks,
       getSubmitPayload,
+      t,
     ],
   );
 
@@ -343,7 +346,7 @@ export function Thread() {
   // Form mode submission handler
   const handleFormSubmit = useCallback(() => {
     if (!isAssistantSelected) {
-      toast.error("그래프를 먼저 선택해주세요.");
+      toast.error(t("selectGraph"));
       return;
     }
 
@@ -362,7 +365,14 @@ export function Thread() {
     setFirstTokenReceived(false);
     stream.submit(payload, STREAM_OPTIONS);
     resetForm();
-  }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
+  }, [
+    isAssistantSelected,
+    getSubmitPayload,
+    parsedSchema,
+    stream,
+    resetForm,
+    t,
+  ]);
 
   const chatStarted =
     !!threadId || !!messages.length || formSubmissions.length > 0;
@@ -516,7 +526,7 @@ export function Thread() {
                             className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
                           >
                             <BookOpen className="h-4 w-4" />
-                            <span>자세한 설명 보기</span>
+                            <span>{t("viewFullDescription")}</span>
                           </button>
                         )}
                       </div>

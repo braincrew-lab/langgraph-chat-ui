@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, Loader2, XCircle, Wrench, Bot, Cog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -301,6 +302,7 @@ export function ExecutionTimelinePanel({
   selectedTaskId,
   onSelectTask,
 }: ExecutionTimelinePanelProps) {
+  const t = useTranslations("chat");
   const timelineEvents = useMemo(() => {
     return buildTimeline(langSmithEvents);
   }, [langSmithEvents]);
@@ -399,7 +401,7 @@ export function ExecutionTimelinePanel({
   if (timelineEvents.length === 0) {
     return (
       <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
-        실행 로그가 없습니다
+        {t("timeline.noLogs")}
       </div>
     );
   }

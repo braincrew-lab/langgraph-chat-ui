@@ -1,5 +1,6 @@
 import { Edit2, Trash2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ interface ThreadItemMenuProps {
 }
 
 export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
+  const t = useTranslations("history");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -44,7 +46,7 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
             }}
           >
             <Edit2 className="h-4 w-4" />
-            {UI_TEXT.rename}
+            {t(UI_TEXT.rename)}
           </DropdownMenuItem>
           {onDelete && (
             <DropdownMenuItem
@@ -56,7 +58,7 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
               className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="h-4 w-4" />
-              {UI_TEXT.delete}
+              {t(UI_TEXT.delete)}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

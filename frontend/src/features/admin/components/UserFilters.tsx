@@ -11,12 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { useTranslations } from "next-intl";
 
 export function UserFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
+  const t = useTranslations("admin");
 
   const currentStatus = searchParams.get("status") || "all";
   const currentRole = searchParams.get("role") || "all";
@@ -65,7 +67,7 @@ export function UserFilters() {
       <div className="relative flex-1">
         <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
         <Input
-          placeholder="이름 또는 이메일 검색..."
+          placeholder={t("filters.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
@@ -77,13 +79,13 @@ export function UserFilters() {
         onValueChange={(value) => updateParams({ status: value })}
       >
         <SelectTrigger className="w-full sm:w-[140px]">
-          <SelectValue placeholder="상태" />
+          <SelectValue placeholder={t("filters.allStatus")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">전체 상태</SelectItem>
-          <SelectItem value="active">활성</SelectItem>
-          <SelectItem value="pending">대기중</SelectItem>
-          <SelectItem value="suspended">정지됨</SelectItem>
+          <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+          <SelectItem value="active">{t("filters.active")}</SelectItem>
+          <SelectItem value="pending">{t("filters.pending")}</SelectItem>
+          <SelectItem value="suspended">{t("filters.suspended")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -92,13 +94,13 @@ export function UserFilters() {
         onValueChange={(value) => updateParams({ role: value })}
       >
         <SelectTrigger className="w-full sm:w-[140px]">
-          <SelectValue placeholder="권한" />
+          <SelectValue placeholder={t("filters.allRoles")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">전체 권한</SelectItem>
-          <SelectItem value="user">일반회원</SelectItem>
-          <SelectItem value="admin">관리자</SelectItem>
-          <SelectItem value="super_admin">최고관리자</SelectItem>
+          <SelectItem value="all">{t("filters.allRoles")}</SelectItem>
+          <SelectItem value="user">{t("filters.user")}</SelectItem>
+          <SelectItem value="admin">{t("filters.admin")}</SelectItem>
+          <SelectItem value="super_admin">{t("filters.superAdmin")}</SelectItem>
         </SelectContent>
       </Select>
     </div>
