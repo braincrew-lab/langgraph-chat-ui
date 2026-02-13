@@ -727,5 +727,5 @@ async def verify_token_with_cache(provider: str, token: str) -> dict:
 
 ## 다음 단계
 
-- 완전한 자체 인증 시스템 구축: [03-AUTH-STANDALONE.md](./03-AUTH-STANDALONE.md)
-- 개요로 돌아가기: [00-AUTH-ARCHITECTURE-OVERVIEW.md](./00-AUTH-ARCHITECTURE-OVERVIEW.md)
+- 완전한 자체 인증 시스템 구축: [05-STANDALONE.md](./05-STANDALONE.md)
+- 개요로 돌아가기: [00-OVERVIEW.md](./00-OVERVIEW.md)

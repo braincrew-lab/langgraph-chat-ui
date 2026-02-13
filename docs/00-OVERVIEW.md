@@ -11,7 +11,6 @@ LangGraph 백엔드와 프론트엔드 연동 시 인증 설정 방법을 안내
 | [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)                 | NextAuth + Email (Magic Link)        |
 | [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)                     | OAuth 토큰 직접 검증 (NextAuth 없이) |
 | [05-STANDALONE.md](./05-STANDALONE.md)                         | 백엔드 자체 인증 시스템 연동         |
-| [06-FRONTEND-COMPATIBILITY.md](./06-FRONTEND-COMPATIBILITY.md) | 프론트엔드 호환성 분석               |
 
 ---
 

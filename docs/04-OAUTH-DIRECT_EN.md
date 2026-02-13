@@ -727,5 +727,5 @@ async def verify_token_with_cache(provider: str, token: str) -> dict:
 
 ## Next Steps
 
-- Build a complete standalone auth system: [03-AUTH-STANDALONE.md](./03-AUTH-STANDALONE.md)
-- Return to overview: [00-AUTH-ARCHITECTURE-OVERVIEW.md](./00-AUTH-ARCHITECTURE-OVERVIEW.md)
+- Build a complete standalone auth system: [05-STANDALONE_EN.md](./05-STANDALONE_EN.md)
+- Return to overview: [00-OVERVIEW_EN.md](./00-OVERVIEW_EN.md)

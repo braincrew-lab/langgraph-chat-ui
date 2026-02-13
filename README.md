@@ -14,7 +14,7 @@
 
 [English](./README_EN.md) | 한국어
 
-[데모](https://agentchat.vercel.app) · [문서](docs/) · [예제](examples/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
+[문서](docs/) · [예제](examples/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
 
 </div>
 
@@ -297,7 +297,7 @@ Next.js에서 DB 기반 사용자 인증을 처리하고, LangGraph 서버는 JW
 
 ### LangGraph 서버 인증 연동
 
-LangGraph Platform에 JWT 기반 인증을 연동하는 방법은 [LangGraph 인증 시스템 가이드](docs/LANGGRAPH_AUTH_GUIDE.md)를 참고하세요.
+LangGraph Platform에 JWT 기반 인증을 연동하는 방법은 [인증 가이드 개요](docs/00-OVERVIEW.md)를 참고하세요.
 
 ---
 
@@ -400,7 +400,6 @@ docker run -p 3000:3000 \
 | 문서 | 설명 |
 |---|---|
 | [인증 가이드 개요](docs/00-OVERVIEW.md) | 인증 방식 비교 및 선택 가이드 |
-| [LangGraph 인증 시스템 가이드](docs/LANGGRAPH_AUTH_GUIDE.md) | JWT 검증, Supabase 연동, 리소스 접근 제어 |
 | [LangGraph 서버 배포 가이드](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose 설정 |
 | [예제 모음](examples/) | 인증 모드별 서버/프론트엔드 설정 예제 |
 
