@@ -56,7 +56,9 @@ export function FileField({
         {value ? (
           <span className="truncate">{value}</span>
         ) : (
-          <span className="text-muted-foreground">{t("form.selectFile")}...</span>
+          <span className="text-muted-foreground">
+            {t("form.selectFile")}...
+          </span>
         )}
       </Button>
       {value && (

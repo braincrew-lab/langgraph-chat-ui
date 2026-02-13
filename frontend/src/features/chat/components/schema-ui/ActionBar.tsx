@@ -83,7 +83,9 @@ export function ActionBar({
               </button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{compactView ? t("form.normalView") : t("form.compactView")}</p>
+              <p>
+                {compactView ? t("form.normalView") : t("form.compactView")}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

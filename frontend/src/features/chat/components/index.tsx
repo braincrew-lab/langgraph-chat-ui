@@ -365,7 +365,14 @@ export function Thread() {
     setFirstTokenReceived(false);
     stream.submit(payload, STREAM_OPTIONS);
     resetForm();
-  }, [isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm, t]);
+  }, [
+    isAssistantSelected,
+    getSubmitPayload,
+    parsedSchema,
+    stream,
+    resetForm,
+    t,
+  ]);
 
   const chatStarted =
     !!threadId || !!messages.length || formSubmissions.length > 0;

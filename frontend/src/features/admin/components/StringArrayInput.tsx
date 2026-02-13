@@ -19,9 +19,9 @@ export function StringArrayInput({
   placeholder,
   maxItems = 20,
 }: StringArrayInputProps) {
-  const t = useTranslations('admin');
+  const t = useTranslations("admin");
   const [inputValue, setInputValue] = useState("");
-  const resolvedPlaceholder = placeholder || t('stringArray.addPlaceholder');
+  const resolvedPlaceholder = placeholder || t("stringArray.addPlaceholder");
 
   const handleAdd = () => {
     const trimmed = inputValue.trim();
@@ -102,7 +102,7 @@ export function StringArrayInput({
 
       {/* Item count */}
       <p className="text-muted-foreground text-xs">
-        {t('stringArray.itemCount', { count: value.length, max: maxItems })}
+        {t("stringArray.itemCount", { count: value.length, max: maxItems })}
       </p>
     </div>
   );

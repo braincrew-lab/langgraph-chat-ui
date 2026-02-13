@@ -26,7 +26,7 @@ interface UsersPageProps {
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const session = await auth();
-  const t = await getTranslations('admin');
+  const t = await getTranslations("admin");
   const params = await searchParams;
 
   const parsedPage = Number.parseInt(params.page || "1", 10);
@@ -48,30 +48,42 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={t('users.eyebrow')}
-        title={t('users.title')}
-        description={t('users.description', { total: result.total })}
+        eyebrow={t("users.eyebrow")}
+        title={t("users.title")}
+        description={t("users.description", { total: result.total })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{t('users.totalBadge', { total: result.total })}</Badge>
+          <Badge variant="outline">
+            {t("users.totalBadge", { total: result.total })}
+          </Badge>
           {status !== "all" && (
-            <Badge variant="secondary">{t('users.statusBadge', { status })}</Badge>
+            <Badge variant="secondary">
+              {t("users.statusBadge", { status })}
+            </Badge>
           )}
-          {role !== "all" && <Badge variant="secondary">{t('users.roleBadge', { role })}</Badge>}
-          {search && <Badge variant="secondary">{t('users.searchBadge', { search })}</Badge>}
+          {role !== "all" && (
+            <Badge variant="secondary">{t("users.roleBadge", { role })}</Badge>
+          )}
+          {search && (
+            <Badge variant="secondary">
+              {t("users.searchBadge", { search })}
+            </Badge>
+          )}
         </div>
       </AdminPageHeader>
 
       <Card className="border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>{t('users.listTitle')}</CardTitle>
-          <CardDescription>{t('users.listDescription', { total: result.total })}</CardDescription>
+          <CardTitle>{t("users.listTitle")}</CardTitle>
+          <CardDescription>
+            {t("users.listDescription", { total: result.total })}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <UserFilters />
           {result.users.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">
-              {t('users.noUsers')}
+              {t("users.noUsers")}
             </p>
           ) : (
             <UserTable

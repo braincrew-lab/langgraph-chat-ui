@@ -44,8 +44,8 @@ function CredentialsLoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const registered = searchParams.get("registered") === "true";
   const { allowRegistration, branding } = useAuthContext();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,13 +74,13 @@ function CredentialsLoginForm() {
       });
 
       if (result?.error) {
-        setError(t('login.invalidCredentials'));
+        setError(t("login.invalidCredentials"));
       } else {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch {
-      setError(t('login.genericError'));
+      setError(t("login.genericError"));
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +102,7 @@ function CredentialsLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} ${tc('logo')}`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -112,9 +112,7 @@ function CredentialsLoginForm() {
           <h1 className="text-2xl font-bold tracking-tight">
             {branding.appName}
           </h1>
-          <p className="text-muted-foreground text-sm">
-            {t('login.subtitle')}
-          </p>
+          <p className="text-muted-foreground text-sm">{t("login.subtitle")}</p>
         </div>
       </motion.div>
 
@@ -131,7 +129,7 @@ function CredentialsLoginForm() {
             className="h-4 w-4 flex-shrink-0"
             aria-hidden="true"
           />
-          <span>{t('login.registrationComplete')}</span>
+          <span>{t("login.registrationComplete")}</span>
         </motion.div>
       )}
 
@@ -167,7 +165,7 @@ function CredentialsLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('login.email')}
+            {t("login.email")}
           </label>
           <Input
             ref={emailRef}
@@ -197,14 +195,14 @@ function CredentialsLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('login.password')}
+            {t("login.password")}
           </label>
           <Input
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
-            placeholder={t('login.passwordPlaceholder')}
+            placeholder={t("login.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -225,11 +223,11 @@ function CredentialsLoginForm() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>{t('login.signingIn')}</span>
+                <span>{t("login.signingIn")}</span>
               </>
             ) : (
               <>
-                <span>{t('login.signIn')}</span>
+                <span>{t("login.signIn")}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -250,7 +248,9 @@ function CredentialsLoginForm() {
               <span className="border-border w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card text-muted-foreground px-3">{tc('or')}</span>
+              <span className="bg-card text-muted-foreground px-3">
+                {tc("or")}
+              </span>
             </div>
           </motion.div>
 
@@ -258,12 +258,14 @@ function CredentialsLoginForm() {
             variants={itemVariants}
             className="text-center text-sm"
           >
-            <span className="text-muted-foreground">{t('login.noAccount')} </span>
+            <span className="text-muted-foreground">
+              {t("login.noAccount")}{" "}
+            </span>
             <Link
               href="/register"
               className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              {t('login.signUp')}
+              {t("login.signUp")}
             </Link>
           </motion.div>
         </>

@@ -43,14 +43,14 @@ export function SettingsForm({
   serverDefaults,
 }: SettingsFormProps) {
   const router = useRouter();
-  const t = useTranslations('admin');
+  const t = useTranslations("admin");
   const [isPending, startTransition] = useTransition();
 
   const CATEGORY_LABELS: Record<SettingCategory, string> = {
-    auth: t('settings.categoryAuth'),
-    ui: t('settings.categoryUi'),
-    features: t('settings.categoryFeatures'),
-    branding: t('settings.categoryBranding'),
+    auth: t("settings.categoryAuth"),
+    ui: t("settings.categoryUi"),
+    features: t("settings.categoryFeatures"),
+    branding: t("settings.categoryBranding"),
   };
   const [settings, setSettings] = useState<GlobalSettings>(initialSettings);
   const [saved, setSaved] = useState(false);
@@ -96,7 +96,9 @@ export function SettingsForm({
         return (
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor={definition.key}>{t(`settings.labels.${definition.key}`)}</Label>
+              <Label htmlFor={definition.key}>
+                {t(`settings.labels.${definition.key}`)}
+              </Label>
               <p className="text-muted-foreground text-sm">
                 {t(`settings.descriptions.${definition.key}`)}
               </p>
@@ -117,7 +119,9 @@ export function SettingsForm({
       case "select":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{t(`settings.labels.${definition.key}`)}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <Select
               value={value as string}
               onValueChange={(val) =>
@@ -150,7 +154,9 @@ export function SettingsForm({
       case "url":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{t(`settings.labels.${definition.key}`)}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <ImagePreview
               value={value as string}
               onChange={(val) =>
@@ -171,7 +177,9 @@ export function SettingsForm({
       case "array":
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{t(`settings.labels.${definition.key}`)}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <StringArrayInput
               value={value as string[]}
               onChange={(val) =>
@@ -191,7 +199,9 @@ export function SettingsForm({
       default:
         return (
           <div className="space-y-2">
-            <Label htmlFor={definition.key}>{t(`settings.labels.${definition.key}`)}</Label>
+            <Label htmlFor={definition.key}>
+              {t(`settings.labels.${definition.key}`)}
+            </Label>
             <Input
               id={definition.key}
               type="text"
@@ -235,7 +245,9 @@ export function SettingsForm({
                   {CATEGORY_LABELS[category]}
                 </CardTitle>
                 <CardDescription>
-                  {t('settings.categoryDescription', { category: CATEGORY_LABELS[category] })}
+                  {t("settings.categoryDescription", {
+                    category: CATEGORY_LABELS[category],
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -258,7 +270,9 @@ export function SettingsForm({
                   {CATEGORY_LABELS[category]}
                 </CardTitle>
                 <CardDescription>
-                  {t('settings.categoryDescription', { category: CATEGORY_LABELS[category] })}
+                  {t("settings.categoryDescription", {
+                    category: CATEGORY_LABELS[category],
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -278,14 +292,18 @@ export function SettingsForm({
           disabled={isPending}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          {t('settings.resetToDefaults')}
+          {t("settings.resetToDefaults")}
         </Button>
         <Button
           onClick={handleSave}
           disabled={isPending}
         >
           <Save className="mr-2 h-4 w-4" />
-          {isPending ? t('settings.saving') : saved ? t('settings.saved') : t('settings.saveChanges')}
+          {isPending
+            ? t("settings.saving")
+            : saved
+              ? t("settings.saved")
+              : t("settings.saveChanges")}
         </Button>
       </div>
     </div>

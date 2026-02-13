@@ -7,7 +7,12 @@ import {
   canAccessAdmin,
 } from "@/lib/auth/mode";
 import type { UserRole, UserStatus } from "@/types/auth-mode";
-import { LOCALE_COOKIE_NAME, defaultLocale, locales, type Locale } from "@/i18n/config";
+import {
+  LOCALE_COOKIE_NAME,
+  defaultLocale,
+  locales,
+  type Locale,
+} from "@/i18n/config";
 
 /**
  * Check if request has a Bearer token in the Authorization header.
@@ -20,7 +25,10 @@ function hasBearerToken(request: NextRequest): boolean {
 /**
  * Set locale cookie on response if not already present in request.
  */
-function withLocaleCookie(req: NextRequest, response: NextResponse): NextResponse {
+function withLocaleCookie(
+  req: NextRequest,
+  response: NextResponse,
+): NextResponse {
   if (!req.cookies.get(LOCALE_COOKIE_NAME)?.value) {
     const acceptLang = req.headers.get("accept-language") ?? "";
     const detected = acceptLang

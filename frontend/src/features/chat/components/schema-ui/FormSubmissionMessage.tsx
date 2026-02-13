@@ -225,22 +225,30 @@ function FieldDisplay({
 
 // Format value for display (used in collapsed summary)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatValue(value: unknown, field?: SchemaFieldConfig, t?: any): string {
+function formatValue(
+  value: unknown,
+  field?: SchemaFieldConfig,
+  t?: any,
+): string {
   if (value === null || value === undefined) {
     return "-";
   }
   if (typeof value === "boolean") {
-    return value ? (t ? t("form.yes") : "Yes") : (t ? t("form.no") : "No");
+    return value ? (t ? t("form.yes") : "Yes") : t ? t("form.no") : "No";
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return "-";
     // For file fields, show count
     if (field && isFileField(field)) {
-      return t ? t("form.fileCount", { count: value.length }) : `${value.length} files`;
+      return t
+        ? t("form.fileCount", { count: value.length })
+        : `${value.length} files`;
     }
     // For string arrays, show count if more than 2 items
     if (value.length > 2 && value.every((v) => typeof v === "string")) {
-      return t ? t("form.itemCount", { count: value.length }) : `${value.length} items`;
+      return t
+        ? t("form.itemCount", { count: value.length })
+        : `${value.length} items`;
     }
     return value.join(", ");
   }

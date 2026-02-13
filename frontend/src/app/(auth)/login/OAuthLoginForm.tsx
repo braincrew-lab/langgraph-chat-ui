@@ -82,8 +82,8 @@ export function OAuthLoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { oauthProviders, branding } = useAuthContext();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +95,7 @@ export function OAuthLoginForm() {
     try {
       await signIn(provider, { callbackUrl });
     } catch {
-      setError(t('oauthLogin.error'));
+      setError(t("oauthLogin.error"));
       setLoadingProvider(null);
     }
   };
@@ -115,7 +115,7 @@ export function OAuthLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} ${tc('logo')}`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -131,9 +131,9 @@ export function OAuthLoginForm() {
           variants={itemVariants}
           className="bg-muted/60 border-border text-foreground rounded-xl border p-4 text-center text-sm"
         >
-          {t('oauthLogin.noProviders')}
+          {t("oauthLogin.noProviders")}
           <br />
-          {t('oauthLogin.contactAdmin')}
+          {t("oauthLogin.contactAdmin")}
         </motion.div>
       </motion.div>
     );
@@ -155,7 +155,7 @@ export function OAuthLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} ${tc('logo')}`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -166,7 +166,7 @@ export function OAuthLoginForm() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {t('oauthLogin.subtitle')}
+            {t("oauthLogin.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -210,7 +210,7 @@ export function OAuthLoginForm() {
                 ) : (
                   <Icon className="mr-3 h-5 w-5" />
                 )}
-                {t('oauthLogin.continueWith', { provider: config.name })}
+                {t("oauthLogin.continueWith", { provider: config.name })}
               </Button>
             </motion.div>
           );

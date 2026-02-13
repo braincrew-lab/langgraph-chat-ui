@@ -23,8 +23,8 @@ export function Pagination({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const t = useTranslations('admin');
-  const tc = useTranslations('common');
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
 
   if (totalPages <= 1) return null;
 
@@ -47,7 +47,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between pt-4">
       <p className="text-muted-foreground text-sm">
-        {t('pagination.showing', { total, start, end })}
+        {t("pagination.showing", { total, start, end })}
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -57,10 +57,10 @@ export function Pagination({
           disabled={page <= 1 || isPending}
         >
           <ChevronLeft className="h-4 w-4" />
-          {tc('previous')}
+          {tc("previous")}
         </Button>
         <span className="text-muted-foreground text-sm">
-          {t('pagination.pageOf', { page, totalPages })}
+          {t("pagination.pageOf", { page, totalPages })}
         </span>
         <Button
           variant="outline"
@@ -68,7 +68,7 @@ export function Pagination({
           onClick={() => goToPage(page + 1)}
           disabled={page >= totalPages || isPending}
         >
-          {tc('next')}
+          {tc("next")}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

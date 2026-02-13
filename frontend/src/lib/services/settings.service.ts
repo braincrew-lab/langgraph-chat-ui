@@ -298,10 +298,14 @@ export async function resetAllSettings(resetById?: string): Promise<void> {
  * Get locale-aware text defaults from i18n messages.
  * Returns text fields overridden with the current locale's translations.
  */
-export async function getLocalizedTextDefaults(): Promise<Partial<GlobalSettings>> {
+export async function getLocalizedTextDefaults(): Promise<
+  Partial<GlobalSettings>
+> {
   const t = await getTranslations("defaults");
   const chatOpenersStr = t("chatOpeners");
-  const chatOpeners = chatOpenersStr ? chatOpenersStr.split("\n").filter(Boolean) : [];
+  const chatOpeners = chatOpenersStr
+    ? chatOpenersStr.split("\n").filter(Boolean)
+    : [];
 
   return {
     "ui.welcomeMessage": t("welcomeMessage"),

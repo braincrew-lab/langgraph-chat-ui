@@ -45,8 +45,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const { allowRegistration, branding } = useAuthContext();
   const [isPending, startTransition] = useTransition();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -72,11 +72,11 @@ export default function RegisterPage() {
     const errors: Record<string, string> = {};
 
     if (password.length < 8) {
-      errors.password = t('register.passwordMinLength');
+      errors.password = t("register.passwordMinLength");
     }
 
     if (password !== confirmPassword) {
-      errors.confirmPassword = t('register.passwordMismatch');
+      errors.confirmPassword = t("register.passwordMismatch");
     }
 
     setFieldErrors(errors);
@@ -97,9 +97,9 @@ export default function RegisterPage() {
 
       if (!result.success) {
         if (result.error.includes("already exists")) {
-          setError(t('register.emailExists'));
+          setError(t("register.emailExists"));
         } else {
-          setError(result.error || t('register.genericError'));
+          setError(result.error || t("register.genericError"));
         }
         return;
       }
@@ -128,7 +128,7 @@ export default function RegisterPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={branding.logoPath}
-              alt={`${branding.appName} ${tc('logo')}`}
+              alt={`${branding.appName} ${tc("logo")}`}
               width={branding.logoWidth * 2}
               height={branding.logoHeight * 2}
               className="flex-shrink-0"
@@ -147,13 +147,11 @@ export default function RegisterPage() {
         >
           <Ban className="text-muted-foreground h-12 w-12" />
           <div className="space-y-2 text-center">
-            <h2 className="text-lg font-semibold">
-              {t('register.disabled')}
-            </h2>
+            <h2 className="text-lg font-semibold">{t("register.disabled")}</h2>
             <p className="text-muted-foreground text-sm">
-              {t('register.disabledDescription')}
+              {t("register.disabledDescription")}
               <br />
-              {t('oauthLogin.contactAdmin')}
+              {t("oauthLogin.contactAdmin")}
             </p>
           </div>
         </motion.div>
@@ -163,13 +161,13 @@ export default function RegisterPage() {
           className="text-center text-sm"
         >
           <span className="text-muted-foreground">
-            {t('register.hasAccount')}{" "}
+            {t("register.hasAccount")}{" "}
           </span>
           <Link
             href="/login"
             className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            {t('login.signIn')}
+            {t("login.signIn")}
           </Link>
         </motion.div>
       </motion.div>
@@ -205,12 +203,14 @@ export default function RegisterPage() {
           </motion.div>
           <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              {isPendingApproval ? t('register.requestComplete') : t('register.complete')}
+              {isPendingApproval
+                ? t("register.requestComplete")
+                : t("register.complete")}
             </h1>
             <p className="text-muted-foreground text-sm">
               {isPendingApproval
-                ? t('register.pendingApprovalSubtitle')
-                : t('register.readySubtitle')}
+                ? t("register.pendingApprovalSubtitle")
+                : t("register.readySubtitle")}
             </p>
           </div>
         </motion.div>
@@ -221,15 +221,15 @@ export default function RegisterPage() {
         >
           {isPendingApproval ? (
             <p className="whitespace-pre-line">
-              {t('register.pendingDescription')}
+              {t("register.pendingDescription")}
             </p>
           ) : (
             <p className="whitespace-pre-line">
-              {t('register.completeDescription')}
+              {t("register.completeDescription")}
             </p>
           )}
           <p className="mt-4">
-            {t('register.registeredEmail')}{" "}
+            {t("register.registeredEmail")}{" "}
             <span className="text-foreground font-medium">
               {registeredEmail}
             </span>
@@ -243,14 +243,14 @@ export default function RegisterPage() {
               className="h-11 w-full rounded-xl font-medium transition-colors"
               onClick={() => router.push("/login")}
             >
-              {t('register.goToLogin')}
+              {t("register.goToLogin")}
             </Button>
           ) : (
             <Button
               className="h-11 w-full rounded-xl font-medium transition-colors"
               onClick={() => router.push("/login")}
             >
-              {t('register.signInNow')}
+              {t("register.signInNow")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}
@@ -275,7 +275,7 @@ export default function RegisterPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} ${tc('logo')}`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -286,7 +286,7 @@ export default function RegisterPage() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {t('register.subtitle')}
+            {t("register.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -323,15 +323,17 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('register.name')}{" "}
-            <span className="text-muted-foreground font-normal">{t('register.optional')}</span>
+            {t("register.name")}{" "}
+            <span className="text-muted-foreground font-normal">
+              {t("register.optional")}
+            </span>
           </label>
           <Input
             id="name"
             name="name"
             type="text"
             autoComplete="name"
-            placeholder={t('register.namePlaceholder')}
+            placeholder={t("register.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={isPending}
@@ -351,7 +353,7 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('login.email')}
+            {t("login.email")}
           </label>
           <Input
             id="email"
@@ -381,14 +383,14 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('login.password')}
+            {t("login.password")}
           </label>
           <Input
             id="password"
             name="new-password"
             type="password"
             autoComplete="new-password"
-            placeholder={t('register.passwordPlaceholder')}
+            placeholder={t("register.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -423,14 +425,14 @@ export default function RegisterPage() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('register.confirmPassword')}
+            {t("register.confirmPassword")}
           </label>
           <Input
             id="confirmPassword"
             name="confirm-password"
             type="password"
             autoComplete="new-password"
-            placeholder={t('register.confirmPasswordPlaceholder')}
+            placeholder={t("register.confirmPasswordPlaceholder")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -465,11 +467,11 @@ export default function RegisterPage() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>{t('register.signingUp')}</span>
+                <span>{t("register.signingUp")}</span>
               </>
             ) : (
               <>
-                <span>{t('register.signUp')}</span>
+                <span>{t("register.signUp")}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -488,7 +490,7 @@ export default function RegisterPage() {
           <span className="border-border w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-card text-muted-foreground px-3">{tc('or')}</span>
+          <span className="bg-card text-muted-foreground px-3">{tc("or")}</span>
         </div>
       </motion.div>
 
@@ -496,12 +498,14 @@ export default function RegisterPage() {
         variants={itemVariants}
         className="text-center text-sm"
       >
-        <span className="text-muted-foreground">{t('register.hasAccount')} </span>
+        <span className="text-muted-foreground">
+          {t("register.hasAccount")}{" "}
+        </span>
         <Link
           href="/login"
           className="text-primary hover:text-primary/80 focus-visible:ring-primary rounded-sm font-medium transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          {t('login.signIn')}
+          {t("login.signIn")}
         </Link>
       </motion.div>
     </motion.div>

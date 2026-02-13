@@ -30,8 +30,8 @@ const itemVariants = {
 export default function PendingApprovalPage() {
   const { data: session, update } = useSession();
   const router = useRouter();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   // Redirect if user is approved
   useEffect(() => {
@@ -72,9 +72,11 @@ export default function PendingApprovalPage() {
           <Clock className="text-primary h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">{t('pending.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("pending.title")}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            {t('pending.subtitle')}
+            {t("pending.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -84,12 +86,10 @@ export default function PendingApprovalPage() {
         variants={itemVariants}
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
-        <p>
-          {t('pending.description')}
-        </p>
+        <p>{t("pending.description")}</p>
         {session?.user?.email && (
           <p className="mt-4">
-            {t('pending.registeredEmail')}{" "}
+            {t("pending.registeredEmail")}{" "}
             <span className="text-foreground font-medium">
               {session.user.email}
             </span>
@@ -108,7 +108,7 @@ export default function PendingApprovalPage() {
           className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
-          {t('pending.checkStatus')}
+          {t("pending.checkStatus")}
         </Button>
         <Button
           onClick={handleSignOut}
@@ -116,7 +116,7 @@ export default function PendingApprovalPage() {
           className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          {tc('logout')}
+          {tc("logout")}
         </Button>
       </motion.div>
     </motion.div>

@@ -451,11 +451,7 @@ const StreamSession = ({
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
       if (!ok) {
         toast.error(t("serverError"), {
-          description: () => (
-            <p>
-              {t("serverErrorDescription", { apiUrl })}
-            </p>
-          ),
+          description: () => <p>{t("serverErrorDescription", { apiUrl })}</p>,
           duration: 10000,
           richColors: true,
           closeButton: true,

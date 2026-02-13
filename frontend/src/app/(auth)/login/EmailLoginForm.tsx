@@ -33,8 +33,8 @@ export function EmailLoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { branding } = useAuthContext();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -63,12 +63,12 @@ export function EmailLoginForm() {
       });
 
       if (result?.error) {
-        setError(t('emailLogin.sendError'));
+        setError(t("emailLogin.sendError"));
       } else {
         setEmailSent(true);
       }
     } catch {
-      setError(t('login.genericError'));
+      setError(t("login.genericError"));
     } finally {
       setIsLoading(false);
     }
@@ -97,10 +97,10 @@ export function EmailLoginForm() {
           </motion.div>
           <div className="space-y-1 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              {t('emailLogin.checkEmail')}
+              {t("emailLogin.checkEmail")}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {t('emailLogin.linkSent')}
+              {t("emailLogin.linkSent")}
             </p>
           </div>
         </motion.div>
@@ -112,9 +112,9 @@ export function EmailLoginForm() {
           <p>
             <span className="text-foreground font-medium">{email}</span>
             <br />
-            {t('emailLogin.linkSentTo')}
+            {t("emailLogin.linkSentTo")}
           </p>
-          <p className="mt-4">{t('emailLogin.clickLink')}</p>
+          <p className="mt-4">{t("emailLogin.clickLink")}</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -127,7 +127,7 @@ export function EmailLoginForm() {
               setEmail("");
             }}
           >
-            {t('emailLogin.tryDifferentEmail')}
+            {t("emailLogin.tryDifferentEmail")}
           </Button>
         </motion.div>
       </motion.div>
@@ -150,7 +150,7 @@ export function EmailLoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoPath}
-            alt={`${branding.appName} ${tc('logo')}`}
+            alt={`${branding.appName} ${tc("logo")}`}
             width={branding.logoWidth * 2}
             height={branding.logoHeight * 2}
             className="flex-shrink-0"
@@ -161,7 +161,7 @@ export function EmailLoginForm() {
             {branding.appName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {t('emailLogin.subtitle')}
+            {t("emailLogin.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -198,7 +198,7 @@ export function EmailLoginForm() {
               className="text-muted-foreground h-4 w-4"
               aria-hidden="true"
             />
-            {t('login.email')}
+            {t("login.email")}
           </label>
           <Input
             ref={emailRef}
@@ -228,11 +228,11 @@ export function EmailLoginForm() {
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                <span>{t('emailLogin.sending')}</span>
+                <span>{t("emailLogin.sending")}</span>
               </>
             ) : (
               <>
-                <span>{t('emailLogin.getLoginLink')}</span>
+                <span>{t("emailLogin.getLoginLink")}</span>
                 <ArrowRight
                   className="ml-2 h-4 w-4"
                   aria-hidden="true"
@@ -248,9 +248,9 @@ export function EmailLoginForm() {
         className="text-center text-sm"
       >
         <p className="text-muted-foreground">
-          {t('emailLogin.linkWillBeSent')}
+          {t("emailLogin.linkWillBeSent")}
           <br />
-          {t('emailLogin.secureLogin')}
+          {t("emailLogin.secureLogin")}
         </p>
       </motion.div>
     </motion.div>

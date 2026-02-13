@@ -28,7 +28,7 @@ const itemVariants = {
 
 export default function VerifyRequestPage() {
   const { branding } = useAuthContext();
-  const t = useTranslations('auth');
+  const t = useTranslations("auth");
 
   return (
     <motion.div
@@ -51,10 +51,10 @@ export default function VerifyRequestPage() {
         </motion.div>
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
-            {t('verify.title')}
+            {t("verify.title")}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {t('verify.subtitle', { appName: branding.appName })}
+            {t("verify.subtitle", { appName: branding.appName })}
           </p>
         </div>
       </motion.div>
@@ -63,12 +63,8 @@ export default function VerifyRequestPage() {
         variants={itemVariants}
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
-        <p className="whitespace-pre-line">
-          {t('verify.clickLink')}
-        </p>
-        <p className="mt-4 whitespace-pre-line">
-          {t('verify.checkSpam')}
-        </p>
+        <p className="whitespace-pre-line">{t("verify.clickLink")}</p>
+        <p className="mt-4 whitespace-pre-line">{t("verify.checkSpam")}</p>
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -77,7 +73,7 @@ export default function VerifyRequestPage() {
             variant="outline"
             className="h-11 w-full rounded-xl font-medium"
           >
-            {t('verify.backToLogin')}
+            {t("verify.backToLogin")}
           </Button>
         </Link>
       </motion.div>

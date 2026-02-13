@@ -32,11 +32,11 @@ export function ImagePreview({
   placeholder,
   defaultValue = "",
 }: ImagePreviewProps) {
-  const t = useTranslations('admin');
+  const t = useTranslations("admin");
   const [error, setError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const resolvedPlaceholder = placeholder || t('imagePreview.placeholder');
+  const resolvedPlaceholder = placeholder || t("imagePreview.placeholder");
 
   const handleChange = (newValue: string) => {
     setError(false);
@@ -75,13 +75,13 @@ export function ImagePreview({
       "image/x-icon",
     ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error(t('imagePreview.unsupportedFormat'));
+      toast.error(t("imagePreview.unsupportedFormat"));
       return;
     }
 
     // Validate file size (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(t('imagePreview.fileTooLarge'));
+      toast.error(t("imagePreview.fileTooLarge"));
       return;
     }
 
@@ -97,16 +97,16 @@ export function ImagePreview({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || t('imagePreview.uploadFailed'));
+        throw new Error(data.error || t("imagePreview.uploadFailed"));
       }
 
       const data = await response.json();
       handleChange(data.url);
-      toast.success(t('imagePreview.uploadSuccess'));
+      toast.success(t("imagePreview.uploadSuccess"));
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(
-        err instanceof Error ? err.message : t('imagePreview.uploadError'),
+        err instanceof Error ? err.message : t("imagePreview.uploadError"),
       );
     } finally {
       setUploading(false);
@@ -163,7 +163,7 @@ export function ImagePreview({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{t('imagePreview.resetToDefault')}</p>
+              <p>{t("imagePreview.resetToDefault")}</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -207,7 +207,7 @@ export function ImagePreview({
                 </div>
               ) : (
                 <div className="text-destructive p-2 text-sm">
-                  {t('imagePreview.cannotLoad')}
+                  {t("imagePreview.cannotLoad")}
                 </div>
               )}
             </TooltipContent>
@@ -217,7 +217,7 @@ export function ImagePreview({
 
       {error && (
         <p className="text-destructive text-xs">
-          {t('imagePreview.cannotLoadCheck')}
+          {t("imagePreview.cannotLoadCheck")}
         </p>
       )}
     </div>

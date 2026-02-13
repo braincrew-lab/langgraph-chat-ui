@@ -78,7 +78,9 @@ export function DesktopSidebar({
                 )}
               >
                 <LayoutDashboard className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">{t("sidebar.dashboard")}</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.dashboard")}
+                </span>
               </Link>
               <Link
                 href="/admin/users"
@@ -90,7 +92,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Users className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">{t("sidebar.userManagement")}</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.userManagement")}
+                </span>
               </Link>
               <Link
                 href="/admin/approvals"
@@ -102,7 +106,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Shield className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">{t("sidebar.approvals")}</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.approvals")}
+                </span>
               </Link>
               <Link
                 href="/admin/settings"
@@ -114,7 +120,9 @@ export function DesktopSidebar({
                 )}
               >
                 <Settings className={ICON_SIZE_SM} />
-                <span className="text-sm font-medium">{t("sidebar.settings")}</span>
+                <span className="text-sm font-medium">
+                  {t("sidebar.settings")}
+                </span>
               </Link>
             </nav>
           </div>

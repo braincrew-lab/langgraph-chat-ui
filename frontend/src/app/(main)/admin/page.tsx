@@ -30,44 +30,44 @@ export default async function AdminDashboardPage() {
     auth(),
     getUserStats(),
     getAllSettings(),
-    getTranslations('admin'),
-    getTranslations('common'),
+    getTranslations("admin"),
+    getTranslations("common"),
   ]);
   const config = getAuthModeConfig();
 
   const statCards = [
     {
-      title: t('dashboard.totalUsers'),
+      title: t("dashboard.totalUsers"),
       value: stats.total,
-      description: t('dashboard.registeredAccounts'),
+      description: t("dashboard.registeredAccounts"),
       icon: Users,
       iconTone: "bg-muted text-foreground",
     },
     {
-      title: t('dashboard.activeUsers'),
+      title: t("dashboard.activeUsers"),
       value: stats.active,
-      description: t('dashboard.normalUsage'),
+      description: t("dashboard.normalUsage"),
       icon: UserCheck,
       iconTone: "bg-primary/15 text-primary",
     },
     {
-      title: t('dashboard.pendingApproval'),
+      title: t("dashboard.pendingApproval"),
       value: stats.pending,
-      description: t('dashboard.reviewRequired'),
+      description: t("dashboard.reviewRequired"),
       icon: Clock,
       iconTone: "bg-muted text-foreground",
     },
     {
-      title: t('dashboard.suspended'),
+      title: t("dashboard.suspended"),
       value: stats.suspended,
-      description: t('dashboard.actionRequired'),
+      description: t("dashboard.actionRequired"),
       icon: UserX,
       iconTone: "bg-destructive/15 text-destructive",
     },
     {
-      title: t('dashboard.admins'),
+      title: t("dashboard.admins"),
       value: stats.admins,
-      description: t('dashboard.adminAccounts'),
+      description: t("dashboard.adminAccounts"),
       icon: Shield,
       iconTone: "bg-muted text-foreground",
     },
@@ -75,14 +75,15 @@ export default async function AdminDashboardPage() {
 
   const activeRatio =
     stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
-  const getToggleLabel = (enabled: boolean) => (enabled ? tc('enabled') : tc('disabled'));
+  const getToggleLabel = (enabled: boolean) =>
+    enabled ? tc("enabled") : tc("disabled");
 
   const getModeLabel = (mode: string) => {
     switch (mode) {
       case "public":
-        return t('dashboard.publicMode');
+        return t("dashboard.publicMode");
       case "authenticated":
-        return t('dashboard.authenticatedMode');
+        return t("dashboard.authenticatedMode");
       default:
         return mode;
     }
@@ -91,9 +92,9 @@ export default async function AdminDashboardPage() {
   const getPolicyLabel = (policy: string) => {
     switch (policy) {
       case "open":
-        return t('dashboard.openRegistration');
+        return t("dashboard.openRegistration");
       case "approval":
-        return t('dashboard.approvalRequired');
+        return t("dashboard.approvalRequired");
       default:
         return policy;
     }
@@ -102,15 +103,23 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={t('dashboard.eyebrow')}
-        title={t('dashboard.title')}
-        description={t('dashboard.description')}
-        trailing={t('dashboard.manager', { name: session?.user?.name || session?.user?.email || '' })}
+        eyebrow={t("dashboard.eyebrow")}
+        title={t("dashboard.title")}
+        description={t("dashboard.description")}
+        trailing={t("dashboard.manager", {
+          name: session?.user?.name || session?.user?.email || "",
+        })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{t('dashboard.activeRatio', { ratio: activeRatio })}</Badge>
-          <Badge variant="secondary">{t('dashboard.pendingCount', { count: stats.pending })}</Badge>
-          <Badge variant="secondary">{t('dashboard.suspendedCount', { count: stats.suspended })}</Badge>
+          <Badge variant="outline">
+            {t("dashboard.activeRatio", { ratio: activeRatio })}
+          </Badge>
+          <Badge variant="secondary">
+            {t("dashboard.pendingCount", { count: stats.pending })}
+          </Badge>
+          <Badge variant="secondary">
+            {t("dashboard.suspendedCount", { count: stats.suspended })}
+          </Badge>
         </div>
       </AdminPageHeader>
 
@@ -143,8 +152,10 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle>{t('dashboard.systemSettings')}</CardTitle>
-                <CardDescription>{t('dashboard.settingsSummary')}</CardDescription>
+                <CardTitle>{t("dashboard.systemSettings")}</CardTitle>
+                <CardDescription>
+                  {t("dashboard.settingsSummary")}
+                </CardDescription>
               </div>
               <Button
                 asChild
@@ -153,7 +164,7 @@ export default async function AdminDashboardPage() {
                 className="h-8 gap-1.5 border-0 px-2 shadow-none"
               >
                 <Link href="/admin/settings">
-                  {t('dashboard.goTo')}
+                  {t("dashboard.goTo")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -163,7 +174,7 @@ export default async function AdminDashboardPage() {
             <dl className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.authMode')}
+                  {t("dashboard.authMode")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getModeLabel(config.mode)}
@@ -171,7 +182,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.allowRegistration')}
+                  {t("dashboard.allowRegistration")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["auth.allowRegistration"])}
@@ -179,7 +190,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.registrationPolicy')}
+                  {t("dashboard.registrationPolicy")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getPolicyLabel(settings["auth.registrationPolicy"])}
@@ -187,7 +198,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.fileUpload')}
+                  {t("dashboard.fileUpload")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableFileUpload"])}
@@ -195,7 +206,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.chatHistory')}
+                  {t("dashboard.chatHistory")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.showHistory"])}
@@ -203,7 +214,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.threadDeletion')}
+                  {t("dashboard.threadDeletion")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableDeletion"])}
@@ -211,7 +222,7 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.advancedInput')}
+                  {t("dashboard.advancedInput")}
                 </dt>
                 <dd className="text-sm font-semibold">
                   {getToggleLabel(settings["features.enableAdvancedInput"])}
@@ -219,24 +230,24 @@ export default async function AdminDashboardPage() {
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.defaultGraphId')}
+                  {t("dashboard.defaultGraphId")}
                 </dt>
                 <dd className="text-sm font-semibold">
-                  {settings["features.defaultGraphId"] || tc('notSet')}
+                  {settings["features.defaultGraphId"] || tc("notSet")}
                 </dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-muted-foreground text-sm font-medium">
-                  {t('dashboard.defaultConnectionApi')}
+                  {t("dashboard.defaultConnectionApi")}
                 </dt>
                 <dd className="max-w-full text-sm font-semibold break-all">
-                  {settings["features.defaultConnectionApiUrl"] || tc('notSet')}
+                  {settings["features.defaultConnectionApiUrl"] || tc("notSet")}
                 </dd>
               </div>
               {config.initialAdminEmail && (
                 <div className="space-y-1 sm:col-span-2">
                   <dt className="text-muted-foreground text-sm font-medium">
-                    {t('dashboard.initialAdminEmail')}
+                    {t("dashboard.initialAdminEmail")}
                   </dt>
                   <dd className="text-sm font-semibold">
                     {config.initialAdminEmail}
@@ -249,25 +260,30 @@ export default async function AdminDashboardPage() {
 
         <Card className="border-border/70 bg-card">
           <CardHeader>
-            <CardTitle>{t('dashboard.operationAlerts')}</CardTitle>
-            <CardDescription>{t('dashboard.alertsDescription')}</CardDescription>
+            <CardTitle>{t("dashboard.operationAlerts")}</CardTitle>
+            <CardDescription>
+              {t("dashboard.alertsDescription")}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <UserPlus className="text-primary mt-0.5 h-4 w-4" />
               <div className="text-sm">
-                <p className="font-medium">{t('dashboard.pendingRequests')}</p>
+                <p className="font-medium">{t("dashboard.pendingRequests")}</p>
                 <p className="text-muted-foreground">
-                  {t('dashboard.pendingRequestsDesc', { count: stats.pending })}
+                  {t("dashboard.pendingRequestsDesc", { count: stats.pending })}
                 </p>
               </div>
             </div>
             <div className="bg-accent flex items-start gap-3 rounded-lg border p-3">
               <Settings2 className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="text-sm">
-                <p className="font-medium">{t('dashboard.operationCheck')}</p>
+                <p className="font-medium">{t("dashboard.operationCheck")}</p>
                 <p className="text-muted-foreground">
-                  {t('dashboard.operationCheckDesc', { suspended: stats.suspended, admins: stats.admins })}
+                  {t("dashboard.operationCheckDesc", {
+                    suspended: stats.suspended,
+                    admins: stats.admins,
+                  })}
                 </p>
               </div>
             </div>

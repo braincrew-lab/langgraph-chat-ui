@@ -192,7 +192,14 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     setFirstTokenReceived(false);
     stream.submit(payload, STREAM_OPTIONS);
     resetForm();
-  }, [t, isAssistantSelected, getSubmitPayload, parsedSchema, stream, resetForm]);
+  }, [
+    t,
+    isAssistantSelected,
+    getSubmitPayload,
+    parsedSchema,
+    stream,
+    resetForm,
+  ]);
 
   return {
     handleSubmit,

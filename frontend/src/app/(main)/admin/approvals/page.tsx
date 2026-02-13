@@ -16,7 +16,7 @@ import { getTranslations } from "next-intl/server";
 
 export default async function ApprovalsPage() {
   const session = await auth();
-  const t = await getTranslations('admin');
+  const t = await getTranslations("admin");
 
   const result = await getUsers({
     page: 1,
@@ -29,29 +29,33 @@ export default async function ApprovalsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={t('approvals.eyebrow')}
-        title={t('approvals.title')}
-        description={t('approvals.description')}
+        eyebrow={t("approvals.eyebrow")}
+        title={t("approvals.title")}
+        description={t("approvals.description")}
       >
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{t('approvals.pendingBadge', { total: result.total })}</Badge>
+          <Badge variant="outline">
+            {t("approvals.pendingBadge", { total: result.total })}
+          </Badge>
         </div>
       </AdminPageHeader>
 
       <Card className="border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>{t('approvals.listTitle')}</CardTitle>
+          <CardTitle>{t("approvals.listTitle")}</CardTitle>
           <CardDescription>
-            {t('approvals.listDescription', { total: result.total })}
+            {t("approvals.listDescription", { total: result.total })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {result.users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="text-muted-foreground/50 mb-4 h-12 w-12" />
-              <h3 className="text-lg font-medium">{t('approvals.noRequests')}</h3>
+              <h3 className="text-lg font-medium">
+                {t("approvals.noRequests")}
+              </h3>
               <p className="text-muted-foreground mt-1 text-sm">
-                {t('approvals.allProcessed')}
+                {t("approvals.allProcessed")}
               </p>
             </div>
           ) : (

@@ -27,8 +27,8 @@ const itemVariants = {
 
 export default function AccountSuspendedPage() {
   const { data: session } = useSession();
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -55,9 +55,11 @@ export default function AccountSuspendedPage() {
           <Ban className="text-destructive h-8 w-8" />
         </motion.div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">{t('suspended.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("suspended.title")}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            {t('suspended.subtitle')}
+            {t("suspended.subtitle")}
           </p>
         </div>
       </motion.div>
@@ -67,12 +69,10 @@ export default function AccountSuspendedPage() {
         variants={itemVariants}
         className="text-muted-foreground text-center text-sm leading-relaxed"
       >
-        <p>
-          {t('suspended.description')}
-        </p>
+        <p>{t("suspended.description")}</p>
         {session?.user?.email && (
           <p className="mt-4">
-            {t('suspended.account')}{" "}
+            {t("suspended.account")}{" "}
             <span className="text-foreground font-medium">
               {session.user.email}
             </span>
@@ -91,7 +91,7 @@ export default function AccountSuspendedPage() {
           className="h-11 w-full rounded-xl font-medium transition-colors"
         >
           <Mail className="mr-2 h-4 w-4" />
-          {t('suspended.contact')}
+          {t("suspended.contact")}
         </Button>
         <Button
           onClick={handleSignOut}
@@ -99,7 +99,7 @@ export default function AccountSuspendedPage() {
           className="text-muted-foreground h-11 w-full rounded-xl font-medium transition-colors"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          {tc('logout')}
+          {tc("logout")}
         </Button>
       </motion.div>
     </motion.div>

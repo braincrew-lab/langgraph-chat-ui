@@ -63,7 +63,9 @@ export function FullDescriptionModal({
     >
       <DialogContent className="flex max-h-[85vh] max-w-5xl flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-bold">{t("fullDescriptionTitle")}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {t("fullDescriptionTitle")}
+          </DialogTitle>
         </DialogHeader>
         <div className="[&::-webkit-scrollbar-thumb]:bg-border mt-6 flex-1 overflow-y-auto px-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
           {loading && (

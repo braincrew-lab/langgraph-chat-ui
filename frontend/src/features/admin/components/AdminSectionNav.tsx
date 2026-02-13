@@ -35,11 +35,11 @@ const NAV_ITEMS = [
 
 export function AdminSectionNav() {
   const pathname = usePathname() || "";
-  const t = useTranslations('admin');
+  const t = useTranslations("admin");
 
   return (
     <nav
-      aria-label={t('nav.adminSection')}
+      aria-label={t("nav.adminSection")}
       className="border-border/70 bg-muted rounded-xl border p-2"
     >
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">

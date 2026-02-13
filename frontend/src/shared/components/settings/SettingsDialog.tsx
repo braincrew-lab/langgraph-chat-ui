@@ -138,7 +138,9 @@ export function SettingsDialog() {
 
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">{t("title")}</DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">
+            {t("title")}
+          </DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
@@ -270,9 +272,7 @@ export function SettingsDialog() {
             <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="auto-collapse">
-                    {t("autoCollapse")}
-                  </Label>
+                  <Label htmlFor="auto-collapse">{t("autoCollapse")}</Label>
                   <p className="text-muted-foreground text-sm">
                     {t("autoCollapseDesc")}
                   </p>

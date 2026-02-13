@@ -71,8 +71,8 @@ export function UserTable({
   currentUserRole,
 }: UserTableProps) {
   const router = useRouter();
-  const t = useTranslations('admin');
-  const tc = useTranslations('common');
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [isPending, startTransition] = useTransition();
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<User | null>(null);
@@ -143,19 +143,19 @@ export function UserTable({
       case "active":
         return (
           <Badge className="border-green-200 bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-900/50 dark:text-green-400">
-            {t('table.active')}
+            {t("table.active")}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-400">
-            {t('table.pendingStatus')}
+            {t("table.pendingStatus")}
           </Badge>
         );
       case "suspended":
         return (
           <Badge className="border-red-200 bg-red-100 text-red-700 dark:border-red-800 dark:bg-red-900/50 dark:text-red-400">
-            {t('table.suspendedStatus')}
+            {t("table.suspendedStatus")}
           </Badge>
         );
       default:
@@ -168,17 +168,17 @@ export function UserTable({
       case "super_admin":
         return (
           <Badge className="border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-900/50 dark:text-purple-400">
-            {t('table.superAdmin')}
+            {t("table.superAdmin")}
           </Badge>
         );
       case "admin":
         return (
           <Badge className="border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-900/50 dark:text-blue-400">
-            {t('table.adminRole')}
+            {t("table.adminRole")}
           </Badge>
         );
       default:
-        return <Badge variant="outline">{t('table.userRole')}</Badge>;
+        return <Badge variant="outline">{t("table.userRole")}</Badge>;
     }
   };
 
@@ -200,10 +200,10 @@ export function UserTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t('table.name')}</TableHead>
-            <TableHead>{t('table.role')}</TableHead>
-            <TableHead>{t('table.status')}</TableHead>
-            <TableHead>{t('table.joined')}</TableHead>
+            <TableHead>{t("table.name")}</TableHead>
+            <TableHead>{t("table.role")}</TableHead>
+            <TableHead>{t("table.status")}</TableHead>
+            <TableHead>{t("table.joined")}</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -245,7 +245,7 @@ export function UserTable({
                           onClick={() => handleAction(user.id, "approve")}
                         >
                           <UserCheck className="mr-2 h-4 w-4" />
-                          {t('table.approve')}
+                          {t("table.approve")}
                         </DropdownMenuItem>
                       )}
                       {user.status === "active" && (
@@ -254,7 +254,7 @@ export function UserTable({
                           className="text-red-600"
                         >
                           <UserX className="mr-2 h-4 w-4" />
-                          {t('table.suspend')}
+                          {t("table.suspend")}
                         </DropdownMenuItem>
                       )}
                       {user.status === "suspended" && (
@@ -262,7 +262,7 @@ export function UserTable({
                           onClick={() => handleAction(user.id, "reactivate")}
                         >
                           <RefreshCw className="mr-2 h-4 w-4" />
-                          {t('table.reactivate')}
+                          {t("table.reactivate")}
                         </DropdownMenuItem>
                       )}
                       {currentUserRole === "super_admin" && (
@@ -273,14 +273,14 @@ export function UserTable({
                               onClick={() => handleRoleChange(user.id, "admin")}
                             >
                               <Shield className="mr-2 h-4 w-4" />
-                              {t('table.promoteToAdmin')}
+                              {t("table.promoteToAdmin")}
                             </DropdownMenuItem>
                           ) : user.role === "admin" ? (
                             <DropdownMenuItem
                               onClick={() => handleRoleChange(user.id, "user")}
                             >
                               <ShieldOff className="mr-2 h-4 w-4" />
-                              {t('table.demoteToUser')}
+                              {t("table.demoteToUser")}
                             </DropdownMenuItem>
                           ) : null}
                         </>
@@ -291,7 +291,7 @@ export function UserTable({
                         className="text-red-600"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        {t('table.deleteUser')}
+                        {t("table.deleteUser")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -308,20 +308,20 @@ export function UserTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('table.deleteUser')}</AlertDialogTitle>
+            <AlertDialogTitle>{t("table.deleteUser")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('table.deleteConfirm', { email: deleteDialog?.email || '' })}
+              {t("table.deleteConfirm", { email: deleteDialog?.email || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteDialog && handleAction(deleteDialog.id, "delete")
               }
               className="bg-red-600 hover:bg-red-700"
             >
-              {tc('delete')}
+              {tc("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

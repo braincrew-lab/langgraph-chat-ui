@@ -13,7 +13,7 @@ import { LogOut, User } from "lucide-react";
 
 export function UserMenu() {
   const { user, isLoading, isStandalone, signOut } = useAuth();
-  const tc = useTranslations('common');
+  const tc = useTranslations("common");
 
   // In standalone mode, hide user menu entirely
   if (isStandalone) {
@@ -59,7 +59,7 @@ export function UserMenu() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>{tc('logout')}</p>
+            <p>{tc("logout")}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

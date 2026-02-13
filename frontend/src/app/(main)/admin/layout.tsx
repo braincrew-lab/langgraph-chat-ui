@@ -13,7 +13,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const t = await getTranslations('admin');
+  const t = await getTranslations("admin");
 
   // Check if user is admin
   if (!session?.user || !isAdmin(session.user.role as UserRole)) {
@@ -32,10 +32,10 @@ export default async function AdminLayout({
                 Admin Console
               </div>
               <h1 className="text-xl font-semibold tracking-tight">
-                {t('layout.title')}
+                {t("layout.title")}
               </h1>
               <p className="text-muted-foreground text-sm">
-                {t('layout.description')}
+                {t("layout.description")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -43,7 +43,9 @@ export default async function AdminLayout({
                 variant="outline"
                 className="bg-background/70 dark:bg-muted"
               >
-                {session.user.role === "super_admin" ? t('layout.superAdmin') : t('layout.adminRole')}
+                {session.user.role === "super_admin"
+                  ? t("layout.superAdmin")
+                  : t("layout.adminRole")}
               </Badge>
               <Badge
                 variant="secondary"

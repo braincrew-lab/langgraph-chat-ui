@@ -18,7 +18,7 @@ export function UserFilters() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
-  const t = useTranslations('admin');
+  const t = useTranslations("admin");
 
   const currentStatus = searchParams.get("status") || "all";
   const currentRole = searchParams.get("role") || "all";
@@ -67,7 +67,7 @@ export function UserFilters() {
       <div className="relative flex-1">
         <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
         <Input
-          placeholder={t('filters.searchPlaceholder')}
+          placeholder={t("filters.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
@@ -79,13 +79,13 @@ export function UserFilters() {
         onValueChange={(value) => updateParams({ status: value })}
       >
         <SelectTrigger className="w-full sm:w-[140px]">
-          <SelectValue placeholder={t('filters.allStatus')} />
+          <SelectValue placeholder={t("filters.allStatus")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
-          <SelectItem value="active">{t('filters.active')}</SelectItem>
-          <SelectItem value="pending">{t('filters.pending')}</SelectItem>
-          <SelectItem value="suspended">{t('filters.suspended')}</SelectItem>
+          <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+          <SelectItem value="active">{t("filters.active")}</SelectItem>
+          <SelectItem value="pending">{t("filters.pending")}</SelectItem>
+          <SelectItem value="suspended">{t("filters.suspended")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -94,13 +94,13 @@ export function UserFilters() {
         onValueChange={(value) => updateParams({ role: value })}
       >
         <SelectTrigger className="w-full sm:w-[140px]">
-          <SelectValue placeholder={t('filters.allRoles')} />
+          <SelectValue placeholder={t("filters.allRoles")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{t('filters.allRoles')}</SelectItem>
-          <SelectItem value="user">{t('filters.user')}</SelectItem>
-          <SelectItem value="admin">{t('filters.admin')}</SelectItem>
-          <SelectItem value="super_admin">{t('filters.superAdmin')}</SelectItem>
+          <SelectItem value="all">{t("filters.allRoles")}</SelectItem>
+          <SelectItem value="user">{t("filters.user")}</SelectItem>
+          <SelectItem value="admin">{t("filters.admin")}</SelectItem>
+          <SelectItem value="super_admin">{t("filters.superAdmin")}</SelectItem>
         </SelectContent>
       </Select>
     </div>

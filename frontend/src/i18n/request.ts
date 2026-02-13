@@ -1,13 +1,20 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies, headers } from "next/headers";
-import { LOCALE_COOKIE_NAME, defaultLocale, locales, type Locale } from "./config";
+import {
+  LOCALE_COOKIE_NAME,
+  defaultLocale,
+  locales,
+  type Locale,
+} from "./config";
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const headerStore = await headers();
 
   // 1. Cookie
-  const cookieLocale = cookieStore.get(LOCALE_COOKIE_NAME)?.value as Locale | undefined;
+  const cookieLocale = cookieStore.get(LOCALE_COOKIE_NAME)?.value as
+    | Locale
+    | undefined;
   if (cookieLocale && locales.includes(cookieLocale)) {
     return {
       locale: cookieLocale,

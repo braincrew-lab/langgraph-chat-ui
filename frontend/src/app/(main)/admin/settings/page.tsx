@@ -10,15 +10,15 @@ export default async function SettingsPage() {
   const [settings, serverDefaults, t] = await Promise.all([
     getAllSettings(),
     getServerDefaults(),
-    getTranslations('admin'),
+    getTranslations("admin"),
   ]);
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={t('settings.eyebrow')}
-        title={t('settings.title')}
-        description={t('settings.description')}
+        eyebrow={t("settings.eyebrow")}
+        title={t("settings.title")}
+        description={t("settings.description")}
       />
 
       <SettingsForm
