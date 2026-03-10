@@ -13,6 +13,7 @@ import {
   locales,
   type Locale,
 } from "@/i18n/config";
+import { COOKIES } from "@/lib/constants";
 
 /**
  * Check if request has a Bearer token in the Authorization header.
@@ -37,7 +38,7 @@ function withLocaleCookie(
       .find((lang) => locales.includes(lang as Locale)) as Locale | undefined;
     response.cookies.set(LOCALE_COOKIE_NAME, detected ?? defaultLocale, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: COOKIES.MAX_AGE,
       sameSite: "lax",
     });
   }

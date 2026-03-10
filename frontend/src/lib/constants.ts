@@ -47,6 +47,14 @@ export const STREAM_OPTIONS: any = {
 };
 
 /**
+ * Cookie Constants
+ */
+export const COOKIES = {
+  /** Default cookie max age: 1 year (seconds) */
+  MAX_AGE: 60 * 60 * 24 * 365,
+} as const;
+
+/**
  * Placeholder text for chat input
  * Use t('placeholder') from useTranslations('chat') in components instead
  */

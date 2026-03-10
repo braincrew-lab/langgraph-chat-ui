@@ -6,6 +6,7 @@ import {
   filterToolRuns,
   filterLLMRuns,
 } from "@/types/langsmith";
+import { TIMING } from "@/lib/constants";
 
 interface UseLangSmithRunsOptions {
   // 폴링 간격 (ms) - 0이면 폴링 비활성화
@@ -27,7 +28,7 @@ interface UseLangSmithRunsReturn {
   isPolling: boolean;
 }
 
-const DEFAULT_POLLING_INTERVAL = 5000; // 5초 (스트리밍 중 폴링)
+const DEFAULT_POLLING_INTERVAL = TIMING.POLLING_INTERVAL;
 
 export function useLangSmithRuns(
   threadId: string | null,
