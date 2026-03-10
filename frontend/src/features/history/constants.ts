@@ -1,5 +1,7 @@
+import { UI } from "@/lib/constants";
+
 // Sidebar dimensions
-export const SIDEBAR_WIDTH = 300;
+export const SIDEBAR_WIDTH = UI.CHAT_SIDEBAR_WIDTH;
 
 // Thread display settings
 export const MAX_THREAD_TITLE_LENGTH = 16;

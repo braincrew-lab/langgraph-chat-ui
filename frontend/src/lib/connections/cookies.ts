@@ -5,6 +5,8 @@
  * The full connections list remains in localStorage (not needed for SSR).
  */
 
+import { COOKIES } from "@/lib/constants";
+
 // Cookie names (using underscores for better compatibility)
 const COOKIE_API_URL = "lg_apiUrl";
 const COOKIE_ASSISTANT_ID = "lg_assistantId";
@@ -12,7 +14,7 @@ const COOKIE_API_KEY = "lg_apiKey";
 const COOKIE_CONNECTION_ID = "lg_connectionId";
 
 // Cookie options
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+const COOKIE_MAX_AGE = COOKIES.MAX_AGE;
 const COOKIE_PATH = "/";
 
 /**

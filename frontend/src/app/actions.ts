@@ -3,8 +3,9 @@
 import { cookies } from "next/headers";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { COOKIES } from "@/lib/constants";
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+const COOKIE_MAX_AGE = COOKIES.MAX_AGE;
 
 /**
  * Server action to update connection settings in cookies
