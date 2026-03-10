@@ -50,7 +50,7 @@ export async function generateUserJWT(): Promise<string | null> {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("1h")
+    .setExpirationTime(process.env.JWT_EXPIRATION_TIME || "1h")
     .sign(new TextEncoder().encode(secret));
 
   return token;
