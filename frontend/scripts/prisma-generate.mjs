@@ -16,7 +16,7 @@ const validProviders = ["sqlite", "postgresql", "mysql"];
 
 if (!validProviders.includes(provider)) {
   console.error(
-    `Invalid DATABASE_PROVIDER: "${provider}". Must be one of: ${validProviders.join(", ")}`
+    `Invalid DATABASE_PROVIDER: "${provider}". Must be one of: ${validProviders.join(", ")}`,
   );
   process.exit(1);
 }
@@ -28,7 +28,7 @@ const originalSchema = schema;
 // Replace provider value in datasource block
 schema = schema.replace(
   /provider\s*=\s*"(sqlite|postgresql|mysql)"/,
-  `provider = "${provider}"`
+  `provider = "${provider}"`,
 );
 
 if (schema !== originalSchema) {
