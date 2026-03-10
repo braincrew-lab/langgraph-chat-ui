@@ -1,8 +1,7 @@
-// Database provider
-// For SQLite (development): DATABASE_URL="file:./prisma/dev.db"
-// For PostgreSQL (production): DATABASE_URL="postgresql://user:pass@host:5432/dbname"
-// Note: To switch providers, change "sqlite" to "postgresql" and run:
-//   pnpm prisma migrate dev --name init
+// Database provider - dynamically set via DATABASE_PROVIDER env var
+// Supported: "sqlite" (default), "postgresql", "mysql"
+// The build script (scripts/prisma-generate.mjs) patches this value at build time.
+// For manual override: change the provider below and run prisma generate
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")

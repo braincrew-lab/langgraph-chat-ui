@@ -11,10 +11,10 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "build:production": "prisma migrate deploy && prisma generate && next build",
+    "build": "node scripts/prisma-generate.mjs && next build",
+    "build:production": "prisma migrate deploy && node scripts/prisma-generate.mjs && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prisma-generate.mjs",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "format": "prettier --write .",
