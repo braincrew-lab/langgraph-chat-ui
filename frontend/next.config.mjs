@@ -24,8 +24,7 @@ const nextConfig = {
     ];
 
     // X-Frame-Options: set to empty string to disable (e.g., for iframe embedding)
-    const xFrameOptions =
-      process.env.SECURITY_HEADER_X_FRAME_OPTIONS ?? "DENY";
+    const xFrameOptions = process.env.SECURITY_HEADER_X_FRAME_OPTIONS ?? "DENY";
     if (xFrameOptions) {
       securityHeaders.push({
         key: "X-Frame-Options",
@@ -34,8 +33,7 @@ const nextConfig = {
     }
 
     // Content-Security-Policy: set to empty string to disable
-    const csp =
-      process.env.SECURITY_HEADER_CSP ?? "frame-ancestors 'none'";
+    const csp = process.env.SECURITY_HEADER_CSP ?? "frame-ancestors 'none'";
     if (csp) {
       securityHeaders.push({
         key: "Content-Security-Policy",
