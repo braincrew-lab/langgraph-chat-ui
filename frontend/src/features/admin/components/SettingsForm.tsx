@@ -90,6 +90,7 @@ export function SettingsForm({
   const renderField = (definition: SettingMeta) => {
     const value = settings[definition.key];
     const defaultValue = serverDefaults[definition.key];
+    const i18nKey = definition.key.replace(/\./g, "_");
 
     switch (definition.type) {
       case "boolean":
@@ -97,10 +98,10 @@ export function SettingsForm({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor={definition.key}>
-                {t(`settings.labels.${definition.key}`)}
+                {t(`settings.labels.${i18nKey}`)}
               </Label>
               <p className="text-muted-foreground text-sm">
-                {t(`settings.descriptions.${definition.key}`)}
+                {t(`settings.descriptions.${i18nKey}`)}
               </p>
             </div>
             <Switch
@@ -120,7 +121,7 @@ export function SettingsForm({
         return (
           <div className="space-y-2">
             <Label htmlFor={definition.key}>
-              {t(`settings.labels.${definition.key}`)}
+              {t(`settings.labels.${i18nKey}`)}
             </Label>
             <Select
               value={value as string}
@@ -146,7 +147,7 @@ export function SettingsForm({
               </SelectContent>
             </Select>
             <p className="text-muted-foreground text-sm">
-              {t(`settings.descriptions.${definition.key}`)}
+              {t(`settings.descriptions.${i18nKey}`)}
             </p>
           </div>
         );
@@ -155,7 +156,7 @@ export function SettingsForm({
         return (
           <div className="space-y-2">
             <Label htmlFor={definition.key}>
-              {t(`settings.labels.${definition.key}`)}
+              {t(`settings.labels.${i18nKey}`)}
             </Label>
             <ImagePreview
               value={value as string}
@@ -169,7 +170,7 @@ export function SettingsForm({
               defaultValue={defaultValue as string}
             />
             <p className="text-muted-foreground text-sm">
-              {t(`settings.descriptions.${definition.key}`)}
+              {t(`settings.descriptions.${i18nKey}`)}
             </p>
           </div>
         );
@@ -178,7 +179,7 @@ export function SettingsForm({
         return (
           <div className="space-y-2">
             <Label htmlFor={definition.key}>
-              {t(`settings.labels.${definition.key}`)}
+              {t(`settings.labels.${i18nKey}`)}
             </Label>
             <StringArrayInput
               value={value as string[]}
@@ -191,7 +192,7 @@ export function SettingsForm({
               maxItems={definition.maxItems}
             />
             <p className="text-muted-foreground text-sm">
-              {t(`settings.descriptions.${definition.key}`)}
+              {t(`settings.descriptions.${i18nKey}`)}
             </p>
           </div>
         );
@@ -200,7 +201,7 @@ export function SettingsForm({
         return (
           <div className="space-y-2">
             <Label htmlFor={definition.key}>
-              {t(`settings.labels.${definition.key}`)}
+              {t(`settings.labels.${i18nKey}`)}
             </Label>
             <Input
               id={definition.key}
@@ -215,7 +216,7 @@ export function SettingsForm({
               }
             />
             <p className="text-muted-foreground text-sm">
-              {t(`settings.descriptions.${definition.key}`)}
+              {t(`settings.descriptions.${i18nKey}`)}
             </p>
           </div>
         );
