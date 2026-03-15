@@ -70,8 +70,12 @@ export function useStreamingView(
   messages: unknown[] = [],
   options: UseStreamingViewOptions = {},
 ): UseStreamingViewReturn {
-  const { nodeUpdates, finalNodeNames = [], messageNodeMap, stateTodos } =
-    options;
+  const {
+    nodeUpdates,
+    finalNodeNames = [],
+    messageNodeMap,
+    stateTodos,
+  } = options;
 
   const typedMessages = messages as Message[];
 

@@ -853,9 +853,7 @@ function buildActivityItems(
         o = o.input as Record<string, unknown>;
       }
       const desc = String(o.description || o.prompt || o.task || "");
-      const sat = String(
-        o.subagent_type || o.subagentType || o.type || "",
-      );
+      const sat = String(o.subagent_type || o.subagentType || o.type || "");
       taskToolCallInfos.push({
         description: desc,
         subagentType: sat || undefined,
@@ -990,11 +988,7 @@ function buildActivityItems(
   }
 
   // --- LLMOutputActivity from completed messages (via messageNodeMap) ---
-  if (
-    finalNodeNames.length > 0 &&
-    messageNodeMap &&
-    messageNodeMap.size > 0
-  ) {
+  if (finalNodeNames.length > 0 && messageNodeMap && messageNodeMap.size > 0) {
     // Collect existing LLM output IDs to deduplicate
     const existingLLMIds = new Set(
       items.filter((i) => i.kind === "llm_output").map((i) => i.id),

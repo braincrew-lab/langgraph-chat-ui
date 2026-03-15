@@ -66,9 +66,7 @@ const StatusIcon = memo(function StatusIcon({
         <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />
       );
     case "error":
-      return (
-        <Circle className="h-4 w-4 flex-shrink-0 text-red-500" />
-      );
+      return <Circle className="h-4 w-4 flex-shrink-0 text-red-500" />;
   }
 });
 
@@ -175,7 +173,10 @@ const ChildNodeItem = memo(function ChildNodeItem({
   }, [node.isActive, scrollContainerRef]);
 
   return (
-    <div ref={itemRef} className="border-border/50 ml-4 border-l-2">
+    <div
+      ref={itemRef}
+      className="border-border/50 ml-4 border-l-2"
+    >
       <div
         className={cn(
           "flex items-start gap-2 px-2 py-1.5 text-xs",
@@ -342,7 +343,10 @@ const SubgraphRow = memo(function SubgraphRow({
   const ChevronIcon = isOpen ? ChevronDown : ChevronRight;
 
   return (
-    <div ref={itemRef} className="text-sm">
+    <div
+      ref={itemRef}
+      className="text-sm"
+    >
       {/* Header */}
       <div
         className={cn(
@@ -607,7 +611,12 @@ export const ActivityStream = memo(function ActivityStream({
               {items.map((item) => {
                 switch (item.kind) {
                   case "tool_call":
-                    return <ToolCallRow key={item.id} item={item} />;
+                    return (
+                      <ToolCallRow
+                        key={item.id}
+                        item={item}
+                      />
+                    );
                   case "subgraph":
                     return (
                       <SubgraphRow
@@ -617,7 +626,12 @@ export const ActivityStream = memo(function ActivityStream({
                       />
                     );
                   case "llm_output":
-                    return <LLMOutputRow key={item.id} item={item} />;
+                    return (
+                      <LLMOutputRow
+                        key={item.id}
+                        item={item}
+                      />
+                    );
                 }
               })}
             </div>

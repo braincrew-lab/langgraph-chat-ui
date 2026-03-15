@@ -71,7 +71,10 @@ export function StreamingTaskView({
 
       {/* Todo progress list */}
       {progress.length > 0 && (
-        <TodoProgressList items={progress} isStreaming={isStreaming} />
+        <TodoProgressList
+          items={progress}
+          isStreaming={isStreaming}
+        />
       )}
 
       {/* Unified activity stream (subgraph tasks, tool calls, LLM outputs) */}
@@ -86,7 +89,10 @@ export function StreamingTaskView({
 
       {/* Active leaf tasks (when no activity items but tasks running via LangSmith) */}
       {!hasActivityItems && activeLeafTasks.length > 0 && (
-        <ActiveTasksList tasks={activeLeafTasks} isStreaming={isStreaming} />
+        <ActiveTasksList
+          tasks={activeLeafTasks}
+          isStreaming={isStreaming}
+        />
       )}
     </motion.div>
   );
