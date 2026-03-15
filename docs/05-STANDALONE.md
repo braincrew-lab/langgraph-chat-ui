@@ -1,61 +1,61 @@
-# 기존 인증 시스템 연동
+# Integrating with Existing Authentication Systems
 
-기존 백엔드에 인증 시스템이 있는 경우, LangGraph와 연동하는 방법을 안내합니다.
+This guide explains how to integrate LangGraph with your existing backend authentication system.
 
-## 목차
+## Table of Contents
 
-1. [연동 원리](#연동-원리)
-2. [Django 연동](#django-연동)
-3. [Spring Boot 연동](#spring-boot-연동)
-4. [Express.js 연동](#expressjs-연동)
-5. [Supabase Auth 연동](#supabase-auth-연동)
-6. [Firebase Auth 연동](#firebase-auth-연동)
-7. [Keycloak 연동](#keycloak-연동)
+1. [How Integration Works](#how-integration-works)
+2. [Django Integration](#django-integration)
+3. [Spring Boot Integration](#spring-boot-integration)
+4. [Express.js Integration](#expressjs-integration)
+5. [Supabase Auth Integration](#supabase-auth-integration)
+6. [Firebase Auth Integration](#firebase-auth-integration)
+7. [Keycloak Integration](#keycloak-integration)
 
 ---
 
-## 연동 원리
+## How Integration Works
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as 클라이언트
-    participant Backend as 기존 백엔드
-    participant LangGraph as LangGraph 서버
+    participant Client as Client
+    participant Backend as Existing Backend
+    participant LangGraph as LangGraph Server
 
     rect rgb(240, 248, 255)
-        Note over Client,Backend: 기존 인증 흐름 유지
-        Client->>Backend: 로그인 (기존 방식)
-        Backend->>Backend: 인증 처리
-        Backend-->>Client: JWT 토큰
+        Note over Client,Backend: Existing auth flow remains unchanged
+        Client->>Backend: Login (existing method)
+        Backend->>Backend: Authentication processing
+        Backend-->>Client: JWT Token
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph는 JWT 검증만
-        Client->>LangGraph: API 요청 (Bearer JWT)
-        LangGraph->>LangGraph: JWT 서명 검증
-        LangGraph-->>Client: 응답
+        Note over Client,LangGraph: LangGraph only verifies JWT
+        Client->>LangGraph: API Request (Bearer JWT)
+        LangGraph->>LangGraph: JWT signature verification
+        LangGraph-->>Client: Response
     end
 ```
 
-**핵심**: JWT Secret만 공유하면 기존 시스템 변경 없이 연동 가능
+**Key Point**: Integration is possible without modifying existing systems -- just share the JWT Secret
 
 ---
 
-## Django 연동
+## Django Integration
 
-### 기존 Django 인증 설정
+### Existing Django Auth Configuration
 
 ```python
 # settings.py
 SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': 'your-jwt-secret-key',  # LangGraph와 공유
+    'SIGNING_KEY': 'your-jwt-secret-key',  # Shared with LangGraph
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
 }
 ```
 
-### Django JWT 발급 (기존 코드)
+### Django JWT Issuance (Existing Code)
 
 ```python
 # views.py
@@ -65,7 +65,7 @@ def login(request):
     user = authenticate(request)
     refresh = RefreshToken.for_user(user)
 
-    # 커스텀 클레임 추가
+    # Add custom claims
     refresh['email'] = user.email
     refresh['name'] = user.get_full_name()
 
@@ -75,7 +75,7 @@ def login(request):
     })
 ```
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
@@ -83,7 +83,7 @@ import os
 import jwt
 from langgraph_sdk import Auth
 
-# Django SIGNING_KEY와 동일
+# Same as Django SIGNING_KEY
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 
@@ -104,25 +104,25 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
         raise Auth.exceptions.HTTPException(status_code=401, detail="Invalid token")
 
     return {
-        "identity": payload.get("user_id"),  # Django SimpleJWT 기본값
+        "identity": payload.get("user_id"),  # Django SimpleJWT default
         "email": payload.get("email", ""),
     }
 ```
 
 ---
 
-## Spring Boot 연동
+## Spring Boot Integration
 
-### 기존 Spring Security 설정
+### Existing Spring Security Configuration
 
 ```java
 // application.yml
 jwt:
-  secret: your-jwt-secret-key  # LangGraph와 공유
+  secret: your-jwt-secret-key  # Shared with LangGraph
   expiration: 3600000
 ```
 
-### Spring JWT 발급 (기존 코드)
+### Spring JWT Issuance (Existing Code)
 
 ```java
 // JwtTokenProvider.java
@@ -149,39 +149,39 @@ public class JwtTokenProvider {
 }
 ```
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Spring jwt.secret과 동일
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Same as Spring jwt.secret
 
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    # ... 토큰 파싱
+    # ... token parsing
 
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
 
     return {
-        "identity": payload.get("sub"),  # Spring에서 setSubject()로 설정
+        "identity": payload.get("sub"),  # Set via setSubject() in Spring
         "email": payload.get("email", ""),
     }
 ```
 
 ---
 
-## Express.js 연동
+## Express.js Integration
 
-### 기존 Express 인증 설정
+### Existing Express Auth Configuration
 
 ```javascript
 // config.js
 module.exports = {
-  jwtSecret: "your-jwt-secret-key", // LangGraph와 공유
+  jwtSecret: "your-jwt-secret-key", // Shared with LangGraph
   jwtExpiration: "1h",
 };
 ```
 
-### Express JWT 발급 (기존 코드)
+### Express JWT Issuance (Existing Code)
 
 ```javascript
 // auth.js
@@ -205,15 +205,15 @@ function login(req, res) {
 }
 ```
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Express jwtSecret과 동일
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Same as Express jwtSecret
 
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    # ... 토큰 파싱
+    # ... token parsing
 
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
 
@@ -225,36 +225,36 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
 ---
 
-## Supabase Auth 연동
+## Supabase Auth Integration
 
-Supabase는 RS256(비대칭키)를 사용합니다.
+Supabase uses RS256 (asymmetric keys).
 
-### 아키텍처
+### Architecture
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as 클라이언트
+    participant Client as Client
     participant Supabase as Supabase Auth
-    participant LangGraph as LangGraph 서버
+    participant LangGraph as LangGraph Server
 
     rect rgb(240, 248, 255)
-        Note over Client,Supabase: Supabase 로그인
-        Client->>Supabase: 로그인 (OAuth / Email)
-        Supabase-->>Client: JWT (RS256 서명)
+        Note over Client,Supabase: Supabase Login
+        Client->>Supabase: Login (OAuth / Email)
+        Supabase-->>Client: JWT (RS256 signed)
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph에서 JWKS로 검증
-        Client->>LangGraph: API 요청 (Bearer JWT)
-        LangGraph->>Supabase: JWKS 조회 (공개키)
-        Supabase-->>LangGraph: 공개키
-        LangGraph->>LangGraph: RS256 서명 검증
-        LangGraph-->>Client: 응답
+        Note over Client,LangGraph: LangGraph verifies via JWKS
+        Client->>LangGraph: API Request (Bearer JWT)
+        LangGraph->>Supabase: JWKS lookup (public key)
+        Supabase-->>LangGraph: Public key
+        LangGraph->>LangGraph: RS256 signature verification
+        LangGraph-->>Client: Response
     end
 ```
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
@@ -268,7 +268,7 @@ JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 
 auth = Auth()
 
-# JWKS 캐시
+# JWKS cache
 _jwks_client = None
 
 def get_jwks_client():
@@ -303,7 +303,7 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
     }
 ```
 
-### 환경 변수
+### Environment Variables
 
 ```env
 SUPABASE_URL=https://your-project.supabase.co
@@ -311,11 +311,11 @@ SUPABASE_URL=https://your-project.supabase.co
 
 ---
 
-## Firebase Auth 연동
+## Firebase Auth Integration
 
-Firebase도 RS256을 사용합니다.
+Firebase also uses RS256.
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
@@ -363,7 +363,7 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
     }
 ```
 
-### 환경 변수
+### Environment Variables
 
 ```env
 FIREBASE_PROJECT_ID=your-firebase-project-id
@@ -371,11 +371,11 @@ FIREBASE_PROJECT_ID=your-firebase-project-id
 
 ---
 
-## Keycloak 연동
+## Keycloak Integration
 
-Keycloak도 RS256과 JWKS를 사용합니다.
+Keycloak also uses RS256 and JWKS.
 
-### LangGraph 설정
+### LangGraph Configuration
 
 ```python
 # src/security/auth.py
@@ -424,7 +424,7 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
     }
 ```
 
-### 환경 변수
+### Environment Variables
 
 ```env
 KEYCLOAK_URL=https://keycloak.example.com
@@ -433,29 +433,29 @@ KEYCLOAK_REALM=your-realm
 
 ---
 
-## 체크리스트
+## Checklist
 
-### HS256 (대칭키) 연동
+### HS256 (Symmetric Key) Integration
 
-- [ ] 기존 시스템의 JWT Secret 확인
-- [ ] LangGraph에 동일한 Secret 설정
-- [ ] JWT payload 구조 확인 (sub, email 등)
+- [ ] Confirm the JWT Secret from your existing system
+- [ ] Set the same Secret in LangGraph
+- [ ] Verify JWT payload structure (sub, email, etc.)
 
-### RS256 (비대칭키) 연동
+### RS256 (Asymmetric Key) Integration
 
-- [ ] JWKS 엔드포인트 URL 확인
-- [ ] issuer, audience 값 확인
-- [ ] LangGraph에 JWKS 클라이언트 설정
+- [ ] Confirm the JWKS endpoint URL
+- [ ] Verify issuer and audience values
+- [ ] Configure the JWKS client in LangGraph
 
-### 공통
+### Common
 
-- [ ] 토큰 만료 시간 확인
-- [ ] 필요한 클레임(claims) 확인
-- [ ] 테스트 환경에서 검증
+- [ ] Verify token expiration time
+- [ ] Confirm required claims
+- [ ] Test in a staging environment
 
 ---
 
-## 다음 단계
+## Next Steps
 
-- NextAuth 사용: [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md)
-- OAuth 토큰 직접 검증: [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)
+- Using NextAuth: [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md)
+- Direct OAuth token verification: [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)

@@ -1,44 +1,44 @@
-# LangGraph Server Deployment Guide
+# LangGraph 서버 배포 가이드
 
-This document explains two methods for deploying a LangGraph agent server to a production environment.
+LangGraph 에이전트 서버를 프로덕션 환경에 배포하는 두 가지 방법을 설명합니다.
 
-## Table of Contents
+## 목차
 
-1. [Deployment Options Comparison](#deployment-options-comparison)
-2. [Option A: Docker-Based Deployment](#option-a-docker-based-deployment)
-3. [Option B: LangSmith-Based Deployment](#option-b-langsmith-based-deployment)
-4. [Production Checklist](#production-checklist)
-
----
-
-## Deployment Options Comparison
-
-| Item                | Docker-Based           | LangSmith-Based         |
-| ------------------- | ---------------------- | ----------------------- |
-| **Infrastructure**  | Self-managed           | Fully managed           |
-| **Cost**            | Infrastructure only    | LangSmith pricing       |
-| **LangSmith Required** | Not required        | Required                |
-| **Customization**   | Full control           | Platform limitations    |
-| **Monitoring**      | Self-built             | Built into LangSmith    |
-| **Recommended For** | Air-gapped, fully independent | Quick setup, managed preferred |
+1. [배포 옵션 비교](#배포-옵션-비교)
+2. [Option A: Docker 기반 배포](#option-a-docker-기반-배포)
+3. [Option B: LangSmith 기반 배포](#option-b-langsmith-기반-배포)
+4. [프로덕션 체크리스트](#프로덕션-체크리스트)
 
 ---
 
-## Option A: Docker-Based Deployment
+## 배포 옵션 비교
 
-Build a fully independent environment with Docker Compose, without LangSmith.
+| 항목               | Docker 기반           | LangSmith 기반         |
+| ------------------ | --------------------- | ---------------------- |
+| **인프라 관리**    | 직접 관리             | 완전 관리형            |
+| **비용**           | 인프라 비용만         | LangSmith 요금         |
+| **LangSmith 필수** | ❌ 불필요             | ✅ 필수                |
+| **커스터마이징**   | 완전한 제어           | 플랫폼 제한            |
+| **모니터링**       | 직접 구축             | LangSmith 내장         |
+| **권장 환경**      | Air-gapped, 완전 독립 | 빠른 구축, 관리형 선호 |
 
-### 1. Project Structure
+---
+
+## Option A: Docker 기반 배포
+
+LangSmith 없이 Docker Compose로 완전 독립적인 환경을 구축합니다.
+
+### 1. 프로젝트 구조
 
 ```
 langgraph-server/
 ├── src/
 │   ├── agent/
-│   │   └── graph.py          # LangGraph graph definition
+│   │   └── graph.py          # LangGraph 그래프 정의
 │   └── security/
-│       └── auth.py           # JWT verification handler
-├── langgraph.json            # LangGraph configuration
-├── pyproject.toml            # Python dependencies
+│       └── auth.py           # JWT 검증 핸들러
+├── langgraph.json            # LangGraph 설정
+├── pyproject.toml            # Python 의존성
 ├── docker-compose.yml
 └── .env
 ```
@@ -76,13 +76,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 ```
 
-### 4. Docker Image Build
+### 4. Docker 이미지 빌드
 
 ```bash
-# Install LangGraph CLI
+# LangGraph CLI 설치
 pip install -U "langgraph-cli[inmem]"
 
-# Build Docker image
+# Docker 이미지 빌드
 langgraph build -t my-agent:latest
 ```
 
@@ -137,67 +137,67 @@ volumes:
   redis_data:
 ```
 
-### 6. Environment Variables (.env)
+### 6. 환경 변수 (.env)
 
 ```env
 # LLM
 OPENAI_API_KEY=sk-...
 
-# JWT Authentication (must be the same as Next.js AUTH_SECRET)
+# JWT 인증 (Next.js AUTH_SECRET과 동일)
 JWT_SECRET_KEY=your-secret-key-min-32-chars
 
 # PostgreSQL
 POSTGRES_PASSWORD=secure-password-here
 ```
 
-### 7. Running
+### 7. 실행
 
 ```bash
-# Start
+# 시작
 docker compose up -d
 
-# View logs
+# 로그 확인
 docker compose logs -f langgraph-api
 
-# Health check
+# 헬스체크
 curl http://localhost:2024/health
 
-# Stop
+# 중지
 docker compose down
 ```
 
-### 8. Cloud Deployment
+### 8. 클라우드 배포
 
 #### AWS ECS
 
 ```bash
-# ECR login
+# ECR 로그인
 aws ecr get-login-password --region ap-northeast-2 | \
   docker login --username AWS --password-stdin $ECR_URL
 
-# Push image
+# 이미지 푸시
 docker tag my-agent:latest $ECR_URL/my-agent:latest
 docker push $ECR_URL/my-agent:latest
 ```
 
-Required infrastructure:
+필요한 인프라:
 
-- **ECS Fargate** or **EC2**
+- **ECS Fargate** 또는 **EC2**
 - **RDS PostgreSQL**
 - **ElastiCache Redis**
 
 #### GCP Cloud Run
 
 ```bash
-# Artifact Registry login
+# Artifact Registry 로그인
 gcloud auth configure-docker asia-northeast3-docker.pkg.dev
 
-# Push image
+# 이미지 푸시
 docker tag my-agent:latest asia-northeast3-docker.pkg.dev/$PROJECT/repo/my-agent:latest
 docker push asia-northeast3-docker.pkg.dev/$PROJECT/repo/my-agent:latest
 ```
 
-Required infrastructure:
+필요한 인프라:
 
 - **Cloud Run**
 - **Cloud SQL PostgreSQL**
@@ -205,38 +205,38 @@ Required infrastructure:
 
 ---
 
-## Option B: LangSmith-Based Deployment
+## Option B: LangSmith 기반 배포
 
-A managed deployment using the LangSmith Platform.
+LangSmith Platform을 사용한 관리형 배포입니다.
 
-### 1. LangSmith Account Setup
+### 1. LangSmith 계정 설정
 
-1. Sign up at [smith.langchain.com](https://smith.langchain.com) (free tier available)
-2. **Settings** -> **API Keys** -> Generate key
-3. Save the API key
+1. [smith.langchain.com](https://smith.langchain.com) 가입 (무료 티어 가능)
+2. **Settings** → **API Keys** → 키 생성
+3. API 키 저장
 
-### 2. LangGraph Cloud (Fully Managed)
+### 2. LangGraph Cloud (완전 관리형)
 
-Automatically deploys by connecting a GitHub repository.
+GitHub 저장소를 연결하여 자동 배포합니다.
 
-#### Setup
+#### 설정 방법
 
-1. Go to [smith.langchain.com](https://smith.langchain.com) -> **Deployments**
-2. **New Deployment** -> Connect GitHub repository
-3. Configure environment variables:
+1. [smith.langchain.com](https://smith.langchain.com) → **Deployments**
+2. **New Deployment** → GitHub 저장소 연결
+3. 환경 변수 설정:
    - `OPENAI_API_KEY`
    - `JWT_SECRET_KEY`
-4. Start deployment
+4. 배포 시작
 
-After deployment is complete:
+배포 완료 후:
 
 ```
 https://your-deployment-id.langgraph.app
 ```
 
-### 3. Self-Hosted + LangSmith Monitoring
+### 3. Self-Hosted + LangSmith 모니터링
 
-Self-host with Docker while using LangSmith tracing.
+Docker로 직접 호스팅하면서 LangSmith 트레이싱을 사용합니다.
 
 #### docker-compose.yml
 
@@ -273,7 +273,7 @@ services:
     environment:
       DATABASE_URI: postgres://langgraph:${POSTGRES_PASSWORD:-langgraph}@postgres:5432/langgraph
       REDIS_URI: redis://redis:6379
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY} # Added
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY} # 추가
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     depends_on:
@@ -287,7 +287,7 @@ volumes:
   redis_data:
 ```
 
-#### Environment Variables
+#### 환경 변수
 
 ```env
 # LangSmith
@@ -296,60 +296,60 @@ LANGSMITH_API_KEY=lsv2_pt_xxxxx
 # LLM
 OPENAI_API_KEY=sk-...
 
-# JWT Authentication
+# JWT 인증
 JWT_SECRET_KEY=your-secret-key-min-32-chars
 
 # PostgreSQL
 POSTGRES_PASSWORD=secure-password
 ```
 
-### 4. LangSmith Features
+### 4. LangSmith 기능
 
-| Feature        | Description                                |
-| -------------- | ------------------------------------------ |
-| **Tracing**    | Track all LLM calls and agent executions   |
-| **Monitoring** | Latency, token usage, error rates          |
-| **Playground** | Test and debug graphs                      |
-| **Datasets**   | Manage test datasets                       |
-| **Evaluation** | Evaluate agent performance                 |
-
----
-
-## Production Checklist
-
-- [ ] Set `JWT_SECRET_KEY` to a random value of 32+ characters
-- [ ] Enable HTTPS (nginx, traefik, or cloud load balancer)
-- [ ] Configure CORS (allowed origins only)
-- [ ] Apply rate limiting
-
-### Infrastructure
-
-- [ ] Set up PostgreSQL backups
-- [ ] Configure Redis persistent storage (AOF)
-- [ ] Set container resource limits (CPU, memory)
-- [ ] Configure load balancer (multiple instances)
-
-### Monitoring
-
-- [ ] Monitor health check endpoint
-- [ ] Set up log collection (CloudWatch, Stackdriver, ELK)
-- [ ] Set up error tracking (Sentry)
-- [ ] Set up metrics collection (Prometheus, Datadog)
+| 기능           | 설명                                |
+| -------------- | ----------------------------------- |
+| **Tracing**    | 모든 LLM 호출 및 에이전트 실행 추적 |
+| **Monitoring** | 지연시간, 토큰 사용량, 에러율       |
+| **Playground** | 그래프 테스트 및 디버깅             |
+| **Datasets**   | 테스트 데이터셋 관리                |
+| **Evaluation** | 에이전트 성능 평가                  |
 
 ---
 
-## Cost Comparison
+## 프로덕션 체크리스트
 
-| Item              | Docker-Based | LangSmith Cloud    |
-| ----------------- | ------------ | ------------------ |
-| **Infrastructure**| Self-managed | Included           |
-| **LangSmith**     | Not required | Required ($0~$400+/mo) |
-| **Operations**    | Self-operated | Managed           |
-| **Est. Monthly Cost** | $50~200+ | $0~400+           |
+- [ ] `JWT_SECRET_KEY`를 32자 이상 랜덤 값으로 설정
+- [ ] HTTPS 적용 (nginx, traefik, 또는 클라우드 로드밸런서)
+- [ ] CORS 설정 (허용된 오리진만)
+- [ ] Rate limiting 적용
+
+### 인프라
+
+- [ ] PostgreSQL 백업 설정
+- [ ] Redis 영구 저장 설정 (AOF)
+- [ ] 컨테이너 리소스 제한 (CPU, 메모리)
+- [ ] 로드 밸런서 설정 (다중 인스턴스)
+
+### 모니터링
+
+- [ ] 헬스체크 엔드포인트 모니터링
+- [ ] 로그 수집 (CloudWatch, Stackdriver, ELK)
+- [ ] 에러 트래킹 (Sentry)
+- [ ] 메트릭 수집 (Prometheus, Datadog)
 
 ---
 
-## References
+## 비용 비교
+
+| 항목             | Docker 기반 | LangSmith Cloud    |
+| ---------------- | ----------- | ------------------ |
+| **인프라**       | 직접 관리   | 포함               |
+| **LangSmith**    | 불필요      | 필수 ($0~$400+/월) |
+| **운영**         | 직접 운영   | 관리형             |
+| **월 예상 비용** | $50~200+    | $0~400+            |
+
+---
+
+## 참고 자료
 
 - [LangGraph Deployment Docs](https://langchain-ai.github.io/langgraph/cloud/deployment/)
 - [LangSmith Platform](https://smith.langchain.com)

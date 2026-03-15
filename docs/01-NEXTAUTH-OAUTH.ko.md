@@ -1,86 +1,86 @@
-# NextAuth OAuth Authentication
+# NextAuth OAuth 인증
 
-This approach uses NextAuth's OAuth Providers (Google, GitHub, etc.) to handle social login and verifies the JWT on the LangGraph server.
+NextAuth의 OAuth Provider(Google, GitHub 등)를 사용하여 소셜 로그인을 처리하고, LangGraph 서버에서 JWT를 검증하는 방식입니다.
 
-## Table of Contents
+## 목차
 
-1. [Architecture Overview](#architecture-overview)
-2. [Pros and Cons](#pros-and-cons)
-3. [Implementation Guide](#implementation-guide)
-4. [Adding OAuth Providers](#adding-oauth-providers)
-5. [Advanced Configuration](#advanced-configuration)
+1. [아키텍처 개요](#아키텍처-개요)
+2. [장단점](#장단점)
+3. [구현 가이드](#구현-가이드)
+4. [OAuth Provider 추가](#oauth-provider-추가)
+5. [고급 설정](#고급-설정)
 
 ---
 
-## Architecture Overview
+## 아키텍처 개요
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Client
-    participant NextJS as Next.js Server
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
     participant Google as Google OAuth
-    participant LangGraph as LangGraph Server
+    participant LangGraph as LangGraph 서버
 
     rect rgb(240, 248, 255)
-        Note over Client,Google: Step 1: Login Flow (Handled by NextAuth)
-        Client->>NextJS: Click login button
-        NextJS->>Google: OAuth redirect
-        Google->>Google: User authentication
-        Google-->>NextJS: Return auth code
-        NextJS->>NextJS: Generate JWT token (AUTH_SECRET)
-        NextJS-->>Client: Store session + JWT token
+        Note over Client,Google: 1단계: 로그인 흐름 (NextAuth 담당)
+        Client->>NextJS: 로그인 버튼 클릭
+        NextJS->>Google: OAuth 리다이렉트
+        Google->>Google: 사용자 인증
+        Google-->>NextJS: 인증 코드 반환
+        NextJS->>NextJS: JWT 토큰 생성 (AUTH_SECRET)
+        NextJS-->>Client: 세션 + JWT 토큰 저장
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: Step 2: API Call Flow (LangGraph only verifies)
-        Client->>NextJS: Chat request + session
-        NextJS->>NextJS: Extract JWT from session
-        NextJS->>LangGraph: API request (Authorization: Bearer JWT)
-        LangGraph->>LangGraph: Verify JWT signature
-        LangGraph->>LangGraph: Extract user info (sub, email)
-        LangGraph-->>NextJS: Streaming response
-        NextJS-->>Client: Streaming response
+        Note over Client,LangGraph: 2단계: API 호출 흐름 (LangGraph는 검증만)
+        Client->>NextJS: 채팅 요청 + 세션
+        NextJS->>NextJS: 세션에서 JWT 추출
+        NextJS->>LangGraph: API 요청 (Authorization: Bearer JWT)
+        LangGraph->>LangGraph: JWT 서명 검증
+        LangGraph->>LangGraph: 사용자 정보 추출 (sub, email)
+        LangGraph-->>NextJS: 스트리밍 응답
+        NextJS-->>Client: 스트리밍 응답
     end
 ```
 
-### Separation of Concerns
+### 역할 분리
 
-| Component     | Role                                              |
-| ------------- | ------------------------------------------------- |
-| **NextAuth**  | Login UI, OAuth flow, token issuance, session management |
-| **LangGraph** | Token verification, per-user resource isolation, Agent execution |
-
----
-
-## Pros and Cons
-
-### Pros
-
-- **Simple implementation**: LangGraph only needs verification logic
-- **NextAuth ecosystem**: Supports 50+ OAuth Providers
-- **Separation of concerns**: Auth on frontend, business logic on backend
-- **SSR support**: Integrates naturally with Next.js server components
-
-### Cons
-
-- **Frontend dependency**: Cannot be used without Next.js
-- **Token synchronization**: Requires shared JWT Secret
-- **Limited flexibility**: Dependent on NextAuth configuration
+| 컴포넌트      | 역할                                        |
+| ------------- | ------------------------------------------- |
+| **NextAuth**  | 로그인 UI, OAuth 흐름, 토큰 발급, 세션 관리 |
+| **LangGraph** | 토큰 검증, 사용자별 리소스 격리, Agent 실행 |
 
 ---
 
-## Implementation Guide
+## 장단점
 
-### 1. Next.js Side (NextAuth Configuration)
+### 장점
 
-#### Installation
+- **구현 간단**: LangGraph는 검증 로직만 필요
+- **NextAuth 생태계 활용**: 50+ OAuth Provider 지원
+- **관심사 분리**: 인증은 프론트, 비즈니스는 백엔드
+- **SSR 지원**: Next.js 서버 컴포넌트와 자연스럽게 통합
+
+### 단점
+
+- **프론트엔드 의존**: Next.js 없이는 사용 불가
+- **토큰 동기화**: JWT Secret 공유 필요
+- **제한된 유연성**: NextAuth 설정에 종속
+
+---
+
+## 구현 가이드
+
+### 1. Next.js 측 (NextAuth 설정)
+
+#### 설치
 
 ```bash
 npm install next-auth
 ```
 
-#### NextAuth Configuration (`app/api/auth/[...nextauth]/route.ts`)
+#### NextAuth 설정 (`app/api/auth/[...nextauth]/route.ts`)
 
 ```typescript
 import NextAuth from "next-auth";
@@ -103,7 +103,7 @@ export const authOptions = {
   ],
   callbacks: {
     async jwt({ token, account, profile }) {
-      // Store additional info on first login
+      // 첫 로그인 시 추가 정보 저장
       if (account && profile) {
         token.provider = account.provider;
         token.providerAccountId = account.providerAccountId;
@@ -111,7 +111,7 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Generate custom JWT for LangGraph
+      // LangGraph용 커스텀 JWT 생성
       const langgraphToken = jwt.sign(
         {
           sub: token.sub,
@@ -135,7 +135,7 @@ const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
 ```
 
-#### Type Extension (`types/next-auth.d.ts`)
+#### 타입 확장 (`types/next-auth.d.ts`)
 
 ```typescript
 import "next-auth";
@@ -153,14 +153,14 @@ declare module "next-auth" {
 }
 ```
 
-#### Environment Variables (`.env.local`)
+#### 환경 변수 (`.env.local`)
 
 ```env
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-nextauth-secret
 
-# JWT (shared with LangGraph)
+# JWT (LangGraph와 공유)
 JWT_SECRET_KEY=your-shared-jwt-secret
 
 # OAuth Providers
@@ -170,16 +170,16 @@ GITHUB_CLIENT_ID=xxx
 GITHUB_CLIENT_SECRET=xxx
 ```
 
-### 2. LangGraph Side (JWT Verification)
+### 2. LangGraph 측 (JWT 검증)
 
-#### Environment Variables (`.env`)
+#### 환경 변수 (`.env`)
 
 ```env
-# Use the same secret as NextAuth
+# NextAuth와 동일한 시크릿 사용
 JWT_SECRET_KEY=your-shared-jwt-secret
 ```
 
-#### Auth Handler (`src/security/auth.py`)
+#### 인증 핸들러 (`src/security/auth.py`)
 
 ```python
 import os
@@ -194,7 +194,7 @@ auth = Auth()
 
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    """Verify JWT token issued by NextAuth"""
+    """NextAuth에서 발급한 JWT 토큰 검증"""
     if not authorization:
         raise Auth.exceptions.HTTPException(
             status_code=401,
@@ -235,13 +235,13 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
 @auth.on
 async def filter_by_owner(ctx: Auth.types.AuthContext, value: dict) -> dict:
-    """Isolate threads per user"""
+    """사용자별 스레드 격리"""
     metadata = value.setdefault("metadata", {})
     metadata["owner"] = ctx.user.identity
     return {"owner": ctx.user.identity}
 ```
 
-### 3. Making API Calls from the Frontend
+### 3. 프론트엔드에서 API 호출
 
 ```typescript
 "use client";
@@ -272,38 +272,38 @@ export function ChatComponent() {
 
 ---
 
-## Adding OAuth Providers
+## OAuth Provider 추가
 
-When you add a Provider in NextAuth, it is automatically supported without any changes to LangGraph.
+NextAuth에서 Provider를 추가하면 LangGraph 변경 없이 자동으로 지원됩니다.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Client
-    participant NextJS as Next.js Server
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
     participant Provider as OAuth Provider<br/>(Google/GitHub/Kakao)
-    participant LangGraph as LangGraph Server
+    participant LangGraph as LangGraph 서버
 
     rect rgb(240, 255, 240)
-        Note over Client,Provider: Provider addition is configured in NextAuth only
-        Client->>NextJS: Social login (Google/GitHub/Kakao)
-        NextJS->>Provider: OAuth auth request
-        Provider-->>NextJS: Return user info
-        NextJS->>NextJS: Generate token in the same JWT format
+        Note over Client,Provider: Provider 추가는 NextAuth에서만 설정
+        Client->>NextJS: 소셜 로그인 (Google/GitHub/Kakao)
+        NextJS->>Provider: OAuth 인증 요청
+        Provider-->>NextJS: 사용자 정보 반환
+        NextJS->>NextJS: 동일한 JWT 포맷으로 토큰 생성
         Note right of NextJS: { sub, email, name, provider }
-        NextJS-->>Client: JWT token
+        NextJS-->>Client: JWT 토큰
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph works without changes
-        Client->>LangGraph: API request + JWT
-        LangGraph->>LangGraph: Only verify JWT signature
-        Note right of LangGraph: Independent of provider type!
-        LangGraph-->>Client: Response
+        Note over Client,LangGraph: LangGraph는 변경 없이 동작
+        Client->>LangGraph: API 요청 + JWT
+        LangGraph->>LangGraph: JWT 서명만 검증
+        Note right of LangGraph: Provider 종류와 무관!
+        LangGraph-->>Client: 응답
     end
 ```
 
-### Adding Google OAuth
+### Google OAuth 추가
 
 ```typescript
 // app/api/auth/[...nextauth]/route.ts
@@ -317,7 +317,7 @@ providers: [
 ];
 ```
 
-### Adding GitHub OAuth
+### GitHub OAuth 추가
 
 ```typescript
 import GitHubProvider from "next-auth/providers/github";
@@ -330,7 +330,7 @@ providers: [
 ];
 ```
 
-### Adding Kakao OAuth
+### Kakao OAuth 추가
 
 ```typescript
 import KakaoProvider from "next-auth/providers/kakao";
@@ -343,7 +343,7 @@ providers: [
 ];
 ```
 
-### Custom OIDC Provider
+### 커스텀 OIDC Provider
 
 ```typescript
 providers: [
@@ -360,48 +360,48 @@ providers: [
 
 ---
 
-## Advanced Configuration
+## 고급 설정
 
-### Adding Roles (Permissions) to the Token
+### 토큰에 권한(Role) 추가
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Client
-    participant NextJS as Next.js Server
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
     participant DB as User DB
-    participant LangGraph as LangGraph Server
+    participant LangGraph as LangGraph 서버
 
     rect rgb(240, 248, 255)
-        Note over Client,DB: Look up permissions on login
-        Client->>NextJS: Login request
-        NextJS->>DB: Query user role
+        Note over Client,DB: 로그인 시 권한 조회
+        Client->>NextJS: 로그인 요청
+        NextJS->>DB: 사용자 권한(Role) 조회
         DB-->>NextJS: role: "admin" / "user"
-        NextJS->>NextJS: Generate JWT including permissions
+        NextJS->>NextJS: JWT에 권한 포함하여 생성
         Note right of NextJS: { sub, email, role, permissions }
-        NextJS-->>Client: JWT token
+        NextJS-->>Client: JWT 토큰
     end
 
     rect rgb(255, 240, 240)
-        Note over Client,LangGraph: Permission check on API call
-        Client->>LangGraph: Thread delete request + JWT
-        LangGraph->>LangGraph: Extract permissions from JWT
-        alt Has permission
-            LangGraph->>LangGraph: Execute delete
-            LangGraph-->>Client: Success
-        else No permission
+        Note over Client,LangGraph: API 호출 시 권한 검사
+        Client->>LangGraph: 스레드 삭제 요청 + JWT
+        LangGraph->>LangGraph: JWT에서 permissions 추출
+        alt 권한 있음
+            LangGraph->>LangGraph: 삭제 실행
+            LangGraph-->>Client: 성공
+        else 권한 없음
             LangGraph-->>Client: 403 Forbidden
         end
     end
 ```
 
-#### NextAuth Side
+#### NextAuth 측
 
 ```typescript
 callbacks: {
   async jwt({ token, account, profile }) {
     if (account) {
-      // Look up user permissions from DB
+      // DB에서 사용자 권한 조회
       const userRole = await getUserRole(token.email)
       token.role = userRole
     }
@@ -412,7 +412,7 @@ callbacks: {
       {
         sub: token.sub,
         email: token.email,
-        role: token.role,  // Include permissions
+        role: token.role,  // 권한 포함
         permissions: getRolePermissions(token.role),
       },
       JWT_SECRET,
@@ -424,12 +424,12 @@ callbacks: {
 }
 ```
 
-#### LangGraph Side (Permission Check)
+#### LangGraph 측 (권한 검사)
 
 ```python
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    # ... token verification
+    # ... 토큰 검증
 
     return {
         "identity": payload.get("sub"),
@@ -440,7 +440,7 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
 @auth.on.threads.create
 async def check_create_permission(ctx: Auth.types.AuthContext, value: dict):
-    """Check create permission"""
+    """생성 권한 검사"""
     if "create" not in ctx.user.get("permissions", []):
         raise Auth.exceptions.HTTPException(
             status_code=403,
@@ -452,24 +452,24 @@ async def check_create_permission(ctx: Auth.types.AuthContext, value: dict):
     return {"owner": ctx.user.identity}
 ```
 
-### Token Refresh Handling
+### 토큰 갱신 처리
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Client
-    participant NextJS as Next.js Server
-    participant LangGraph as LangGraph Server
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
+    participant LangGraph as LangGraph 서버
 
     rect rgb(255, 255, 240)
-        Note over Client,LangGraph: Auto-refresh on token expiry
-        Client->>NextJS: Chat request + expired session
-        NextJS->>NextJS: Detect session expiry
-        NextJS->>NextJS: NextAuth auto-refresh (Refresh Token)
-        NextJS->>NextJS: Generate new JWT token
-        NextJS->>LangGraph: API request with new JWT
-        LangGraph-->>NextJS: Response
-        NextJS-->>Client: Response + refreshed session
+        Note over Client,LangGraph: 토큰 만료 시 자동 갱신
+        Client->>NextJS: 채팅 요청 + 만료된 세션
+        NextJS->>NextJS: 세션 만료 감지
+        NextJS->>NextJS: NextAuth 자동 갱신 (Refresh Token)
+        NextJS->>NextJS: 새 JWT 토큰 생성
+        NextJS->>LangGraph: 새 JWT로 API 요청
+        LangGraph-->>NextJS: 응답
+        NextJS-->>Client: 응답 + 갱신된 세션
     end
 ```
 
@@ -482,10 +482,10 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     throw new Error("Not authenticated");
   }
 
-  // Client-side token expiry check
+  // 토큰 만료 체크 (클라이언트 측)
   const payload = JSON.parse(atob(session.langgraphToken.split(".")[1]));
   if (payload.exp * 1000 < Date.now()) {
-    // Session refresh needed
+    // 세션 갱신 필요
     throw new Error("Token expired, please refresh session");
   }
 
@@ -501,20 +501,20 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 ---
 
-## Checklist
+## 체크리스트
 
-- [ ] NextAuth configuration complete
-- [ ] JWT_SECRET_KEY set identically on both sides
-- [ ] Redirect URI registered in OAuth Provider console
-- [ ] LangGraph auth.py implemented
-- [ ] Auth path set in langgraph.json
-- [ ] API calls from frontend include the token
-- [ ] Token expiry handling implemented
+- [ ] NextAuth 설정 완료
+- [ ] JWT_SECRET_KEY 양쪽 동일하게 설정
+- [ ] OAuth Provider 콘솔에서 Redirect URI 등록
+- [ ] LangGraph auth.py 구현
+- [ ] langgraph.json에 auth 경로 설정
+- [ ] 프론트엔드에서 토큰 포함하여 API 호출
+- [ ] 토큰 만료 처리 구현
 
 ---
 
-## Next Steps
+## 다음 단계
 
-- Add ID/PW login: [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.md)
-- Add Email authentication: [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)
-- Direct OAuth token verification: [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)
+- ID/PW 로그인 추가: [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.ko.md)
+- Email 인증 추가: [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.ko.md)
+- OAuth 토큰 직접 검증: [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.ko.md)

@@ -1,128 +1,128 @@
-# LangGraph 인증 가이드
+# LangGraph Authentication Guide
 
-LangGraph 백엔드와 프론트엔드 연동 시 인증 설정 방법을 안내합니다.
+This guide explains how to set up authentication when integrating LangGraph backend with your frontend.
 
-## 문서 구조
+## Document Structure
 
-| 문서                                                           | 설명                                 |
-| -------------------------------------------------------------- | ------------------------------------ |
-| [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md)                 | NextAuth + OAuth (Google, GitHub 등) |
-| [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.md)     | NextAuth + ID/PW 로그인              |
-| [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)                 | NextAuth + Email (Magic Link)        |
-| [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)                     | OAuth 토큰 직접 검증 (NextAuth 없이) |
-| [05-STANDALONE.md](./05-STANDALONE.md)                         | 백엔드 자체 인증 시스템 연동         |
+| Document                                                       | Description                              |
+| -------------------------------------------------------------- | ---------------------------------------- |
+| [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md)                 | NextAuth + OAuth (Google, GitHub, etc.)  |
+| [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.md)     | NextAuth + ID/PW Login                   |
+| [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)                 | NextAuth + Email (Magic Link)            |
+| [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)                     | Direct OAuth Token Verification (without NextAuth) |
+| [05-STANDALONE.md](./05-STANDALONE.md)                         | Integration with Backend's Own Auth System |
 
 ---
 
-## 인증 방식 비교
+## Authentication Method Comparison
 
-### NextAuth 사용 (01, 02, 03)
+### Using NextAuth (01, 02, 03)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as 클라이언트
-    participant NextJS as Next.js 서버
-    participant LangGraph as LangGraph 서버
+    participant Client as Client
+    participant NextJS as Next.js Server
+    participant LangGraph as LangGraph Server
 
     rect rgb(240, 248, 255)
-        Note over Client,NextJS: NextAuth가 인증 처리
-        Client->>NextJS: 로그인 (OAuth / ID,PW / Email)
-        NextJS->>NextJS: 인증 + JWT 발급
-        NextJS-->>Client: 세션 저장
+        Note over Client,NextJS: NextAuth handles authentication
+        Client->>NextJS: Login (OAuth / ID,PW / Email)
+        NextJS->>NextJS: Authenticate + Issue JWT
+        NextJS-->>Client: Store session
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph는 JWT 검증만
-        Client->>LangGraph: API 요청 (Bearer JWT)
-        LangGraph->>LangGraph: JWT 서명 검증
-        LangGraph-->>Client: 응답
+        Note over Client,LangGraph: LangGraph only verifies JWT
+        Client->>LangGraph: API request (Bearer JWT)
+        LangGraph->>LangGraph: Verify JWT signature
+        LangGraph-->>Client: Response
     end
 ```
 
-**특징:**
+**Characteristics:**
 
-- Next.js 프론트엔드 필요
-- NextAuth가 JWT 발급
-- LangGraph는 서명만 검증 (DB 불필요)
+- Requires a Next.js frontend
+- NextAuth issues the JWT
+- LangGraph only verifies the signature (no DB required)
 
-### OAuth 직접 검증 (04)
+### Direct OAuth Verification (04)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as 클라이언트
+    participant Client as Client
     participant OAuth as OAuth Provider
-    participant LangGraph as LangGraph 서버
+    participant LangGraph as LangGraph Server
 
     rect rgb(240, 248, 255)
-        Note over Client,OAuth: 클라이언트가 OAuth 토큰 획득
-        Client->>OAuth: OAuth 로그인
+        Note over Client,OAuth: Client obtains OAuth token
+        Client->>OAuth: OAuth login
         OAuth-->>Client: Access Token
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph가 Provider API로 검증
-        Client->>LangGraph: API 요청 (Bearer OAuth Token)
-        LangGraph->>OAuth: 토큰 검증 (userinfo API)
-        OAuth-->>LangGraph: 사용자 정보
-        LangGraph-->>Client: 응답
+        Note over Client,LangGraph: LangGraph verifies via Provider API
+        Client->>LangGraph: API request (Bearer OAuth Token)
+        LangGraph->>OAuth: Verify token (userinfo API)
+        OAuth-->>LangGraph: User information
+        LangGraph-->>Client: Response
     end
 ```
 
-**특징:**
+**Characteristics:**
 
-- 프론트엔드 불필요 (CLI, 모바일 등)
-- 매 요청마다 Provider API 호출
-- Rate Limit 주의
+- No frontend required (CLI, mobile, etc.)
+- Calls Provider API on every request
+- Watch out for Rate Limits
 
-### 자체 인증 연동 (05)
+### Standalone Auth Integration (05)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as 클라이언트
-    participant Backend as 백엔드 시스템
-    participant LangGraph as LangGraph 서버
+    participant Client as Client
+    participant Backend as Backend System
+    participant LangGraph as LangGraph Server
 
     rect rgb(240, 248, 255)
-        Note over Client,Backend: 기존 백엔드가 인증 처리
-        Client->>Backend: 로그인
-        Backend->>Backend: 인증 + JWT 발급
-        Backend-->>Client: JWT 토큰
+        Note over Client,Backend: Existing backend handles authentication
+        Client->>Backend: Login
+        Backend->>Backend: Authenticate + Issue JWT
+        Backend-->>Client: JWT Token
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: LangGraph는 JWT 검증만
-        Client->>LangGraph: API 요청 (Bearer JWT)
-        LangGraph->>LangGraph: JWT 서명 검증
-        LangGraph-->>Client: 응답
+        Note over Client,LangGraph: LangGraph only verifies JWT
+        Client->>LangGraph: API request (Bearer JWT)
+        LangGraph->>LangGraph: Verify JWT signature
+        LangGraph-->>Client: Response
     end
 ```
 
-**특징:**
+**Characteristics:**
 
-- 기존 인증 시스템이 있는 경우
-- JWT Secret만 공유하면 연동 가능
-- LangGraph는 검증만 담당
+- For cases where an existing auth system is in place
+- Integration possible by sharing only the JWT Secret
+- LangGraph is responsible for verification only
 
 ---
 
-## 의사결정 가이드
+## Decision Guide
 
 ```mermaid
 flowchart TD
-    Start[인증 방식 선택] --> Q1{Next.js 프론트엔드<br/>사용?}
+    Start[Choose Auth Method] --> Q1{Using Next.js<br/>frontend?}
 
-    Q1 -->|예| Q2{로그인 방식?}
-    Q1 -->|아니오| Q3{기존 인증 시스템<br/>있음?}
+    Q1 -->|Yes| Q2{Login method?}
+    Q1 -->|No| Q3{Existing auth<br/>system?}
 
     Q2 -->|OAuth| A1[01-NEXTAUTH-OAUTH]
     Q2 -->|ID/PW| A2[02-NEXTAUTH-CREDENTIALS]
     Q2 -->|Email| A3[03-NEXTAUTH-EMAIL]
 
-    Q3 -->|예| A5[05-STANDALONE]
-    Q3 -->|아니오| A4[04-OAUTH-DIRECT]
+    Q3 -->|Yes| A5[05-STANDALONE]
+    Q3 -->|No| A4[04-OAUTH-DIRECT]
 
     style A1 fill:#90EE90
     style A2 fill:#90EE90
@@ -133,9 +133,9 @@ flowchart TD
 
 ---
 
-## LangGraph 공통 설정
+## LangGraph Common Configuration
 
-모든 방식에서 LangGraph 측 설정은 동일합니다:
+The LangGraph-side configuration is the same across all methods:
 
 ### langgraph.json
 
@@ -162,7 +162,7 @@ auth = Auth()
 
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    """JWT 토큰 검증"""
+    """Verify JWT token"""
     if not authorization:
         raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized")
 
@@ -183,23 +183,23 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
 @auth.on
 async def filter_by_owner(ctx: Auth.types.AuthContext, value: dict) -> dict:
-    """사용자별 스레드 격리"""
+    """Isolate threads per user"""
     metadata = value.setdefault("metadata", {})
     metadata["owner"] = ctx.user.identity
     return {"owner": ctx.user.identity}
 ```
 
-### 환경 변수
+### Environment Variables
 
 ```env
 JWT_SECRET_KEY=your-shared-jwt-secret
 ```
 
-**중요**: `JWT_SECRET_KEY`는 토큰을 발급하는 쪽(NextAuth, 백엔드 등)과 동일해야 합니다.
+**Important**: `JWT_SECRET_KEY` must be the same as the one used by the token issuer (NextAuth, backend, etc.).
 
 ---
 
-## 참고 자료
+## References
 
 - [LangGraph Authentication Docs](https://langchain-ai.github.io/langgraph/cloud/concepts/auth/)
 - [NextAuth.js Documentation](https://next-auth.js.org/)

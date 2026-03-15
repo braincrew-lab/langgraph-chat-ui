@@ -23,18 +23,18 @@ export function LanguageSwitcher() {
       <p className="text-muted-foreground text-sm">{t("languageDesc")}</p>
       <div className="flex gap-2">
         <Button
-          variant={locale === "ko" ? "default" : "outline"}
-          onClick={() => handleChange("ko")}
-          className="flex-1"
-        >
-          한국어
-        </Button>
-        <Button
           variant={locale === "en" ? "default" : "outline"}
           onClick={() => handleChange("en")}
           className="flex-1"
         >
           English
+        </Button>
+        <Button
+          variant={locale === "ko" ? "default" : "outline"}
+          onClick={() => handleChange("ko")}
+          className="flex-1"
+        >
+          한국어
         </Button>
       </div>
     </div>
