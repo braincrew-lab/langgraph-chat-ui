@@ -7,7 +7,7 @@
  * Separated from TaskProgressList for cleaner architecture.
  */
 
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, memo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -72,6 +72,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
 }: TodoItemProps) {
   return (
     <div
+      data-todo-status={item.status}
       className={cn(
         "flex items-start gap-2 px-3 py-1.5 text-sm",
         "transition-colors duration-150",
@@ -110,12 +111,52 @@ export const TodoProgressList = memo(function TodoProgressList({
   isStreaming,
 }: TodoProgressListProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Filter only todo items
   const todoItems = useMemo(
     () => items.filter((item) => item.source === "todo"),
     [items],
   );
+
+  // Track active item for auto-scroll
+  const activeItemId = useMemo(() => {
+    const active = todoItems.find((i) => i.status === "in_progress");
+    return active?.id;
+  }, [todoItems]);
+
+  // Auto-expand when there's an active item
+  useEffect(() => {
+    if (activeItemId && isCollapsed) {
+      setIsCollapsed(false);
+    }
+  }, [activeItemId, isCollapsed]);
+
+  // Auto-scroll to active item (delay for AnimatePresence animation)
+  useEffect(() => {
+    if (!activeItemId || isCollapsed) return;
+
+    const timer = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const activeEl = container.querySelector(
+        '[data-todo-status="in_progress"]',
+      );
+      if (!activeEl) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const itemRect = activeEl.getBoundingClientRect();
+
+      if (itemRect.bottom > containerRect.bottom) {
+        container.scrollTop += itemRect.bottom - containerRect.bottom + 20;
+      } else if (itemRect.top < containerRect.top) {
+        container.scrollTop -= containerRect.top - itemRect.top + 20;
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [activeItemId, isCollapsed]);
 
   // Calculate totals
   const { completedCount, totalCount } = useMemo(
@@ -167,6 +208,7 @@ export const TodoProgressList = memo(function TodoProgressList({
             transition={{ duration: 0.2 }}
           >
             <div
+              ref={scrollContainerRef}
               className="divide-border/20 divide-y overflow-y-auto"
               style={{ maxHeight: MAX_HEIGHT }}
             >

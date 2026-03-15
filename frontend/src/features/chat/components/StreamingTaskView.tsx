@@ -2,15 +2,11 @@
 
 import { motion } from "framer-motion";
 import { LoaderCircle } from "lucide-react";
-import {
-  type HierarchicalTask,
-  type IntermediateLLMOutput,
-} from "@/types/task-hierarchy";
-import type { TaskProgressItem } from "@/types/task-progress";
+import type { HierarchicalTask } from "@/types/task-hierarchy";
+import type { TaskProgressItem, ActivityItem } from "@/types/task-progress";
 import { TodoProgressList } from "./streaming/TodoProgressList";
-import { TaskProgressList } from "./streaming/TaskProgressList";
+import { ActivityStream } from "./streaming/ActivityStream";
 import { ActiveTasksList } from "./streaming/ActiveTask";
-import { IntermediateLLMOutputList } from "./streaming/IntermediateLLMOutputs";
 import { cn } from "@/lib/utils";
 
 interface StreamingTaskViewProps {
@@ -20,8 +16,7 @@ interface StreamingTaskViewProps {
   className?: string;
   selectedTaskId?: string | null;
   onSelectTask?: (taskId: string | null) => void;
-  intermediateOutputs?: IntermediateLLMOutput[];
-  finalNodeId?: string | null;
+  activityItems?: ActivityItem[];
 }
 
 /**
@@ -38,17 +33,13 @@ export function StreamingTaskView({
   className,
   selectedTaskId,
   onSelectTask,
-  intermediateOutputs,
-  finalNodeId,
+  activityItems,
 }: StreamingTaskViewProps) {
-  // Check for non-final intermediate outputs
-  const hasIntermediateOutputs =
-    intermediateOutputs &&
-    intermediateOutputs.filter((o) => !o.isFinal).length > 0;
+  const hasActivityItems = activityItems && activityItems.length > 0;
 
   // Check if there's any actual content to display
   const hasContent =
-    progress.length > 0 || activeLeafTasks.length > 0 || hasIntermediateOutputs;
+    progress.length > 0 || activeLeafTasks.length > 0 || hasActivityItems;
 
   // Show thinking state when streaming but no content yet
   const showThinkingState = isStreaming && !hasContent;
@@ -86,27 +77,22 @@ export function StreamingTaskView({
         />
       )}
 
-      {/* Task progress list (subagent tasks and running tools) */}
-      {progress.length > 0 && (
-        <TaskProgressList
-          items={progress}
+      {/* Unified activity stream (subgraph tasks, tool calls, LLM outputs) */}
+      {hasActivityItems && activityItems && (
+        <ActivityStream
+          items={activityItems}
           isStreaming={isStreaming}
           selectedTaskId={selectedTaskId}
           onSelectTask={onSelectTask}
         />
       )}
 
-      {/* Active leaf tasks (when no progress items but tasks running) */}
-      {progress.length === 0 && activeLeafTasks.length > 0 && (
+      {/* Active leaf tasks (when no activity items but tasks running via LangSmith) */}
+      {!hasActivityItems && activeLeafTasks.length > 0 && (
         <ActiveTasksList
           tasks={activeLeafTasks}
           isStreaming={isStreaming}
         />
-      )}
-
-      {/* Intermediate node outputs (background activity) */}
-      {hasIntermediateOutputs && intermediateOutputs && (
-        <IntermediateLLMOutputList outputs={intermediateOutputs} />
       )}
     </motion.div>
   );

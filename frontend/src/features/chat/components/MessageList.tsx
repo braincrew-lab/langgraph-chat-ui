@@ -13,11 +13,8 @@ import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import { StreamingTaskView } from "./StreamingTaskView";
 import { shouldRenderMessage, buildSubagentContext } from "./utils";
-import type {
-  HierarchicalTask,
-  IntermediateLLMOutput,
-} from "@/types/task-hierarchy";
-import type { TaskProgressItem } from "@/types/task-progress";
+import type { HierarchicalTask } from "@/types/task-hierarchy";
+import type { TaskProgressItem, ActivityItem } from "@/types/task-progress";
 import type { TodoLifecycleState } from "@/features/chat/hooks/useStreamingView";
 import { FormSubmissionMessage } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
@@ -59,8 +56,7 @@ interface MessageListProps {
   showTaskView: boolean;
   progress: TaskProgressItem[];
   activeLeafTasks: HierarchicalTask[];
-  intermediateOutputs: IntermediateLLMOutput[];
-  finalNodeId: string | null;
+  activityItems: ActivityItem[];
   finalNodeNames: string[];
   todoLifecycle: TodoLifecycleState;
   selectedTaskId: string | null;
@@ -88,8 +84,7 @@ export function MessageList({
   showTaskView,
   progress,
   activeLeafTasks,
-  intermediateOutputs,
-  finalNodeId,
+  activityItems,
   finalNodeNames,
   todoLifecycle,
   selectedTaskId,
@@ -223,8 +218,7 @@ export function MessageList({
             isStreaming={isLoading}
             selectedTaskId={selectedTaskId}
             onSelectTask={onSelectTask}
-            intermediateOutputs={intermediateOutputs}
-            finalNodeId={finalNodeId}
+            activityItems={activityItems}
           />,
         );
       }
@@ -272,8 +266,7 @@ export function MessageList({
                 isStreaming={isLoading}
                 selectedTaskId={selectedTaskId}
                 onSelectTask={onSelectTask}
-                intermediateOutputs={intermediateOutputs}
-                finalNodeId={finalNodeId}
+                activityItems={activityItems}
               />,
             );
           }

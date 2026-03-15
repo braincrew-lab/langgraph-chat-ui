@@ -145,14 +145,14 @@ export function ThreadContent() {
     hasVisibleContent,
     showTaskView,
     activeLeafTasks,
-    intermediateOutputs,
-    finalNodeId,
+    activityItems,
   } = useStreamingView(allRuns, isLoading, messages, {
     nodeUpdates,
     finalNodeNames,
     updateNodeCompletedOutput,
     getMessagesMetadata: stream.getMessagesMetadata,
     messageNodeMap,
+    stateTodos: stream.values?.todos,
   });
 
   // Refetch LangSmith when streaming completes
@@ -299,8 +299,7 @@ export function ThreadContent() {
                     showTaskView={showTaskView}
                     progress={progress}
                     activeLeafTasks={activeLeafTasks}
-                    intermediateOutputs={intermediateOutputs}
-                    finalNodeId={finalNodeId}
+                    activityItems={activityItems}
                     finalNodeNames={finalNodeNames}
                     todoLifecycle={todoLifecycle}
                     selectedTaskId={selectedTaskId}

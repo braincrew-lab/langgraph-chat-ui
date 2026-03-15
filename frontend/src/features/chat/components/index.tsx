@@ -151,12 +151,12 @@ export function Thread() {
     hasVisibleContent,
     showTaskView,
     activeLeafTasks,
-    intermediateOutputs,
-    finalNodeId,
+    activityItems,
   } = useStreamingView(allRuns, isLoading, messages, {
     nodeUpdates,
     finalNodeNames,
     updateNodeCompletedOutput,
+    stateTodos: stream.values?.todos,
   });
 
   // 스트리밍 완료 시 LangSmith 재조회
@@ -479,8 +479,7 @@ export function Thread() {
                   showTaskView={showTaskView}
                   progress={progress}
                   activeLeafTasks={activeLeafTasks}
-                  intermediateOutputs={intermediateOutputs}
-                  finalNodeId={finalNodeId}
+                  activityItems={activityItems}
                   finalNodeNames={finalNodeNames}
                   todoLifecycle={todoLifecycle}
                   selectedTaskId={selectedTaskId}
