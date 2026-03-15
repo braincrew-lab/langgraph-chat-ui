@@ -1,6 +1,6 @@
-import ko from "./messages/ko.json";
+import en from "./messages/en.json";
 
-type Messages = typeof ko;
+type Messages = typeof en;
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type

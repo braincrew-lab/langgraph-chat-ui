@@ -1,8 +1,8 @@
 # Authentication Examples
 
-LangGraph Chat UI의 인증 모드별 설정 예제입니다.
+Configuration examples for each authentication mode of LangGraph Chat UI.
 
-## 레포지토리 구조
+## Repository Structure
 
 ```
 langgraph-chat-ui/
@@ -10,114 +10,114 @@ langgraph-chat-ui/
 │   ├── src/
 │   ├── package.json
 │   └── ...
-├── examples/           # 인증 모드별 예제
+├── examples/           # Examples by auth mode
 │   ├── standalone/
-│   │   ├── frontend/   # Chat UI 환경변수
-│   │   └── server/     # LangGraph 서버 코드
+│   │   ├── frontend/   # Chat UI environment variables
+│   │   └── server/     # LangGraph server code
 │   └── ...
 └── README.md
 ```
 
 ---
 
-## AUTH_MODE 개요
+## AUTH_MODE Overview
 
-| 모드 | 설명 | 프론트 DB | 토큰 검증 |
-|------|------|----------|----------|
-| `standalone` | 인증 없음 | 불필요 | 없음 |
-| `credentials` | 이메일/비밀번호 | 필요 | NextAuth JWT |
-| `oauth` | OAuth (Google, GitHub) | 필요 | NextAuth JWT |
-| `oauth-direct` | LangGraph 서버 OAuth | 불필요 | 직접 검증 |
+| Mode | Description | Frontend DB | Token Verification |
+|------|-------------|------------|-------------------|
+| `standalone` | No authentication | Not required | None |
+| `credentials` | Email/password | Required | NextAuth JWT |
+| `oauth` | OAuth (Google, GitHub) | Required | NextAuth JWT |
+| `oauth-direct` | LangGraph server OAuth | Not required | Direct verification |
 
 ---
 
-## 예제 목록
+## Example List
 
-| 폴더 | AUTH_MODE | 설명 |
-|------|-----------|------|
-| [standalone/](./standalone/) | `standalone` | 인증 없음 (로컬 개발용) |
-| [basic-auth/](./basic-auth/) | `credentials` | 이메일/비밀번호 |
+| Folder | AUTH_MODE | Description |
+|--------|-----------|-------------|
+| [standalone/](./standalone/) | `standalone` | No authentication (for local development) |
+| [basic-auth/](./basic-auth/) | `credentials` | Email/password |
 | [google-oauth/](./google-oauth/) | `oauth` | Google OAuth |
 | [github-oauth/](./github-oauth/) | `oauth` | GitHub OAuth |
-| [multiple-oauth/](./multiple-oauth/) | `oauth` | 다중 OAuth |
-| [oauth-direct/](./oauth-direct/) | `oauth-direct` | LangGraph 서버 직접 OAuth |
+| [multiple-oauth/](./multiple-oauth/) | `oauth` | Multiple OAuth providers |
+| [oauth-direct/](./oauth-direct/) | `oauth-direct` | LangGraph server direct OAuth |
 
 ---
 
-## 빠른 시작
+## Quick Start
 
-### 1. 인증 모드 선택
+### 1. Choose an Authentication Mode
 
 ```
-개발/테스트      → standalone
-단순 프로덕션   → credentials (basic-auth)
-소셜 로그인     → oauth (google-oauth, github-oauth)
-LangGraph Cloud → oauth-direct
+Development/Testing   → standalone
+Simple Production     → credentials (basic-auth)
+Social Login          → oauth (google-oauth, github-oauth)
+LangGraph Cloud       → oauth-direct
 ```
 
-### 2. 예제 폴더 구조
+### 2. Example Folder Structure
 
 ```
 {example}/
-├── README.md           # 설정 가이드
+├── README.md           # Setup guide
 ├── frontend/
-│   └── .env.example    # Chat UI 환경변수
+│   └── .env.example    # Chat UI environment variables
 └── server/
-    ├── graph.py        # 에이전트 그래프
-    ├── auth.py         # 인증 핸들러 (standalone 제외)
-    ├── langgraph.json  # 서버 설정
-    ├── .env.example    # 서버 환경변수
+    ├── graph.py        # Agent graph
+    ├── auth.py         # Authentication handler (except standalone)
+    ├── langgraph.json  # Server configuration
+    ├── .env.example    # Server environment variables
     └── pyproject.toml
 ```
 
-### 3. 설정 방법
+### 3. Setup Instructions
 
 ```bash
-# 1. LangGraph 서버 실행
-cd examples/{선택한-예제}/server
+# 1. Run LangGraph server
+cd examples/{chosen-example}/server
 cp .env.example .env
-# .env 파일 설정
+# Configure the .env file
 pip install -e ".[dev]"
 langgraph dev
 
-# 2. Chat UI 실행 (새 터미널)
+# 2. Run Chat UI (new terminal)
 cd frontend
-cp ../examples/{선택한-예제}/frontend/.env.example .env
-# .env 파일 설정
+cp ../examples/{chosen-example}/frontend/.env.example .env
+# Configure the .env file
 pnpm install
 pnpm dev
 ```
 
 ---
 
-## 인증 흐름 비교
+## Authentication Flow Comparison
 
-### NextAuth 기반 (credentials, oauth)
+### NextAuth-Based (credentials, oauth)
 
 ```
-사용자 → Chat UI → NextAuth.js → JWT 토큰 발급
+User → Chat UI → NextAuth.js → JWT Token Issuance
                          ↓
-           LangGraph 서버 (auth.py에서 JWT 검증)
+           LangGraph Server (JWT verification in auth.py)
 ```
 
-**중요:** `NEXTAUTH_SECRET`은 Chat UI와 LangGraph 서버에서 동일해야 합니다.
+**Important:** `NEXTAUTH_SECRET` must be the same in both Chat UI and the LangGraph server.
 
 ### OAuth Direct
 
 ```
-사용자 → Google 로그인 → Access Token
+User → Google Login → Access Token
               ↓
-    LangGraph 서버에서 Google API로 직접 검증
+    LangGraph server verifies directly via Google API
 ```
 
 ---
 
-## 데이터베이스 옵션
+## Database Options
 
-`basic-auth`에서 DATABASE_URL만 변경하면 다양한 DB 사용 가능:
+In `basic-auth`, you can use various databases by simply changing DATABASE_URL:
 
 ```env
-# SQLite (개발)
+# SQLite (development)
 DATABASE_URL="file:./prisma/dev.db"
 
 # PostgreSQL
@@ -129,7 +129,7 @@ DATABASE_URL="mysql://user:password@host:3306/dbname"
 
 ---
 
-## 참고 자료
+## References
 
 - [LangGraph Custom Auth](https://langchain-ai.github.io/langgraph/tutorials/auth/getting_started/)
 - [NextAuth.js](https://authjs.dev/)

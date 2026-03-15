@@ -1,67 +1,67 @@
-# NextAuth Email Authentication
+# NextAuth Email 인증
 
-This approach uses NextAuth's Email Provider to handle Magic Link login and verifies the JWT on the LangGraph server.
+NextAuth의 Email Provider를 사용하여 Magic Link 로그인을 처리하고, LangGraph 서버에서 JWT를 검증하는 방식입니다.
 
-## Table of Contents
+## 목차
 
-1. [Architecture Overview](#architecture-overview)
-2. [Pros and Cons](#pros-and-cons)
-3. [Implementation Guide](#implementation-guide)
-4. [LangGraph Integration](#langgraph-integration)
+1. [아키텍처 개요](#아키텍처-개요)
+2. [장단점](#장단점)
+3. [구현 가이드](#구현-가이드)
+4. [LangGraph 연동](#langgraph-연동)
 
 ---
 
-## Architecture Overview
+## 아키텍처 개요
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Client
-    participant NextJS as Next.js Server
-    participant Email as Email Service
-    participant LangGraph as LangGraph Server
+    participant Client as 클라이언트
+    participant NextJS as Next.js 서버
+    participant Email as 이메일 서비스
+    participant LangGraph as LangGraph 서버
 
     rect rgb(240, 248, 255)
-        Note over Client,Email: Step 1: Login Flow (Handled by NextAuth)
-        Client->>NextJS: Enter email
-        NextJS->>NextJS: Generate Magic Link
-        NextJS->>Email: Send login link
-        Email-->>Client: Email received
-        Client->>NextJS: Click Magic Link
-        NextJS->>NextJS: Verify token + Generate JWT
-        NextJS-->>Client: Store session + JWT token
+        Note over Client,Email: 1단계: 로그인 흐름 (NextAuth 담당)
+        Client->>NextJS: 이메일 입력
+        NextJS->>NextJS: Magic Link 생성
+        NextJS->>Email: 로그인 링크 발송
+        Email-->>Client: 이메일 수신
+        Client->>NextJS: Magic Link 클릭
+        NextJS->>NextJS: 토큰 검증 + JWT 생성
+        NextJS-->>Client: 세션 + JWT 토큰 저장
     end
 
     rect rgb(255, 248, 240)
-        Note over Client,LangGraph: Step 2: API Call Flow (LangGraph only verifies)
-        Client->>NextJS: Chat request + session
-        NextJS->>LangGraph: API request (Authorization: Bearer JWT)
-        LangGraph->>LangGraph: Verify JWT signature
-        LangGraph-->>Client: Streaming response
+        Note over Client,LangGraph: 2단계: API 호출 흐름 (LangGraph는 검증만)
+        Client->>NextJS: 채팅 요청 + 세션
+        NextJS->>LangGraph: API 요청 (Authorization: Bearer JWT)
+        LangGraph->>LangGraph: JWT 서명 검증
+        LangGraph-->>Client: 스트리밍 응답
     end
 ```
 
 ---
 
-## Pros and Cons
+## 장단점
 
-### Pros
+### 장점
 
-- **No password required**: Reduced security burden
-- **Easy signup**: Login and signup handled simultaneously with just an email
-- **Security**: Authentication via email ownership verification
+- **비밀번호 불필요**: 보안 부담 감소
+- **간편한 가입**: 이메일만으로 로그인/가입 동시 처리
+- **보안성**: 이메일 소유 확인으로 인증
 
-### Cons
+### 단점
 
-- **Email dependency**: Email service is required
-- **Latency**: Must wait for email delivery
-- **Spam risk**: Sent emails may be flagged as spam
+- **이메일 의존**: 이메일 서비스 필수
+- **지연**: 이메일 도착까지 대기 필요
+- **스팸 위험**: 발송 이메일이 스팸 처리될 수 있음
 
 ---
 
-## Implementation Guide
+## 구현 가이드
 
-### 1. NextAuth Configuration
+### 1. NextAuth 설정
 
 ```typescript
 // app/api/auth/[...nextauth]/route.ts
@@ -112,9 +112,9 @@ const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
 ```
 
-### 2. Prisma Schema
+### 2. Prisma 스키마
 
-The Email Provider requires a DB Adapter.
+Email Provider는 DB Adapter가 필요합니다.
 
 ```prisma
 // prisma/schema.prisma
@@ -163,17 +163,17 @@ model VerificationToken {
 }
 ```
 
-### 3. Environment Variables
+### 3. 환경 변수
 
 ```env
 # .env.local
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-nextauth-secret
 
-# JWT (shared with LangGraph)
+# JWT (LangGraph와 공유)
 JWT_SECRET_KEY=your-shared-jwt-secret
 
-# Email (e.g., Gmail SMTP)
+# Email (예: Gmail SMTP)
 EMAIL_SERVER_HOST=smtp.gmail.com
 EMAIL_SERVER_PORT=587
 EMAIL_SERVER_USER=your-email@gmail.com
@@ -184,7 +184,7 @@ EMAIL_FROM=noreply@yourdomain.com
 DATABASE_URL=postgresql://...
 ```
 
-### 4. Custom Email Template (Optional)
+### 4. 커스텀 이메일 템플릿 (선택)
 
 ```typescript
 EmailProvider({
@@ -193,14 +193,14 @@ EmailProvider({
     const { host } = new URL(url);
     await sendEmail({
       to: identifier,
-      subject: `Sign in to ${host}`,
+      subject: `${host} 로그인`,
       html: `
-        <h1>Login Link</h1>
-        <p>Click the button below to sign in.</p>
+        <h1>로그인 링크</h1>
+        <p>아래 버튼을 클릭하여 로그인하세요.</p>
         <a href="${url}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-          Sign In
+          로그인
         </a>
-        <p>This link is valid for 24 hours.</p>
+        <p>이 링크는 24시간 동안 유효합니다.</p>
       `,
     });
   },
@@ -209,9 +209,9 @@ EmailProvider({
 
 ---
 
-## LangGraph Integration
+## LangGraph 연동
 
-The LangGraph-side configuration is the same as in [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md). You only need to verify the JWT signature.
+LangGraph 측 설정은 [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.ko.md)와 동일합니다. JWT 서명만 검증하면 됩니다.
 
 ```python
 # src/security/auth.py
@@ -227,7 +227,7 @@ auth = Auth()
 
 @auth.authenticate
 async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
-    """Verify JWT token issued by NextAuth"""
+    """NextAuth에서 발급한 JWT 토큰 검증"""
     if not authorization:
         raise Auth.exceptions.HTTPException(
             status_code=401,
@@ -257,19 +257,19 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
 ---
 
-## Checklist
+## 체크리스트
 
-- [ ] NextAuth Email Provider configured
-- [ ] Prisma Adapter configured
-- [ ] Email service configured (SMTP)
-- [ ] DB migration completed
-- [ ] JWT_SECRET_KEY set identically on both sides
-- [ ] LangGraph auth.py implemented
-- [ ] Email template customized (optional)
+- [ ] NextAuth Email Provider 설정
+- [ ] Prisma Adapter 설정
+- [ ] 이메일 서비스 설정 (SMTP)
+- [ ] DB 마이그레이션
+- [ ] JWT_SECRET_KEY 양쪽 동일하게 설정
+- [ ] LangGraph auth.py 구현
+- [ ] 이메일 템플릿 커스터마이징 (선택)
 
 ---
 
-## Next Steps
+## 다음 단계
 
-- Add OAuth login: [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.md)
-- Add ID/PW login: [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.md)
+- OAuth 로그인 추가: [01-NEXTAUTH-OAUTH.md](./01-NEXTAUTH-OAUTH.ko.md)
+- ID/PW 로그인 추가: [02-NEXTAUTH-CREDENTIALS.md](./02-NEXTAUTH-CREDENTIALS.ko.md)
