@@ -112,7 +112,8 @@ export function ThreadContent() {
     parsedSchema,
   });
 
-  // LangSmith API
+  // LangSmith API (disabled when env vars not configured)
+  const langsmithEnabled = config.langsmithEnabled;
   const {
     runs: allRuns,
     middlewareRuns: langSmithMiddlewareRuns,
@@ -120,9 +121,9 @@ export function ThreadContent() {
     llmRuns: langSmithLLMRuns,
     loading: langSmithLoading,
     refetch: refetchLangSmith,
-  } = useLangSmithRuns(threadId, null, {
+  } = useLangSmithRuns(langsmithEnabled ? threadId : null, null, {
     pollingInterval: TIMING.POLLING_INTERVAL,
-    autoPolling: isLoading,
+    autoPolling: langsmithEnabled && isLoading,
   });
 
   // LangSmith runs to timeline events

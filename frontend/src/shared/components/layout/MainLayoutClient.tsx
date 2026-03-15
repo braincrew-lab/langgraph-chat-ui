@@ -246,8 +246,8 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Tracing panel toggle - only on chat pages */}
-            {isOnChatPage && (
+            {/* Tracing panel toggle - only on chat pages when LangSmith is configured */}
+            {isOnChatPage && config.langsmithEnabled && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
