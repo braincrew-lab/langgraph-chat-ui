@@ -257,7 +257,31 @@ After launching the app, you can manage multiple LangGraph servers from the sett
 
 Next.js handles DB-based user authentication, while the LangGraph server only performs JWT verification.
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/e8eab9cb-e0b5-4a14-95ad-a3ab2844f3ac" />
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as Browser
+    participant NextJS as Next.js Server
+    participant DB as Database
+    participant LG as LangGraph Server
+
+    rect rgb(240, 248, 255)
+        Note over Browser,DB: Authentication (Next.js)
+        Browser->>NextJS: Login (OAuth / Credentials / Email)
+        NextJS->>DB: Verify user & manage sessions
+        NextJS->>NextJS: Issue JWT (AUTH_SECRET)
+        NextJS-->>Browser: Session cookie + JWT
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Browser,LG: API Requests (LangGraph)
+        Browser->>NextJS: Chat request
+        NextJS->>LG: Forward with JWT (Bearer token)
+        LG->>LG: Verify JWT (JWT_SECRET_KEY)
+        LG-->>NextJS: Agent response (streaming)
+        NextJS-->>Browser: SSE stream
+    end
+```
 
 ### Core Principles
 

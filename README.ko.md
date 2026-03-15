@@ -257,7 +257,31 @@ export const siteConfig = {
 
 Next.js에서 DB 기반 사용자 인증을 처리하고, LangGraph 서버는 JWT 검증만 수행합니다.
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/e8eab9cb-e0b5-4a14-95ad-a3ab2844f3ac" />
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as 브라우저
+    participant NextJS as Next.js 서버
+    participant DB as 데이터베이스
+    participant LG as LangGraph 서버
+
+    rect rgb(240, 248, 255)
+        Note over Browser,DB: 인증 처리 (Next.js)
+        Browser->>NextJS: 로그인 (OAuth / ID·PW / Email)
+        NextJS->>DB: 사용자 검증 및 세션 관리
+        NextJS->>NextJS: JWT 발급 (AUTH_SECRET)
+        NextJS-->>Browser: 세션 쿠키 + JWT
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Browser,LG: API 요청 (LangGraph)
+        Browser->>NextJS: 채팅 요청
+        NextJS->>LG: JWT 포함 전달 (Bearer 토큰)
+        LG->>LG: JWT 검증 (JWT_SECRET_KEY)
+        LG-->>NextJS: 에이전트 응답 (스트리밍)
+        NextJS-->>Browser: SSE 스트림
+    end
+```
 
 ### 핵심 원칙
 
