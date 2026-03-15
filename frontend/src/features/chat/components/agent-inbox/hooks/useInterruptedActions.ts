@@ -1,4 +1,4 @@
-import { HumanResponseWithEdits, SubmitType } from "../types";
+import { DecisionWithEdits, DecisionType, Decision, HITLRequest } from "../types";
 import {
   KeyboardEvent,
   Dispatch,
@@ -7,15 +7,16 @@ import {
   useState,
   useRef,
   useEffect,
+  useCallback,
+  useMemo,
 } from "react";
-import { createDefaultHumanResponse } from "../utils";
+import { createDefaultDecisions, buildDecisionFromState } from "../utils";
 import { toast } from "sonner";
-import { HumanInterrupt, HumanResponse } from "@langchain/langgraph/prebuilt";
 import { END } from "@langchain/langgraph/web";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 
 interface UseInterruptedActionsInput {
-  interrupt: HumanInterrupt;
+  hitlRequest: HITLRequest;
 }
 
 interface UseInterruptedActionsValue {
@@ -23,12 +24,17 @@ interface UseInterruptedActionsValue {
   handleSubmit: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
   ) => Promise<void>;
-  handleIgnore: (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-  ) => Promise<void>;
   handleResolve: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => Promise<void>;
+  handleApproveAll: (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => Promise<void>;
+  handleSubmitAll: (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => Promise<void>;
+  goToNextAction: () => void;
+  goToPreviousAction: () => void;
 
   // State values
   streaming: boolean;
@@ -36,14 +42,19 @@ interface UseInterruptedActionsValue {
   loading: boolean;
   supportsMultipleMethods: boolean;
   hasEdited: boolean;
-  hasAddedResponse: boolean;
-  acceptAllowed: boolean;
-  humanResponse: HumanResponseWithEdits[];
+  hasAddedReject: boolean;
+  approveAllowed: boolean;
+  decisions: DecisionWithEdits[];
+  currentActionIndex: number;
+  canApproveAll: boolean;
+  allActionsAddressed: boolean;
+  totalActions: number;
+  addressedActions: Map<number, Decision>;
 
   // State setters
-  setSelectedSubmitType: Dispatch<SetStateAction<SubmitType | undefined>>;
-  setHumanResponse: Dispatch<SetStateAction<HumanResponseWithEdits[]>>;
-  setHasAddedResponse: Dispatch<SetStateAction<boolean>>;
+  setSelectedSubmitType: Dispatch<SetStateAction<DecisionType | undefined>>;
+  setDecisions: Dispatch<SetStateAction<DecisionWithEdits[]>>;
+  setHasAddedReject: Dispatch<SetStateAction<boolean>>;
   setHasEdited: Dispatch<SetStateAction<boolean>>;
 
   // Refs
@@ -51,59 +62,115 @@ interface UseInterruptedActionsValue {
 }
 
 export default function useInterruptedActions({
-  interrupt,
+  hitlRequest,
 }: UseInterruptedActionsInput): UseInterruptedActionsValue {
   const thread = useStreamContext();
-  const [humanResponse, setHumanResponse] = useState<HumanResponseWithEdits[]>(
-    [],
-  );
+  const [decisions, setDecisions] = useState<DecisionWithEdits[]>([]);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
   const initialHumanInterruptEditValue = useRef<Record<string, string>>({});
-  const [selectedSubmitType, setSelectedSubmitType] = useState<SubmitType>();
-  // Whether or not the user has edited any fields which allow editing.
+  const [selectedSubmitType, setSelectedSubmitType] =
+    useState<DecisionType>();
   const [hasEdited, setHasEdited] = useState(false);
-  // Whether or not the user has added a response.
-  const [hasAddedResponse, setHasAddedResponse] = useState(false);
-  const [acceptAllowed, setAcceptAllowed] = useState(false);
+  const [hasAddedReject, setHasAddedReject] = useState(false);
+  const [approveAllowed, setApproveAllowed] = useState(false);
+  const [currentActionIndex, setCurrentActionIndex] = useState(0);
+  const [addressedActions, setAddressedActions] = useState<
+    Map<number, Decision>
+  >(new Map());
+
+  const totalActions = hitlRequest.action_requests.length;
 
   useEffect(() => {
     try {
-      const { responses, defaultSubmitType, hasAccept } =
-        createDefaultHumanResponse(interrupt, initialHumanInterruptEditValue);
+      const {
+        decisions: defaultDecisions,
+        defaultSubmitType,
+        approveAllowed: hasApprove,
+      } = createDefaultDecisions(hitlRequest, initialHumanInterruptEditValue);
       setSelectedSubmitType(defaultSubmitType);
-      setHumanResponse(responses);
-      setAcceptAllowed(hasAccept);
+      setDecisions(defaultDecisions);
+      setApproveAllowed(hasApprove);
+      setCurrentActionIndex(0);
+      setAddressedActions(new Map());
     } catch (e) {
-      console.error("Error formatting and setting human response state", e);
+      console.error("Error formatting and setting decision state", e);
     }
-  }, [interrupt]);
+  }, [hitlRequest]);
 
-  const resumeRun = (response: HumanResponse[]): boolean => {
+  const canApproveAll = useMemo(() => {
+    return hitlRequest.action_requests.every((ar, idx) => {
+      const rc =
+        hitlRequest.review_configs.find((c) => c.action_name === ar.name) ??
+        hitlRequest.review_configs[idx];
+      return rc?.allowed_decisions.includes("approve");
+    });
+  }, [hitlRequest]);
+
+  const allActionsAddressed = addressedActions.size === totalActions;
+
+  const resumeRun = (resumeValue: unknown): boolean => {
     try {
-      thread.submit(
-        {},
-        {
-          command: {
-            resume: response,
-          },
-        },
-      );
+      thread.submit({}, { command: { resume: resumeValue } });
       return true;
     } catch (e: unknown) {
-      console.error("Error sending human response", e);
+      console.error("Error sending decision", e);
       return false;
     }
+  };
+
+  const sendDecisions = (finalDecisions: Decision[]) => {
+    setStreamFinished(false);
+    setLoading(true);
+    setStreaming(true);
+
+    try {
+      const success = resumeRun(finalDecisions);
+      if (!success) return;
+
+      toast("Success", {
+        description: "Decisions submitted successfully.",
+        duration: 5000,
+      });
+      setStreamFinished(true);
+    } catch (e: unknown) {
+      console.error("Error sending decisions", e);
+      const error = e as { message?: string };
+      if (error.message?.includes("Invalid assistant ID")) {
+        toast("Error: Invalid assistant ID", {
+          description:
+            "The provided assistant ID was not found in this graph. Please update the assistant ID in the settings and try again.",
+          richColors: true,
+          closeButton: true,
+          duration: 5000,
+        });
+      } else {
+        toast.error("Error", {
+          description: "Failed to submit decisions.",
+          richColors: true,
+          closeButton: true,
+          duration: 5000,
+        });
+      }
+      setStreaming(false);
+      setStreamFinished(false);
+      setLoading(false);
+      return;
+    }
+
+    setStreaming(false);
+    setLoading(false);
   };
 
   const handleSubmit = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
   ) => {
     e.preventDefault();
-    if (!humanResponse) {
+    const currentDecision = decisions[currentActionIndex];
+    if (!currentDecision || !selectedSubmitType) {
       toast.error("Error", {
-        description: "Please enter a response.",
+        description: "Please select a decision type.",
         duration: 5000,
         richColors: true,
         closeButton: true,
@@ -111,145 +178,58 @@ export default function useInterruptedActions({
       return;
     }
 
-    let errorOccurred = false;
-    initialHumanInterruptEditValue.current = {};
-
-    if (
-      humanResponse.some((r) => ["response", "edit", "accept"].includes(r.type))
-    ) {
-      setStreamFinished(false);
-
-      try {
-        const humanResponseInput: HumanResponse[] = humanResponse.flatMap(
-          (r) => {
-            if (r.type === "edit") {
-              if (r.acceptAllowed && !r.editsMade) {
-                return {
-                  type: "accept",
-                  args: r.args,
-                };
-              } else {
-                return {
-                  type: "edit",
-                  args: r.args,
-                };
-              }
-            }
-
-            if (r.type === "response" && !r.args) {
-              // If response was allowed but no response was given, do not include in the response
-              return [];
-            }
-            return {
-              type: r.type,
-              args: r.args,
-            };
-          },
-        );
-
-        const input = humanResponseInput.find(
-          (r) => r.type === selectedSubmitType,
-        );
-        if (!input) {
-          toast.error("Error", {
-            description: "No response found.",
-            richColors: true,
-            closeButton: true,
-            duration: 5000,
-          });
-          return;
-        }
-
-        setLoading(true);
-        setStreaming(true);
-        const resumedSuccessfully = resumeRun([input]);
-        if (!resumedSuccessfully) {
-          // This will only be undefined if the graph ID is not found
-          // in this case, the method will trigger a toast for us.
-          return;
-        }
-
-        toast("Success", {
-          description: "Response submitted successfully.",
+    const finalDecision = buildDecisionFromState(
+      currentDecision,
+      selectedSubmitType,
+    );
+    if (!finalDecision) {
+      if (selectedSubmitType === "reject") {
+        toast.error("Error", {
+          description: "Please provide a rejection message.",
           duration: 5000,
+          richColors: true,
+          closeButton: true,
         });
-
-        if (!errorOccurred) {
-          setStreamFinished(true);
-        }
-      } catch (e: unknown) {
-        console.error("Error sending human response", e);
-
-        const error = e as { message?: string };
-        if (error.message && error.message.includes("Invalid assistant ID")) {
-          toast("Error: Invalid assistant ID", {
-            description:
-              "The provided assistant ID was not found in this graph. Please update the assistant ID in the settings and try again.",
-            richColors: true,
-            closeButton: true,
-            duration: 5000,
-          });
-        } else {
-          toast.error("Error", {
-            description: "Failed to submit response.",
-            richColors: true,
-            closeButton: true,
-            duration: 5000,
-          });
-        }
-
-        errorOccurred = true;
-        setStreaming(false);
-        setStreamFinished(false);
+      } else {
+        toast.error("Error", {
+          description: "Failed to build decision.",
+          duration: 5000,
+          richColors: true,
+          closeButton: true,
+        });
       }
-
-      if (!errorOccurred) {
-        setStreaming(false);
-        setStreamFinished(false);
-      }
-    } else {
-      setLoading(true);
-      resumeRun(humanResponse);
-
-      toast("Success", {
-        description: "Response submitted successfully.",
-        duration: 5000,
-      });
-    }
-
-    setLoading(false);
-  };
-
-  const handleIgnore = async (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-  ) => {
-    e.preventDefault();
-
-    const ignoreResponse = humanResponse.find((r) => r.type === "ignore");
-    if (!ignoreResponse) {
-      toast.error("Error", {
-        description: "The selected thread does not support ignoring.",
-        duration: 5000,
-      });
       return;
     }
 
-    setLoading(true);
     initialHumanInterruptEditValue.current = {};
 
-    resumeRun([ignoreResponse]);
+    if (totalActions === 1) {
+      sendDecisions([finalDecision]);
+    } else {
+      const nextAddressed = new Map(addressedActions);
+      nextAddressed.set(currentActionIndex, finalDecision);
+      setAddressedActions(nextAddressed);
 
-    setLoading(false);
-    toast("Successfully ignored thread", {
-      duration: 5000,
-    });
+      toast("Decision recorded", {
+        description: `Action ${currentActionIndex + 1} of ${totalActions} addressed.`,
+        duration: 3000,
+      });
+
+      // Auto-advance to next unaddressed action
+      for (let i = 1; i <= totalActions; i++) {
+        const nextIdx = (currentActionIndex + i) % totalActions;
+        if (!nextAddressed.has(nextIdx)) {
+          setCurrentActionIndex(nextIdx);
+          break;
+        }
+      }
+    }
   };
 
   const handleResolve = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
     e.preventDefault();
-
     setLoading(true);
     initialHumanInterruptEditValue.current = {};
 
@@ -280,26 +260,108 @@ export default function useInterruptedActions({
     setLoading(false);
   };
 
-  const supportsMultipleMethods =
-    humanResponse.filter(
-      (r) => r.type === "edit" || r.type === "accept" || r.type === "response",
-    ).length > 1;
+  const handleApproveAll = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => {
+    e.preventDefault();
+    if (!canApproveAll) {
+      toast.error("Error", {
+        description: "Not all actions support approval.",
+        duration: 5000,
+        richColors: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    const allApproved: Decision[] = hitlRequest.action_requests.map((ar) => ({
+      type: "approve" as const,
+      action: { name: ar.name, args: ar.args },
+    }));
+
+    initialHumanInterruptEditValue.current = {};
+    sendDecisions(allApproved);
+  };
+
+  const handleSubmitAll = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => {
+    e.preventDefault();
+    if (!allActionsAddressed) {
+      toast.error("Error", {
+        description: "Not all actions have been addressed.",
+        duration: 5000,
+        richColors: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    const finalDecisions: Decision[] = [];
+    for (let i = 0; i < totalActions; i++) {
+      const decision = addressedActions.get(i);
+      if (!decision) {
+        toast.error("Error", {
+          description: `Action ${i + 1} has not been addressed.`,
+          duration: 5000,
+          richColors: true,
+          closeButton: true,
+        });
+        return;
+      }
+      finalDecisions.push(decision);
+    }
+
+    initialHumanInterruptEditValue.current = {};
+    sendDecisions(finalDecisions);
+  };
+
+  const goToNextAction = useCallback(() => {
+    setCurrentActionIndex((prev) => Math.min(prev + 1, totalActions - 1));
+  }, [totalActions]);
+
+  const goToPreviousAction = useCallback(() => {
+    setCurrentActionIndex((prev) => Math.max(prev - 1, 0));
+  }, []);
+
+  const supportsMultipleMethods = useMemo(() => {
+    const currentAR = hitlRequest.action_requests[currentActionIndex];
+    if (!currentAR) return false;
+    const rc =
+      hitlRequest.review_configs.find(
+        (c) => c.action_name === currentAR.name,
+      ) ?? hitlRequest.review_configs[currentActionIndex];
+    const allowed = rc?.allowed_decisions ?? [];
+    return (
+      allowed.filter(
+        (d) => d === "edit" || d === "approve" || d === "reject",
+      ).length > 1
+    );
+  }, [hitlRequest, currentActionIndex]);
 
   return {
     handleSubmit,
-    handleIgnore,
     handleResolve,
-    humanResponse,
+    handleApproveAll,
+    handleSubmitAll,
+    goToNextAction,
+    goToPreviousAction,
+    decisions,
     streaming,
     streamFinished,
     loading,
     supportsMultipleMethods,
     hasEdited,
-    hasAddedResponse,
-    acceptAllowed,
+    hasAddedReject,
+    approveAllowed,
+    currentActionIndex,
+    canApproveAll,
+    allActionsAddressed,
+    totalActions,
+    addressedActions,
     setSelectedSubmitType,
-    setHumanResponse,
-    setHasAddedResponse,
+    setDecisions,
+    setHasAddedReject,
     setHasEdited,
     initialHumanInterruptEditValue,
   };

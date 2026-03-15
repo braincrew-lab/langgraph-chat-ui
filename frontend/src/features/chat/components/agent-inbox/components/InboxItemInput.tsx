@@ -1,11 +1,10 @@
-import { HumanResponseWithEdits, SubmitType } from "../types";
+import { DecisionWithEdits, DecisionType, HITLRequest } from "../types";
 import { Textarea } from "@/shared/components/ui/textarea";
 import React from "react";
 import { haveArgsChanged, prettifyText } from "../utils";
 import { Button } from "@/shared/components/ui/button";
 import { Undo2 } from "lucide-react";
 import { MarkdownText } from "../../content/MarkdownText";
-import { ActionRequest, HumanInterrupt } from "@langchain/langgraph/prebuilt";
 import { toast } from "sonner";
 import { Separator } from "@/shared/components/ui/separator";
 
@@ -52,24 +51,23 @@ function ArgsRenderer({ args }: { args: Record<string, unknown> }) {
 }
 
 interface InboxItemInputProps {
-  interruptValue: HumanInterrupt;
-  humanResponse: HumanResponseWithEdits[];
+  hitlRequest: HITLRequest;
+  currentActionIndex: number;
+  decisions: DecisionWithEdits[];
   supportsMultipleMethods: boolean;
-  acceptAllowed: boolean;
+  approveAllowed: boolean;
   hasEdited: boolean;
-  hasAddedResponse: boolean;
+  hasAddedReject: boolean;
   initialValues: Record<string, string>;
 
   streaming: boolean;
   streamFinished: boolean;
 
-  setHumanResponse: React.Dispatch<
-    React.SetStateAction<HumanResponseWithEdits[]>
-  >;
+  setDecisions: React.Dispatch<React.SetStateAction<DecisionWithEdits[]>>;
   setSelectedSubmitType: React.Dispatch<
-    React.SetStateAction<SubmitType | undefined>
+    React.SetStateAction<DecisionType | undefined>
   >;
-  setHasAddedResponse: React.Dispatch<React.SetStateAction<boolean>>;
+  setHasAddedReject: React.Dispatch<React.SetStateAction<boolean>>;
   setHasEdited: React.Dispatch<React.SetStateAction<boolean>>;
 
   handleSubmit: (
@@ -77,27 +75,27 @@ interface InboxItemInputProps {
   ) => Promise<void>;
 }
 
-function ResponseComponent({
-  humanResponse,
+function RejectComponent({
+  decisions,
+  currentActionIndex,
   streaming,
-  showArgsInResponse,
-  interruptValue,
-  onResponseChange,
+  showArgsInReject,
+  hitlRequest,
+  onRejectChange,
   handleSubmit,
 }: {
-  humanResponse: HumanResponseWithEdits[];
+  decisions: DecisionWithEdits[];
+  currentActionIndex: number;
   streaming: boolean;
-  showArgsInResponse: boolean;
-  interruptValue: HumanInterrupt;
-  onResponseChange: (change: string, response: HumanResponseWithEdits) => void;
+  showArgsInReject: boolean;
+  hitlRequest: HITLRequest;
+  onRejectChange: (message: string) => void;
   handleSubmit: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent,
   ) => Promise<void>;
 }) {
-  const res = humanResponse.find((r) => r.type === "response");
-  if (!res || typeof res.args !== "string") {
-    return null;
-  }
+  const decision = decisions[currentActionIndex];
+  if (!decision) return null;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -106,32 +104,32 @@ function ResponseComponent({
     }
   };
 
+  const currentAR = hitlRequest.action_requests[currentActionIndex];
+
   return (
     <div className="flex w-full flex-col items-start gap-4 rounded-xl border-[1px] border-gray-300 p-6">
       <div className="flex w-full items-center justify-between">
-        <p className="text-base font-semibold text-black">
-          Respond to assistant
-        </p>
+        <p className="text-base font-semibold text-black">Reject</p>
         <ResetButton
           handleReset={() => {
-            onResponseChange("", res);
+            onRejectChange("");
           }}
         />
       </div>
 
-      {showArgsInResponse && (
-        <ArgsRenderer args={interruptValue.action_request.args} />
+      {showArgsInReject && currentAR && (
+        <ArgsRenderer args={currentAR.args} />
       )}
 
       <div className="flex w-full flex-col items-start gap-[6px]">
-        <p className="min-w-fit text-sm font-medium">Response</p>
+        <p className="min-w-fit text-sm font-medium">Rejection reason</p>
         <Textarea
           disabled={streaming}
-          value={res.args}
-          onChange={(e) => onResponseChange(e.target.value, res)}
+          value={decision.message}
+          onChange={(e) => onRejectChange(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={4}
-          placeholder="Your response here..."
+          placeholder="Reason for rejection..."
         />
       </div>
 
@@ -141,15 +139,15 @@ function ResponseComponent({
           disabled={streaming}
           onClick={handleSubmit}
         >
-          Send Response
+          Reject
         </Button>
       </div>
     </div>
   );
 }
-const Response = React.memo(ResponseComponent);
+const Reject = React.memo(RejectComponent);
 
-function AcceptComponent({
+function ApproveComponent({
   streaming,
   actionRequestArgs,
   handleSubmit,
@@ -171,45 +169,49 @@ function AcceptComponent({
         onClick={handleSubmit}
         className="w-full"
       >
-        Accept
+        Approve
       </Button>
     </div>
   );
 }
 
-function EditAndOrAcceptComponent({
-  humanResponse,
+function EditAndOrApproveComponent({
+  decisions,
+  currentActionIndex,
   streaming,
   initialValues,
   onEditChange,
   handleSubmit,
-  interruptValue,
+  hitlRequest,
 }: {
-  humanResponse: HumanResponseWithEdits[];
+  decisions: DecisionWithEdits[];
+  currentActionIndex: number;
   streaming: boolean;
   initialValues: Record<string, string>;
-  interruptValue: HumanInterrupt;
-  onEditChange: (
-    text: string | string[],
-    response: HumanResponseWithEdits,
-    key: string | string[],
-  ) => void;
+  hitlRequest: HITLRequest;
+  onEditChange: (change: string | string[], key: string | string[]) => void;
   handleSubmit: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent,
   ) => Promise<void>;
 }) {
   const defaultRows = React.useRef<Record<string, number>>({});
-  const editResponse = humanResponse.find((r) => r.type === "edit");
-  const acceptResponse = humanResponse.find((r) => r.type === "accept");
-  if (
-    !editResponse ||
-    typeof editResponse.args !== "object" ||
-    !editResponse.args
-  ) {
-    if (acceptResponse) {
+  const decision = decisions[currentActionIndex];
+  if (!decision) return null;
+
+  const currentAR = hitlRequest.action_requests[currentActionIndex];
+  const currentRC =
+    hitlRequest.review_configs.find(
+      (rc) => rc.action_name === currentAR?.name,
+    ) ?? hitlRequest.review_configs[currentActionIndex];
+  const allowedDecisions = currentRC?.allowed_decisions ?? [];
+  const isEditAllowed = allowedDecisions.includes("edit");
+  const isApproveAllowed = allowedDecisions.includes("approve");
+
+  if (!isEditAllowed) {
+    if (isApproveAllowed && currentAR) {
       return (
-        <AcceptComponent
-          actionRequestArgs={interruptValue.action_request.args}
+        <ApproveComponent
+          actionRequestArgs={currentAR.args}
           streaming={streaming}
           handleSubmit={handleSubmit}
         />
@@ -217,26 +219,18 @@ function EditAndOrAcceptComponent({
     }
     return null;
   }
-  const header = editResponse.acceptAllowed ? "Edit/Accept" : "Edit";
+
+  const header = isApproveAllowed ? "Edit/Approve" : "Edit";
   let buttonText = "Submit";
-  if (editResponse.acceptAllowed && !editResponse.editsMade) {
-    buttonText = "Accept";
+  if (isApproveAllowed && !decision.editsMade) {
+    buttonText = "Approve";
   }
 
   const handleReset = () => {
-    if (
-      !editResponse ||
-      typeof editResponse.args !== "object" ||
-      !editResponse.args ||
-      !editResponse.args.args
-    ) {
-      return;
-    }
-    // use initialValues to reset the text areas
     const keysToReset: string[] = [];
     const valuesToReset: string[] = [];
     Object.entries(initialValues).forEach(([k, v]) => {
-      if (k in (editResponse.args as { args: Record<string, unknown> }).args) {
+      if (k in decision.edited_action.args) {
         const value = ["string", "number"].includes(typeof v)
           ? v
           : JSON.stringify(v, null);
@@ -246,7 +240,7 @@ function EditAndOrAcceptComponent({
     });
 
     if (keysToReset.length > 0 && valuesToReset.length > 0) {
-      onEditChange(valuesToReset, editResponse, keysToReset);
+      onEditChange(valuesToReset, keysToReset);
     }
   };
 
@@ -264,19 +258,17 @@ function EditAndOrAcceptComponent({
         <ResetButton handleReset={handleReset} />
       </div>
 
-      {Object.entries(editResponse.args.args).map(([k, v], idx) => {
+      {Object.entries(decision.edited_action.args).map(([k, v], idx) => {
         const value = ["string", "number"].includes(typeof v)
           ? v
           : JSON.stringify(v, null);
-        // Calculate the default number of rows by the total length of the initial value divided by 30
-        // or 8, whichever is greater. Stored in a ref to prevent re-rendering.
         if (
           defaultRows.current[k as keyof typeof defaultRows.current] ===
           undefined
         ) {
-          defaultRows.current[k as keyof typeof defaultRows.current] = !v.length
-            ? 3
-            : Math.max(v.length / 30, 7);
+          const strValue = String(value);
+          defaultRows.current[k as keyof typeof defaultRows.current] =
+            !strValue.length ? 3 : Math.max(strValue.length / 30, 7);
         }
         const numRows =
           defaultRows.current[k as keyof typeof defaultRows.current] || 8;
@@ -291,8 +283,8 @@ function EditAndOrAcceptComponent({
               <Textarea
                 disabled={streaming}
                 className="h-full"
-                value={value}
-                onChange={(e) => onEditChange(e.target.value, editResponse, k)}
+                value={value as string}
+                onChange={(e) => onEditChange(e.target.value, k)}
                 onKeyDown={handleKeyDown}
                 rows={numRows}
               />
@@ -313,37 +305,43 @@ function EditAndOrAcceptComponent({
     </div>
   );
 }
-const EditAndOrAccept = React.memo(EditAndOrAcceptComponent);
+const EditAndOrApprove = React.memo(EditAndOrApproveComponent);
 
 export function InboxItemInput({
-  interruptValue,
-  humanResponse,
+  hitlRequest,
+  currentActionIndex,
+  decisions,
   streaming,
   streamFinished,
   supportsMultipleMethods,
-  acceptAllowed,
+  approveAllowed,
   hasEdited,
-  hasAddedResponse,
+  hasAddedReject,
   initialValues,
-  setHumanResponse,
+  setDecisions,
   setSelectedSubmitType,
   setHasEdited,
-  setHasAddedResponse,
+  setHasAddedReject,
   handleSubmit,
 }: InboxItemInputProps) {
-  const isEditAllowed = interruptValue.config.allow_edit;
-  const isResponseAllowed = interruptValue.config.allow_respond;
-  const hasArgs = Object.entries(interruptValue.action_request.args).length > 0;
-  const showArgsInResponse =
-    hasArgs && !isEditAllowed && !acceptAllowed && isResponseAllowed;
-  const showArgsOutsideActionCards =
-    hasArgs && !showArgsInResponse && !isEditAllowed && !acceptAllowed;
+  const currentAR = hitlRequest.action_requests[currentActionIndex];
+  const currentRC =
+    hitlRequest.review_configs.find(
+      (rc) => rc.action_name === currentAR?.name,
+    ) ?? hitlRequest.review_configs[currentActionIndex];
+  const allowedDecisions = currentRC?.allowed_decisions ?? [];
 
-  const onEditChange = (
-    change: string | string[],
-    response: HumanResponseWithEdits,
-    key: string | string[],
-  ) => {
+  const isEditAllowed = allowedDecisions.includes("edit");
+  const isRejectAllowed = allowedDecisions.includes("reject");
+  const isApproveAllowed = allowedDecisions.includes("approve");
+
+  const hasArgs = Object.entries(currentAR?.args ?? {}).length > 0;
+  const showArgsInReject =
+    hasArgs && !isEditAllowed && !isApproveAllowed && isRejectAllowed;
+  const showArgsOutsideActionCards =
+    hasArgs && !showArgsInReject && !isEditAllowed && !isApproveAllowed;
+
+  const onEditChange = (change: string | string[], key: string | string[]) => {
     if (
       (Array.isArray(change) && !Array.isArray(key)) ||
       (!Array.isArray(change) && Array.isArray(key))
@@ -356,152 +354,85 @@ export function InboxItemInput({
       return;
     }
 
-    let valuesChanged = true;
-    if (typeof response.args === "object") {
-      const updatedArgs = { ...(response.args?.args || {}) };
+    const decision = decisions[currentActionIndex];
+    if (!decision) return;
 
-      if (Array.isArray(change) && Array.isArray(key)) {
-        // Handle array inputs by mapping corresponding values
-        change.forEach((value, index) => {
-          if (index < key.length) {
-            updatedArgs[key[index]] = value;
-          }
-        });
-      } else {
-        // Handle single value case
-        updatedArgs[key as string] = change as string;
-      }
+    const updatedArgs = { ...decision.edited_action.args };
 
-      const haveValuesChanged = haveArgsChanged(updatedArgs, initialValues);
-      valuesChanged = haveValuesChanged;
+    if (Array.isArray(change) && Array.isArray(key)) {
+      change.forEach((value, index) => {
+        if (index < key.length) {
+          updatedArgs[key[index]] = value;
+        }
+      });
+    } else {
+      updatedArgs[key as string] = change as string;
     }
+
+    const valuesChanged = haveArgsChanged(updatedArgs, initialValues);
 
     if (!valuesChanged) {
       setHasEdited(false);
-      if (acceptAllowed) {
-        setSelectedSubmitType("accept");
-      } else if (hasAddedResponse) {
-        setSelectedSubmitType("response");
+      if (isApproveAllowed) {
+        setSelectedSubmitType("approve");
+      } else if (hasAddedReject) {
+        setSelectedSubmitType("reject");
       }
     } else {
       setSelectedSubmitType("edit");
       setHasEdited(true);
     }
 
-    setHumanResponse((prev) => {
-      if (typeof response.args !== "object" || !response.args) {
-        console.error(
-          "Mismatched response type",
-          !!response.args,
-          typeof response.args,
-        );
-        return prev;
-      }
-
-      const newEdit: HumanResponseWithEdits = {
-        type: response.type,
-        args: {
-          action: response.args.action,
-          args:
-            Array.isArray(change) && Array.isArray(key)
-              ? {
-                  ...response.args.args,
-                  ...Object.fromEntries(key.map((k, i) => [k, change[i]])),
-                }
-              : {
-                  ...response.args.args,
-                  [key as string]: change as string,
-                },
-        },
-      };
-      if (
-        prev.find(
-          (p) =>
-            p.type === response.type &&
-            typeof p.args === "object" &&
-            p.args?.action === (response.args as ActionRequest).action,
-        )
-      ) {
-        return prev.map((p) => {
-          if (
-            p.type === response.type &&
-            typeof p.args === "object" &&
-            p.args?.action === (response.args as ActionRequest).action
-          ) {
-            if (p.acceptAllowed) {
-              return {
-                ...newEdit,
-                acceptAllowed: true,
-                editsMade: valuesChanged,
-              };
-            }
-
-            return newEdit;
-          }
-          return p;
-        });
-      } else {
-        throw new Error("No matching response found");
-      }
-    });
+    setDecisions((prev) =>
+      prev.map((d, idx) => {
+        if (idx === currentActionIndex) {
+          return {
+            ...d,
+            edited_action: { ...d.edited_action, args: updatedArgs },
+            editsMade: valuesChanged,
+          };
+        }
+        return d;
+      }),
+    );
   };
 
-  const onResponseChange = (
-    change: string,
-    response: HumanResponseWithEdits,
-  ) => {
-    if (!change) {
-      setHasAddedResponse(false);
+  const onRejectChange = (message: string) => {
+    if (!message) {
+      setHasAddedReject(false);
       if (hasEdited) {
-        // The user has deleted their response, so we should set the submit type to
-        // `edit` if they've edited, or `accept` if it's allowed and they have not edited.
         setSelectedSubmitType("edit");
-      } else if (acceptAllowed) {
-        setSelectedSubmitType("accept");
+      } else if (approveAllowed) {
+        setSelectedSubmitType("approve");
       }
     } else {
-      setSelectedSubmitType("response");
-      setHasAddedResponse(true);
+      setSelectedSubmitType("reject");
+      setHasAddedReject(true);
     }
 
-    setHumanResponse((prev) => {
-      const newResponse: HumanResponseWithEdits = {
-        type: response.type,
-        args: change,
-      };
-
-      if (prev.find((p) => p.type === response.type)) {
-        return prev.map((p) => {
-          if (p.type === response.type) {
-            if (p.acceptAllowed) {
-              return {
-                ...newResponse,
-                acceptAllowed: true,
-                editsMade: !!change,
-              };
-            }
-            return newResponse;
-          }
-          return p;
-        });
-      } else {
-        throw new Error("No human response found for string response");
-      }
-    });
+    setDecisions((prev) =>
+      prev.map((d, idx) => {
+        if (idx === currentActionIndex) {
+          return { ...d, message };
+        }
+        return d;
+      }),
+    );
   };
 
   return (
     <div className="flex w-full flex-col items-start justify-start gap-2">
-      {showArgsOutsideActionCards && (
-        <ArgsRenderer args={interruptValue.action_request.args} />
+      {showArgsOutsideActionCards && currentAR && (
+        <ArgsRenderer args={currentAR.args} />
       )}
 
       <div className="flex w-full flex-col items-start gap-2">
-        <EditAndOrAccept
-          humanResponse={humanResponse}
+        <EditAndOrApprove
+          decisions={decisions}
+          currentActionIndex={currentActionIndex}
           streaming={streaming}
           initialValues={initialValues}
-          interruptValue={interruptValue}
+          hitlRequest={hitlRequest}
           onEditChange={onEditChange}
           handleSubmit={handleSubmit}
         />
@@ -512,14 +443,17 @@ export function InboxItemInput({
             <Separator className="w-full" />
           </div>
         ) : null}
-        <Response
-          humanResponse={humanResponse}
-          streaming={streaming}
-          showArgsInResponse={showArgsInResponse}
-          interruptValue={interruptValue}
-          onResponseChange={onResponseChange}
-          handleSubmit={handleSubmit}
-        />
+        {isRejectAllowed && (
+          <Reject
+            decisions={decisions}
+            currentActionIndex={currentActionIndex}
+            streaming={streaming}
+            showArgsInReject={showArgsInReject}
+            hitlRequest={hitlRequest}
+            onRejectChange={onRejectChange}
+            handleSubmit={handleSubmit}
+          />
+        )}
         {streaming && <p className="text-sm text-gray-600">Running...</p>}
         {streamFinished && (
           <p className="text-base font-medium text-green-600">

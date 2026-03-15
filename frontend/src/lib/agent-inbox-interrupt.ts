@@ -1,19 +1,14 @@
-import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
+import { HITLRequest } from "@/features/chat/components/agent-inbox/types";
 
 export function isAgentInboxInterruptSchema(
   value: unknown,
-): value is HumanInterrupt | HumanInterrupt[] {
-  const valueAsObject = Array.isArray(value) ? value[0] : value;
+): value is HITLRequest {
+  if (!value || typeof value !== "object") return false;
+  const obj = value as Record<string, unknown>;
   return (
-    valueAsObject &&
-    typeof valueAsObject === "object" &&
-    "action_request" in valueAsObject &&
-    typeof valueAsObject.action_request === "object" &&
-    "config" in valueAsObject &&
-    typeof valueAsObject.config === "object" &&
-    "allow_respond" in valueAsObject.config &&
-    "allow_accept" in valueAsObject.config &&
-    "allow_edit" in valueAsObject.config &&
-    "allow_ignore" in valueAsObject.config
+    "action_requests" in obj &&
+    Array.isArray(obj.action_requests) &&
+    "review_configs" in obj &&
+    Array.isArray(obj.review_configs)
   );
 }

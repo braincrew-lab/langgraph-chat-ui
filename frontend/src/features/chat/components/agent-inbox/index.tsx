@@ -1,15 +1,14 @@
 import { StateView } from "./components/StateView";
 import { ThreadActionsView } from "./components/ThreadActionsView";
 import { useState } from "react";
-import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
+import { HITLRequest } from "./types";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 
 interface ThreadViewProps {
-  interrupt: HumanInterrupt | HumanInterrupt[];
+  hitlRequest: HITLRequest;
 }
 
-export function ThreadView({ interrupt }: ThreadViewProps) {
-  const interruptObj = Array.isArray(interrupt) ? interrupt[0] : interrupt;
+export function ThreadView({ hitlRequest }: ThreadViewProps) {
   const thread = useStreamContext();
   const [showDescription, setShowDescription] = useState(false);
   const [showState, setShowState] = useState(false);
@@ -40,13 +39,13 @@ export function ThreadView({ interrupt }: ThreadViewProps) {
       {showSidePanel ? (
         <StateView
           handleShowSidePanel={handleShowSidePanel}
-          description={interruptObj.description}
+          description={hitlRequest.action_requests[0]?.description}
           values={thread.values}
           view={showState ? "state" : "description"}
         />
       ) : (
         <ThreadActionsView
-          interrupt={interruptObj}
+          hitlRequest={hitlRequest}
           handleShowSidePanel={handleShowSidePanel}
           showState={showState}
           showDescription={showDescription}

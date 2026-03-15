@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { constructOpenInStudioURL } from "../utils";
-import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
+import { HITLRequest } from "../types";
 import { useQueryState } from "nuqs";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ThreadActionsViewProps {
-  interrupt: HumanInterrupt;
+  hitlRequest: HITLRequest;
   handleShowSidePanel: (showState: boolean, showDescription: boolean) => void;
   showState: boolean;
   showDescription: boolean;
@@ -56,31 +57,39 @@ function ButtonGroup({
 }
 
 export function ThreadActionsView({
-  interrupt,
+  hitlRequest,
   handleShowSidePanel,
   showDescription,
   showState,
 }: ThreadActionsViewProps) {
   const [threadId] = useQueryState("threadId");
   const {
-    acceptAllowed,
+    approveAllowed,
     hasEdited,
-    hasAddedResponse,
+    hasAddedReject,
     streaming,
     supportsMultipleMethods,
     streamFinished,
     loading,
     handleSubmit,
-    handleIgnore,
     handleResolve,
+    handleApproveAll,
+    handleSubmitAll,
+    goToNextAction,
+    goToPreviousAction,
     setSelectedSubmitType,
-    setHasAddedResponse,
+    setHasAddedReject,
     setHasEdited,
-    humanResponse,
-    setHumanResponse,
+    decisions,
+    setDecisions,
     initialHumanInterruptEditValue,
+    currentActionIndex,
+    canApproveAll,
+    allActionsAddressed,
+    totalActions,
+    addressedActions,
   } = useInterruptedActions({
-    interrupt,
+    hitlRequest,
   });
   const { apiUrl } = useStreamContext();
 
@@ -99,16 +108,18 @@ export function ThreadActionsView({
     window.open(studioUrl, "_blank");
   };
 
-  const threadTitle = interrupt.action_request.action || "Unknown";
+  const threadTitle =
+    hitlRequest.action_requests[currentActionIndex]?.name || "Unknown";
   const actionsDisabled = loading || streaming;
-  const ignoreAllowed = interrupt.config.allow_ignore;
 
   return (
     <div className="flex min-h-full w-full flex-col gap-9">
       {/* Header */}
       <div className="flex w-full flex-wrap items-center justify-between gap-3">
         <div className="flex items-center justify-start gap-3">
-          <p className="text-2xl tracking-tighter text-pretty">{threadTitle}</p>
+          <p className="text-2xl tracking-tighter text-pretty">
+            {threadTitle}
+          </p>
           {threadId && <ThreadIdCopyable threadId={threadId} />}
         </div>
         <div className="flex flex-row items-center justify-start gap-2">
@@ -131,6 +142,7 @@ export function ThreadActionsView({
         </div>
       </div>
 
+      {/* Action buttons row */}
       <div className="flex w-full flex-row items-center justify-start gap-2">
         <Button
           variant="outline"
@@ -140,35 +152,94 @@ export function ThreadActionsView({
         >
           Mark as Resolved
         </Button>
-        {ignoreAllowed && (
+        {canApproveAll && totalActions > 1 && (
           <Button
             variant="outline"
-            className="border-gray-500 bg-white font-normal text-gray-800"
-            onClick={handleIgnore}
+            className="border-green-500 bg-white font-normal text-green-700"
+            onClick={handleApproveAll}
             disabled={actionsDisabled}
           >
-            Ignore
+            Approve All
           </Button>
         )}
       </div>
 
+      {/* Multi-action progress bar */}
+      {totalActions > 1 && (
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full">
+            {Array.from({ length: totalActions }).map((_, idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  "h-full flex-1 rounded-full",
+                  idx === currentActionIndex
+                    ? "bg-blue-500"
+                    : addressedActions.has(idx)
+                      ? "bg-green-500"
+                      : "bg-gray-300",
+                )}
+              />
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousAction}
+              disabled={currentActionIndex === 0 || actionsDisabled}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-500">
+              Action {currentActionIndex + 1} of {totalActions}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextAction}
+              disabled={
+                currentActionIndex === totalActions - 1 || actionsDisabled
+              }
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <InboxItemInput
-        acceptAllowed={acceptAllowed}
+        approveAllowed={approveAllowed}
         hasEdited={hasEdited}
-        hasAddedResponse={hasAddedResponse}
-        interruptValue={interrupt}
-        humanResponse={humanResponse}
+        hasAddedReject={hasAddedReject}
+        hitlRequest={hitlRequest}
+        currentActionIndex={currentActionIndex}
+        decisions={decisions}
         initialValues={initialHumanInterruptEditValue.current}
-        setHumanResponse={setHumanResponse}
+        setDecisions={setDecisions}
         streaming={streaming}
         streamFinished={streamFinished}
         supportsMultipleMethods={supportsMultipleMethods}
         setSelectedSubmitType={setSelectedSubmitType}
-        setHasAddedResponse={setHasAddedResponse}
+        setHasAddedReject={setHasAddedReject}
         setHasEdited={setHasEdited}
         handleSubmit={handleSubmit}
       />
+
+      {/* Submit all button for multi-action */}
+      {totalActions > 1 && allActionsAddressed && (
+        <Button
+          variant="brand"
+          className="w-full"
+          onClick={handleSubmitAll}
+          disabled={actionsDisabled}
+        >
+          Submit all {totalActions} decisions
+        </Button>
+      )}
     </div>
   );
 }

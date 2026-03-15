@@ -24,7 +24,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@langchain/core": "^1.1.12",
     "@langchain/langgraph": "^1.0.15",
-    "@langchain/langgraph-sdk": "1.4.6",
+    "@langchain/langgraph-sdk": "1.5.2",
     "@prisma/client": "5",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.3",

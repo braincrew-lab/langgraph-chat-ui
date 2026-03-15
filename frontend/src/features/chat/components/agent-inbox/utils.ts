@@ -1,8 +1,12 @@
 import { BaseMessage, isBaseMessage } from "@langchain/core/messages";
 import { format } from "date-fns";
 import { startCase } from "lodash";
-import { HumanResponseWithEdits, SubmitType } from "./types";
-import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
+import {
+  DecisionWithEdits,
+  DecisionType,
+  HITLRequest,
+  Decision,
+} from "./types";
 
 export function prettifyText(action: string) {
   return startCase(action.replace(/_/g, " "));
@@ -77,110 +81,108 @@ export function unknownToPrettyDate(input: unknown): string | undefined {
   return undefined;
 }
 
-export function createDefaultHumanResponse(
-  interrupt: HumanInterrupt,
-  initialHumanInterruptEditValue: React.MutableRefObject<
-    Record<string, string>
-  >,
+export function createDefaultDecisions(
+  hitlRequest: HITLRequest,
+  initialEditValues: React.MutableRefObject<Record<string, string>>,
 ): {
-  responses: HumanResponseWithEdits[];
-  defaultSubmitType: SubmitType | undefined;
-  hasAccept: boolean;
+  decisions: DecisionWithEdits[];
+  defaultSubmitType: DecisionType | undefined;
+  approveAllowed: boolean;
 } {
-  const responses: HumanResponseWithEdits[] = [];
-  if (interrupt.config.allow_edit) {
-    if (interrupt.config.allow_accept) {
-      Object.entries(interrupt.action_request.args).forEach(([k, v]) => {
-        let stringValue = "";
-        if (typeof v === "string") {
-          stringValue = v;
-        } else {
-          stringValue = JSON.stringify(v, null);
-        }
+  const decisions: DecisionWithEdits[] = hitlRequest.action_requests.map(
+    (actionRequest, idx) => {
+      const reviewConfig =
+        hitlRequest.review_configs.find(
+          (rc) => rc.action_name === actionRequest.name,
+        ) ?? hitlRequest.review_configs[idx];
 
-        if (
-          !initialHumanInterruptEditValue.current ||
-          !(k in initialHumanInterruptEditValue.current)
-        ) {
-          initialHumanInterruptEditValue.current = {
-            ...initialHumanInterruptEditValue.current,
-            [k]: stringValue,
-          };
-        } else if (
-          k in initialHumanInterruptEditValue.current &&
-          initialHumanInterruptEditValue.current[k] !== stringValue
-        ) {
-          console.error(
-            "KEY AND VALUE FOUND IN initialHumanInterruptEditValue.current THAT DOES NOT MATCH THE ACTION REQUEST",
-            {
-              key: k,
-              value: stringValue,
-              expectedValue: initialHumanInterruptEditValue.current[k],
-            },
-          );
-        }
-      });
-      responses.push({
-        type: "edit",
-        args: interrupt.action_request,
-        acceptAllowed: true,
+      const allowedDecisions = reviewConfig?.allowed_decisions ?? [];
+      const canApprove = allowedDecisions.includes("approve");
+      const canEdit = allowedDecisions.includes("edit");
+
+      if (canEdit) {
+        Object.entries(actionRequest.args).forEach(([k, v]) => {
+          const stringValue =
+            typeof v === "string" ? v : JSON.stringify(v, null);
+          if (
+            !initialEditValues.current ||
+            !(k in initialEditValues.current)
+          ) {
+            initialEditValues.current = {
+              ...initialEditValues.current,
+              [k]: stringValue,
+            };
+          } else if (
+            k in initialEditValues.current &&
+            initialEditValues.current[k] !== stringValue
+          ) {
+            console.error(
+              "KEY AND VALUE FOUND IN initialEditValues.current THAT DOES NOT MATCH THE ACTION REQUEST",
+              {
+                key: k,
+                value: stringValue,
+                expectedValue: initialEditValues.current[k],
+              },
+            );
+          }
+        });
+      }
+
+      let defaultType: DecisionType;
+      if (canApprove) defaultType = "approve";
+      else if (canEdit) defaultType = "edit";
+      else defaultType = "reject";
+
+      return {
+        type: defaultType,
+        action: { name: actionRequest.name, args: actionRequest.args },
+        edited_action: {
+          name: actionRequest.name,
+          args: { ...actionRequest.args },
+        },
+        message: "",
+        approveAllowed: canApprove,
         editsMade: false,
-      });
-    } else {
-      responses.push({
-        type: "edit",
-        args: interrupt.action_request,
-        acceptAllowed: false,
-      });
+      };
+    },
+  );
+
+  let defaultSubmitType: DecisionType | undefined;
+  if (decisions.length > 0) {
+    defaultSubmitType = decisions[0].type;
+  }
+
+  const approveAllowed = decisions.some((d) => d.approveAllowed);
+
+  return { decisions, defaultSubmitType, approveAllowed };
+}
+
+export function buildDecisionFromState(
+  decision: DecisionWithEdits,
+  submitType: DecisionType,
+): Decision | null {
+  if (submitType === "approve") {
+    return { type: "approve", action: decision.action };
+  }
+  if (submitType === "reject") {
+    if (!decision.message) return null;
+    return {
+      type: "reject",
+      action: decision.action,
+      message: decision.message,
+    };
+  }
+  if (submitType === "edit") {
+    if (decision.approveAllowed && !decision.editsMade) {
+      return { type: "approve", action: decision.action };
     }
+    return {
+      type: "edit",
+      action: decision.action,
+      edited_action: decision.edited_action,
+    };
   }
-  if (interrupt.config.allow_respond) {
-    responses.push({
-      type: "response",
-      args: "",
-    });
-  }
-
-  if (interrupt.config.allow_ignore) {
-    responses.push({
-      type: "ignore",
-      args: null,
-    });
-  }
-
-  // Set the submit type.
-  // Priority: accept > response  > edit
-  const acceptAllowedConfig = interrupt.config.allow_accept;
-  const ignoreAllowedConfig = interrupt.config.allow_ignore;
-
-  const hasResponse = responses.find((r) => r.type === "response");
-  const hasAccept =
-    responses.find((r) => r.acceptAllowed) || acceptAllowedConfig;
-  const hasEdit = responses.find((r) => r.type === "edit");
-
-  let defaultSubmitType: SubmitType | undefined;
-  if (hasAccept) {
-    defaultSubmitType = "accept";
-  } else if (hasResponse) {
-    defaultSubmitType = "response";
-  } else if (hasEdit) {
-    defaultSubmitType = "edit";
-  }
-
-  if (acceptAllowedConfig && !responses.find((r) => r.type === "accept")) {
-    responses.push({
-      type: "accept",
-      args: null,
-    });
-  }
-  if (ignoreAllowedConfig && !responses.find((r) => r.type === "ignore")) {
-    responses.push({
-      type: "ignore",
-      args: null,
-    });
-  }
-
-  return { responses, defaultSubmitType, hasAccept: !!hasAccept };
+  return null;
 }
 
 export function constructOpenInStudioURL(

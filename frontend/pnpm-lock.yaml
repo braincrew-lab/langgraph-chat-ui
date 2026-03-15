@@ -18,8 +18,8 @@ importers:
         specifier: ^1.0.15
         version: 1.0.15(@langchain/core@1.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@3.25.76)
       '@langchain/langgraph-sdk':
-        specifier: 1.4.6
-        version: 1.4.6(@langchain/core@1.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        specifier: 1.5.2
+        version: 1.5.2(@langchain/core@1.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@prisma/client':
         specifier: '5'
         version: 5.22.0(prisma@5.22.0)
@@ -692,20 +692,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': ^1.0.1
-
-  '@langchain/langgraph-sdk@1.4.6':
-    resolution: {integrity: sha512-rsATS9a23QdxmLZ2ZrnFqipjhOQCF4Mfclufe7KiNcY4KK3qR2jkk3HeWtlhv7rWJ38K+Yfc05c4uQTN51xSvA==}
-    peerDependencies:
-      '@langchain/core': ^1.0.1
-      react: ^18 || ^19
-      react-dom: ^18 || ^19
-    peerDependenciesMeta:
-      '@langchain/core':
-        optional: true
-      react:
-        optional: true
-      react-dom:
-        optional: true
 
   '@langchain/langgraph-sdk@1.5.2':
     resolution: {integrity: sha512-ArRnYIqJEUKnS+HFZoTtsIy2Uxy158l5ZTPWNhJkws6FuDEA3q/h6bhvHpZIf5z0JseDHCCoIbx6yOc2RpMpgg==}
@@ -4368,16 +4354,6 @@ snapshots:
     dependencies:
       '@langchain/core': 1.1.12
       uuid: 10.0.0
-
-  '@langchain/langgraph-sdk@1.4.6(@langchain/core@1.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      p-queue: 9.1.0
-      p-retry: 7.1.1
-      uuid: 13.0.0
-    optionalDependencies:
-      '@langchain/core': 1.1.12
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
 
   '@langchain/langgraph-sdk@1.5.2(@langchain/core@1.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
