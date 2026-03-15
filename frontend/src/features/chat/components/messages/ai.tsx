@@ -97,7 +97,7 @@ function Interrupt({
     <>
       {isAgentInboxInterruptSchema(interruptValue) &&
         (isLastMessage || hasNoAIOrToolMessages) && (
-          <ThreadView interrupt={interruptValue} />
+          <ThreadView hitlRequest={interruptValue} />
         )}
       {interruptValue &&
       !isAgentInboxInterruptSchema(interruptValue) &&
