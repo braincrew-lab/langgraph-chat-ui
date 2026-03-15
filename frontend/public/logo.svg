@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+
+  <!-- Circular background -->
+  <circle cx="256" cy="256" r="256" fill="#1a1a1a" />
+
+  <!-- Scaled and centered graphic -->
+  <g transform="translate(256,256) scale(0.7) translate(-256,-270)">
+    <!-- Chat bubble -->
+    <path
+      d="M 158 132
+         L 354 132
+         A 48 48 0 0 1 402 180
+         L 402 312
+         A 48 48 0 0 1 354 360
+         L 158 360
+         L 110 408
+         L 110 180
+         A 48 48 0 0 1 158 132 Z"
+      stroke="white"
+      stroke-width="30"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+
+    <!-- Graph edges -->
+    <path
+      d="M 216 246 L 316 186
+         M 216 246 L 316 306"
+      stroke="white"
+      stroke-width="18"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+
+    <!-- Graph nodes -->
+    <circle cx="216" cy="246" r="24" fill="white" />
+    <circle cx="316" cy="186" r="24" fill="white" />
+    <circle cx="316" cy="306" r="24" fill="white" />
+  </g>
+
+</svg>
