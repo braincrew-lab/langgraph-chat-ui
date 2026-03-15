@@ -1,4 +1,3 @@
 export { ActiveTask, ActiveTasksList } from "./ActiveTask";
-export { IntermediateLLMOutputList } from "./IntermediateLLMOutputs";
+export { ActivityStream } from "./ActivityStream";
 export { TodoProgressList } from "./TodoProgressList";
-export { TaskProgressList } from "./TaskProgressList";

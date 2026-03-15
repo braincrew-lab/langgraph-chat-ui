@@ -123,6 +123,52 @@ export interface StreamingOutput {
 }
 
 // ============================================
+// ActivityItem Types (Unified Activity Stream)
+// ============================================
+
+export type ActivityItemKind = "tool_call" | "subgraph" | "llm_output";
+
+interface ActivityItemBase {
+  id: string;
+  kind: ActivityItemKind;
+  timestamp: number;
+  status: "streaming" | "completed" | "error";
+}
+
+export interface ToolCallActivity extends ActivityItemBase {
+  kind: "tool_call";
+  toolName: string;
+  toolCallId?: string;
+  toolArgs?: Record<string, unknown>;
+  nodeName?: string;
+  langsmith?: LangSmithEnrichment;
+}
+
+export interface SubgraphActivity extends ActivityItemBase {
+  kind: "subgraph";
+  displayName: string;
+  subgraphNamespace: string;
+  nodeName: string;
+  subagentType?: string;
+  childNodes: TaskChildNode[];
+  description?: string;
+  langsmith?: LangSmithEnrichment;
+}
+
+export interface LLMOutputActivity extends ActivityItemBase {
+  kind: "llm_output";
+  nodeName: string;
+  displayName: string;
+  outputSnippet: string;
+  fullOutput: string;
+}
+
+export type ActivityItem =
+  | ToolCallActivity
+  | SubgraphActivity
+  | LLMOutputActivity;
+
+// ============================================
 // Hook Return Types
 // ============================================
 
@@ -141,6 +187,9 @@ export interface UseTaskProgressReturn {
 
   /** TODO lifecycle state */
   lifecycle: "inactive" | "active" | "all_completed";
+
+  /** Unified activity items (time-ordered) */
+  activityItems: ActivityItem[];
 }
 
 /**

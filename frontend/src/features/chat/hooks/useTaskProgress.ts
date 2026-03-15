@@ -18,6 +18,10 @@ import type {
   UseTaskProgressReturn,
   TaskStatus,
   ToolResponseAnalysis,
+  ActivityItem,
+  ToolCallActivity,
+  SubgraphActivity,
+  LLMOutputActivity,
 } from "@/types/task-progress";
 import type { NodeUpdateInfo } from "./utils";
 
@@ -43,6 +47,10 @@ interface UseTaskProgressOptions {
   nodeUpdates?: NodeUpdateInfo[];
   isStreaming: boolean;
   finalNodeNames?: string[];
+  /** Map of message ID → node name (from Stream context) */
+  messageNodeMap?: Map<string, string>;
+  /** LangGraph state's `todos` field (from stream.values.todos) — most reliable source */
+  stateTodos?: unknown;
 }
 
 // ============================================
@@ -74,6 +82,34 @@ function extractTodosArraySafe(obj: unknown): unknown[] | null {
     if (Array.isArray(arr) && arr.length > 0) return arr;
   }
   return null;
+}
+
+/**
+ * Extract TODOs directly from LangGraph state's `todos` field.
+ * This is the most reliable source because `write_todos` updates this field
+ * via Command(update={"todos": ...}), making it available immediately
+ * without depending on message tool_calls parsing during streaming.
+ */
+function extractTodosFromState(stateTodos: unknown): TaskProgressItem[] {
+  if (!stateTodos) return [];
+
+  const arr = Array.isArray(stateTodos) ? stateTodos : null;
+  if (!arr || arr.length === 0) return [];
+
+  return arr
+    .filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === "object",
+    )
+    .map((item, idx) => ({
+      id: `todo-state-${idx}`,
+      content: String(item.content ?? item.text ?? item.title ?? ""),
+      status: parseStatus(item.status),
+      activeForm: item.activeForm ? String(item.activeForm) : undefined,
+      group: "main" as const,
+      source: "todo" as const,
+    }))
+    .filter((item) => item.content.length > 0);
 }
 
 /**
@@ -125,7 +161,7 @@ function analyzeToolResponse(
  * - snake_case → "Snake Case"
  * - camelCase → "Camel Case"
  */
-function humanizeNodeName(nodeName: string): string {
+export function humanizeNodeName(nodeName: string): string {
   const words = nodeName
     .replace(/_/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -182,11 +218,6 @@ function getStreamingContentFromMessages(
         })
         .join("");
     }
-
-    // DEBUG: Log AI message content
-    console.log(
-      `[getStreamingContent] AI message found at index ${i}, content length=${textContent.length}, preview="${textContent.slice(0, 100)}"`,
-    );
 
     if (textContent.length > 0) {
       return { content: textContent, isActive: true };
@@ -777,39 +808,321 @@ function calculateLifecycle(
 }
 
 // ============================================
+// Activity Item Builder
+// ============================================
+
+/**
+ * Build unified ActivityItem[] from nodeUpdates, messages, and running tools.
+ * Each data source maps to exactly one ActivityItem kind:
+ * - namespace.length > 0 → SubgraphActivity (with childNodes)
+ * - namespace.length === 0 && non-final → LLMOutputActivity
+ * - running tools (non-task, non-todo) → ToolCallActivity
+ *
+ * Also includes LLM outputs from completed messages via messageNodeMap.
+ */
+function buildActivityItems(
+  nodeUpdates: NodeUpdateInfo[] | undefined,
+  messages: LangGraphMessage[],
+  isStreaming: boolean,
+  finalNodeNames: string[],
+  messageNodeMap?: Map<string, string>,
+): ActivityItem[] {
+  const items: ActivityItem[] = [];
+
+  // --- Extract task tool_call info for subgraph name enrichment ---
+  interface TaskToolCallInfo {
+    description: string;
+    subagentType?: string;
+  }
+  const taskToolCallInfos: TaskToolCallInfo[] = [];
+  for (const msg of messages) {
+    if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
+    for (const tc of msg.tool_calls) {
+      if (!isTaskToolName(tc.name)) continue;
+      let args: unknown = tc.args;
+      if (typeof args === "string" && args.length > 0) {
+        try {
+          args = parsePartialJson(args);
+        } catch {
+          continue;
+        }
+      }
+      if (!args || typeof args !== "object") continue;
+      let o = args as Record<string, unknown>;
+      if (o.input && typeof o.input === "object") {
+        o = o.input as Record<string, unknown>;
+      }
+      const desc = String(o.description || o.prompt || o.task || "");
+      const sat = String(
+        o.subagent_type || o.subagentType || o.type || "",
+      );
+      taskToolCallInfos.push({
+        description: desc,
+        subagentType: sat || undefined,
+      });
+    }
+  }
+
+  if (nodeUpdates && nodeUpdates.length > 0) {
+    // Get streaming content from messages as fallback
+    const streamingMessage = getStreamingContentFromMessages(
+      messages,
+      isStreaming,
+    );
+
+    // --- SubgraphActivity: nodes with namespace ---
+    const subgraphMap = new Map<
+      string,
+      {
+        name: string;
+        nodes: NodeUpdateInfo[];
+        hasActiveNode: boolean;
+        earliestTimestamp: number;
+      }
+    >();
+
+    for (const node of nodeUpdates) {
+      if (node.namespace.length > 0) {
+        const topLevelNamespace = node.namespace[0];
+        const subgraphName = topLevelNamespace.split(":")[0];
+
+        if (!subgraphMap.has(topLevelNamespace)) {
+          subgraphMap.set(topLevelNamespace, {
+            name: subgraphName,
+            nodes: [],
+            hasActiveNode: false,
+            earliestTimestamp: node.timestamp,
+          });
+        }
+
+        const subgraph = subgraphMap.get(topLevelNamespace)!;
+        subgraph.nodes.push(node);
+        if (node.isActive) subgraph.hasActiveNode = true;
+        if (node.timestamp < subgraph.earliestTimestamp) {
+          subgraph.earliestTimestamp = node.timestamp;
+        }
+      } else {
+        // --- LLMOutputActivity: root-level non-final nodes ---
+        if (!node.streamingContent && !node.completedOutput) continue;
+        if (finalNodeNames.length === 0) continue;
+
+        const isFinal = finalNodeNames.some(
+          (name) => node.nodeName.toLowerCase() === name.toLowerCase(),
+        );
+        if (isFinal) continue;
+
+        // Skip tool execution nodes — their content is tool responses, not LLM output
+        if (node.nodeName.toLowerCase() === "tools") continue;
+
+        const content = node.streamingContent || node.completedOutput;
+        if (!content.trim()) continue;
+
+        // Skip todo/task tool response content (e.g., "Updated todo list to [...]")
+        if (/^Updated todo list to /i.test(content.trim())) continue;
+
+        const namespaceStr =
+          node.namespace.length > 0 ? `|${node.namespace.join("|")}` : "";
+        const uniqueId = `llm-${node.nodeName}${namespaceStr}`;
+
+        items.push({
+          id: uniqueId,
+          kind: "llm_output",
+          timestamp: node.timestamp,
+          status: node.isActive ? "streaming" : "completed",
+          nodeName: node.nodeName,
+          displayName: humanizeNodeName(node.nodeName),
+          outputSnippet:
+            content.length > 100 ? content.slice(0, 100) + "..." : content,
+          fullOutput: content,
+        } satisfies LLMOutputActivity);
+      }
+    }
+
+    // Convert subgraph map to SubgraphActivity items
+    // Sort by timestamp for stable 1:1 matching with task tool_call order
+    const sortedSubgraphs = [...subgraphMap.entries()].sort(
+      ([, a], [, b]) => a.earliestTimestamp - b.earliestTimestamp,
+    );
+
+    let subgraphIndex = 0;
+    for (const [namespaceKey, subgraph] of sortedSubgraphs) {
+      // Match with task tool_call info by order
+      const taskInfo = taskToolCallInfos[subgraphIndex];
+
+      // Use subagentType for display name if available, else fall back to node name
+      const displayName = taskInfo?.subagentType
+        ? humanizeNodeName(taskInfo.subagentType)
+        : humanizeNodeName(subgraph.name);
+
+      const childNodes = subgraph.nodes
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map((node, nodeIndex) => {
+          let content = node.streamingContent || node.completedOutput || "";
+          if (node.isActive && !content && streamingMessage) {
+            content = streamingMessage.content;
+          }
+          return {
+            id: `${namespaceKey}-${node.nodeName}-${nodeIndex}`,
+            nodeName: node.nodeName,
+            displayName: humanizeNodeName(node.nodeName),
+            content,
+            status: node.isActive
+              ? ("streaming" as const)
+              : ("completed" as const),
+            isActive: node.isActive,
+          };
+        });
+
+      items.push({
+        id: `subgraph-${subgraphIndex}-${namespaceKey}`,
+        kind: "subgraph",
+        timestamp: subgraph.earliestTimestamp,
+        status: subgraph.hasActiveNode ? "streaming" : "completed",
+        displayName,
+        description: taskInfo?.description,
+        subgraphNamespace: namespaceKey,
+        nodeName: subgraph.name,
+        subagentType: taskInfo?.subagentType || subgraph.name,
+        childNodes,
+      } satisfies SubgraphActivity);
+      subgraphIndex++;
+    }
+  }
+
+  // --- LLMOutputActivity from completed messages (via messageNodeMap) ---
+  if (
+    finalNodeNames.length > 0 &&
+    messageNodeMap &&
+    messageNodeMap.size > 0
+  ) {
+    // Collect existing LLM output IDs to deduplicate
+    const existingLLMIds = new Set(
+      items.filter((i) => i.kind === "llm_output").map((i) => i.id),
+    );
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.type !== "ai") continue;
+
+      const nodeName = msg.id ? messageNodeMap.get(msg.id) : undefined;
+      if (!nodeName) continue;
+
+      const isFinal = finalNodeNames.some(
+        (name) => nodeName.toLowerCase() === name.toLowerCase(),
+      );
+      if (isFinal) continue;
+
+      let textContent = "";
+      if (typeof msg.content === "string") {
+        textContent = msg.content;
+      } else if (Array.isArray(msg.content)) {
+        textContent = (msg.content as unknown[])
+          .map((c) => {
+            if (typeof c === "string") return c;
+            if (typeof c === "object" && c !== null && "type" in c) {
+              const block = c as { type: string; text?: string };
+              if (block.type === "text" && block.text) return block.text;
+            }
+            return "";
+          })
+          .join("");
+      }
+
+      if (!textContent.trim()) continue;
+
+      const uniqueId = `llm-${msg.id || `msg-${i}`}`;
+      if (existingLLMIds.has(uniqueId)) continue;
+
+      items.push({
+        id: uniqueId,
+        kind: "llm_output",
+        timestamp: i, // Use index for stable ordering
+        status: "completed",
+        nodeName,
+        displayName: humanizeNodeName(nodeName),
+        outputSnippet:
+          textContent.length > 100
+            ? textContent.slice(0, 100) + "..."
+            : textContent,
+        fullOutput: textContent,
+      } satisfies LLMOutputActivity);
+    }
+  }
+
+  // --- ToolCallActivity from running tools ---
+  if (isStreaming) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (
+        msg.type !== "ai" ||
+        !Array.isArray(msg.tool_calls) ||
+        msg.tool_calls.length === 0
+      )
+        continue;
+
+      const completedToolIds = new Set<string>();
+      for (let j = i + 1; j < messages.length; j++) {
+        const toolMsg = messages[j] as {
+          type?: string;
+          tool_call_id?: string;
+        };
+        if (toolMsg.type === "tool" && toolMsg.tool_call_id) {
+          completedToolIds.add(toolMsg.tool_call_id);
+        }
+      }
+
+      for (const tc of msg.tool_calls) {
+        if (isTodoToolName(tc.name) || isTaskToolName(tc.name)) continue;
+        const isCompleted = tc.id && completedToolIds.has(tc.id);
+        if (isCompleted) continue;
+
+        items.push({
+          id: tc.id || `tool-${tc.name}-${i}`,
+          kind: "tool_call",
+          timestamp: Date.now(),
+          status: "streaming",
+          toolName: tc.name,
+          toolCallId: tc.id,
+          toolArgs: tc.args || {},
+          nodeName: msg.name,
+        } satisfies ToolCallActivity);
+      }
+
+      break; // Only check the last AI message with tool calls
+    }
+  }
+
+  // Sort by timestamp (oldest first)
+  return items.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+// ============================================
 // Main Hook
 // ============================================
 
 export function useTaskProgress(
   options: UseTaskProgressOptions,
 ): UseTaskProgressReturn {
-  const { messages, nodeUpdates, isStreaming, finalNodeNames } = options;
+  const {
+    messages,
+    nodeUpdates,
+    isStreaming,
+    finalNodeNames,
+    messageNodeMap,
+    stateTodos,
+  } = options;
   const typedMessages = messages as LangGraphMessage[];
 
-  // DEBUG: Track messages and nodeUpdates during streaming
-  if (isStreaming) {
-    console.log(
-      `[useTaskProgress] isStreaming=true, messages=${messages.length}, nodeUpdates=${nodeUpdates?.length ?? 0}`,
-    );
-    if (nodeUpdates && nodeUpdates.length > 0) {
-      const activeNodes = nodeUpdates.filter((n) => n.isActive);
-      console.log(
-        `[useTaskProgress] Active nodes:`,
-        activeNodes.map((n) => ({
-          name: n.nodeName,
-          hasStreamingContent: !!n.streamingContent,
-          hasCompletedOutput: !!n.completedOutput,
-          contentPreview: (n.streamingContent || n.completedOutput || "").slice(
-            0,
-            50,
-          ),
-        })),
-      );
-    }
-  }
-
-  // Extract TODOs from TodoWrite calls
-  const todos = useMemo(() => extractTodos(typedMessages), [typedMessages]);
+  // Extract TODOs: prefer LangGraph state field (most reliable), fall back to message parsing
+  const todosFromState = useMemo(
+    () => extractTodosFromState(stateTodos),
+    [stateTodos],
+  );
+  const todosFromMessages = useMemo(
+    () => extractTodos(typedMessages),
+    [typedMessages],
+  );
+  const todos = todosFromState.length > 0 ? todosFromState : todosFromMessages;
 
   // Extract Tasks from Task tool calls in messages
   const tasksFromMessages = useMemo(
@@ -853,6 +1166,19 @@ export function useTaskProgress(
   // Calculate lifecycle
   const lifecycle = useMemo(() => calculateLifecycle(progress), [progress]);
 
+  // Build unified activity items
+  const activityItems = useMemo(
+    () =>
+      buildActivityItems(
+        nodeUpdates,
+        typedMessages,
+        isStreaming,
+        finalNodeNames ?? [],
+        messageNodeMap,
+      ),
+    [nodeUpdates, typedMessages, isStreaming, finalNodeNames, messageNodeMap],
+  );
+
   // Check if there's content to display
   const hasContent = progress.length > 0 || streamingOutput !== null;
 
@@ -861,6 +1187,7 @@ export function useTaskProgress(
     streamingOutput,
     hasContent,
     lifecycle,
+    activityItems,
   };
 }
 
