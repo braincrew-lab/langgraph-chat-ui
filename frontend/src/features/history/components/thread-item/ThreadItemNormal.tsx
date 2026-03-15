@@ -24,7 +24,9 @@ export function ThreadItemNormal({
       }`}
       tabIndex={0}
       role="button"
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
       onClick={onSelect}
     >
       <p className="min-w-0 flex-1 truncate text-sm text-ellipsis">

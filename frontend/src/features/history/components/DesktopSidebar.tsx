@@ -3,12 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/shared/components/ui/separator";
-import {
-  LayoutDashboard,
-  Settings,
-  Users,
-  Shield,
-} from "lucide-react";
+import { LayoutDashboard, Settings, Users, Shield } from "lucide-react";
 import { NewChatButton } from "./NewChatButton";
 import { ThreadList } from "./ThreadList";
 import { ThreadHistoryLoading } from "./ThreadHistoryLoading";

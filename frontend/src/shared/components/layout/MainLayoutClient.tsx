@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { motion } from "framer-motion";
@@ -224,7 +224,7 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
               )}
             {showHeaderLogo && (
               <button
-                className="flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
+                className="focus-visible:ring-ring flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:outline-none"
                 onClick={handleLogoClick}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -272,7 +272,10 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => setTracingPanelOpen((prev) => !prev)}
-                      className={cn("h-10 w-10", tracingPanelOpen && "bg-accent")}
+                      className={cn(
+                        "h-10 w-10",
+                        tracingPanelOpen && "bg-accent",
+                      )}
                     >
                       <PanelRight className="size-[22px]" />
                     </Button>
@@ -311,7 +314,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
           </TracingPanelContext.Provider>
         </div>
       </main>
-
     </div>
   );
 }

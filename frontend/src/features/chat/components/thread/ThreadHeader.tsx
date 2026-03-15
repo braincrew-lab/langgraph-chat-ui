@@ -41,7 +41,7 @@ export function ThreadHeader({
           {config.threads.showHistory &&
             (!chatHistoryOpen || !isLargeScreen) && (
               <Button
-                className="h-10 w-10 hover:bg-accent cursor-pointer"
+                className="hover:bg-accent h-10 w-10 cursor-pointer"
                 variant="ghost"
                 size="icon"
                 onClick={() => setChatHistoryOpen((p) => !p)}
@@ -87,7 +87,7 @@ export function ThreadHeader({
           {config.threads.showHistory &&
             (!chatHistoryOpen || !isLargeScreen) && (
               <Button
-                className="h-10 w-10 hover:bg-accent"
+                className="hover:bg-accent h-10 w-10"
                 variant="ghost"
                 size="icon"
                 onClick={() => setChatHistoryOpen((p) => !p)}
@@ -101,7 +101,7 @@ export function ThreadHeader({
             )}
         </div>
         <motion.button
-          className="ml-2 flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
+          className="focus-visible:ring-ring ml-2 flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:outline-none"
           onClick={onLogoClick}
           animate={{
             translateX: config.threads.showHistory && !chatHistoryOpen ? 48 : 0,

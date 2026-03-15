@@ -235,7 +235,10 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
             }`}
             tabIndex={0}
             role="button"
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSwitchConnection(connection); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ")
+                handleSwitchConnection(connection);
+            }}
             onClick={() => handleSwitchConnection(connection)}
           >
             <div className="flex-1">
