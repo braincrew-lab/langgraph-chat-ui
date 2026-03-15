@@ -15,7 +15,6 @@ import { useSettings } from "@/shared/hooks/useSettings";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { DesktopSidebar } from "@/features/history/components/DesktopSidebar";
 import { MobileSidebar } from "@/features/history/components/MobileSidebar";
-import { FullDescriptionModal } from "@/features/chat/components/modals/FullDescriptionModal";
 import { Button } from "@/shared/components/ui/button";
 import {
   Tooltip,
@@ -79,9 +78,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
     [tracingPanelOpen, updateUserSettings],
   );
 
-  // Guide modal state
-  const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
-
   const finalAssistantId = assistantId?.trim() || "";
 
   const { getThreads, threads, setThreads, threadsLoading, setThreadsLoading } =
@@ -127,10 +123,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
     setChatHistoryOpen((prev) => !prev);
   }, [setChatHistoryOpen]);
 
-  const handleShowGuide = useCallback(() => {
-    setFullDescriptionOpen(true);
-  }, []);
-
   const handleLogoClick = useCallback(() => {
     if (isOnAdminPage) {
       router.push("/");
@@ -164,7 +156,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                   threads={threads}
                   threadsLoading={threadsLoading}
                   onNewChat={handleNewChat}
-                  onShowGuide={handleShowGuide}
                 />
               </div>
             </div>
@@ -182,7 +173,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         }}
         onNewChat={handleMobileNewChat}
         onThreadClick={handleMobileThreadClick}
-        onShowGuide={handleShowGuide}
       />
 
       {/* Main Content Area */}
@@ -198,6 +188,12 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                 ? UI.CHAT_SIDEBAR_WIDTH
                 : 0
               : 0,
+          marginRight:
+            isOnChatPage && tracingPanelOpen
+              ? isLargeScreen
+                ? UI.TRACING_SIDEBAR_WIDTH
+                : 0
+              : 0,
         }}
       >
         {/* Shared Header */}
@@ -207,28 +203,28 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
             useUnifiedDarkSurface ? "bg-card" : "bg-background",
           )}
         >
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             {config.threads.showHistory &&
               (isLargeScreen || !chatHistoryOpen) && (
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={handleToggleChatHistory}
-                  className="text-foreground/75 hover:bg-accent/70 hover:text-foreground transition-colors"
+                  className="h-10 w-10"
                   aria-label={
                     chatHistoryOpen ? "Close sidebar" : "Open sidebar"
                   }
                 >
                   {chatHistoryOpen ? (
-                    <PanelRightOpen className="size-5" />
+                    <PanelRightOpen className="size-[22px]" />
                   ) : (
-                    <PanelRightClose className="size-5" />
+                    <PanelRightClose className="size-[22px]" />
                   )}
                 </Button>
               )}
             {showHeaderLogo && (
               <button
-                className="flex cursor-pointer items-center gap-2"
+                className="flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
                 onClick={handleLogoClick}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -246,38 +242,14 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Tracing panel toggle - only on chat pages when LangSmith is configured */}
-            {isOnChatPage && config.langsmithEnabled && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setTracingPanelOpen((prev) => !prev)}
-                      className={cn("h-9 w-9", tracingPanelOpen && "bg-accent")}
-                    >
-                      <PanelRight className="size-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>
-                      {tracingPanelOpen
-                        ? "Close tracing panel"
-                        : "Open tracing panel"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
-                    href="https://github.com/teddylee777/agent-chat-ui"
+                    href="https://github.com/teddynote-lab/langgraph-chat-ui"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:bg-accent flex h-9 w-9 items-center justify-center rounded-md transition-colors"
+                    className="hover:bg-accent focus-visible:ring-ring flex h-10 w-10 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     aria-label="Open GitHub repository"
                   >
                     <GitHubSVG
@@ -291,6 +263,30 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            {/* Tracing panel toggle - only on chat pages when LangSmith is configured */}
+            {isOnChatPage && config.langsmithEnabled && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTracingPanelOpen((prev) => !prev)}
+                      className={cn("h-10 w-10", tracingPanelOpen && "bg-accent")}
+                    >
+                      <PanelRight className="size-[22px]" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>
+                      {tracingPanelOpen
+                        ? "Close tracing panel"
+                        : "Open tracing panel"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Header bottom fade */}
@@ -316,11 +312,6 @@ function MainLayoutContent({ children, assistantId }: MainLayoutContentProps) {
         </div>
       </main>
 
-      {/* Full Description Modal */}
-      <FullDescriptionModal
-        open={fullDescriptionOpen}
-        onOpenChange={setFullDescriptionOpen}
-      />
     </div>
   );
 }

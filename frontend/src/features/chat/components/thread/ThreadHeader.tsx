@@ -41,14 +41,15 @@ export function ThreadHeader({
           {config.threads.showHistory &&
             (!chatHistoryOpen || !isLargeScreen) && (
               <Button
-                className="hover:bg-accent cursor-pointer"
+                className="h-10 w-10 hover:bg-accent cursor-pointer"
                 variant="ghost"
+                size="icon"
                 onClick={() => setChatHistoryOpen((p) => !p)}
               >
                 {chatHistoryOpen ? (
-                  <PanelRightOpen className="size-5" />
+                  <PanelRightOpen className="size-[22px]" />
                 ) : (
-                  <PanelRightClose className="size-5" />
+                  <PanelRightClose className="size-[22px]" />
                 )}
               </Button>
             )}
@@ -61,9 +62,9 @@ export function ThreadHeader({
                   variant="ghost"
                   size="icon"
                   onClick={() => setSidebarOpen((prev) => !prev)}
-                  className={cn("h-9 w-9", sidebarOpen && "bg-accent")}
+                  className={cn("h-10 w-10", sidebarOpen && "bg-accent")}
                 >
-                  <PanelRight className="size-5" />
+                  <PanelRight className="size-[22px]" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="left">
@@ -86,20 +87,21 @@ export function ThreadHeader({
           {config.threads.showHistory &&
             (!chatHistoryOpen || !isLargeScreen) && (
               <Button
-                className="hover:bg-accent"
+                className="h-10 w-10 hover:bg-accent"
                 variant="ghost"
+                size="icon"
                 onClick={() => setChatHistoryOpen((p) => !p)}
               >
                 {chatHistoryOpen ? (
-                  <PanelRightOpen className="size-5" />
+                  <PanelRightOpen className="size-[22px]" />
                 ) : (
-                  <PanelRightClose className="size-5" />
+                  <PanelRightClose className="size-[22px]" />
                 )}
               </Button>
             )}
         </div>
         <motion.button
-          className="ml-2 flex cursor-pointer items-center gap-2"
+          className="ml-2 flex cursor-pointer items-center gap-2 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
           onClick={onLogoClick}
           animate={{
             translateX: config.threads.showHistory && !chatHistoryOpen ? 48 : 0,
@@ -131,9 +133,9 @@ export function ThreadHeader({
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen((prev) => !prev)}
-                className={cn("h-9 w-9", sidebarOpen && "bg-accent")}
+                className={cn("h-10 w-10", sidebarOpen && "bg-accent")}
               >
-                <PanelRight className="size-5" />
+                <PanelRight className="size-[22px]" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">

@@ -230,9 +230,12 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
         {connections.map((connection) => (
           <div
             key={connection.id}
-            className={`hover:bg-accent/50 flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
+            className={`hover:bg-accent/50 focus-visible:ring-ring flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors focus-visible:ring-2 focus-visible:outline-none ${
               connection.isActive ? "bg-accent border-primary" : ""
             }`}
+            tabIndex={0}
+            role="button"
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSwitchConnection(connection); }}
             onClick={() => handleSwitchConnection(connection)}
           >
             <div className="flex-1">

@@ -25,8 +25,8 @@ export function ThreadItemMenu({ onRename, onDelete }: ThreadItemMenuProps) {
         onOpenChange={setIsMenuOpen}
       >
         <DropdownMenuTrigger
-          className={`flex ${BUTTON_SIZE_SM} hover:bg-accent/50 items-center justify-center rounded-md transition-opacity ${
-            isMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          className={`flex ${BUTTON_SIZE_SM} hover:bg-accent/50 focus-visible:ring-ring items-center justify-center rounded-md transition-opacity focus-visible:ring-2 focus-visible:outline-none ${
+            isMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           }`}
           onClick={(e) => {
             e.stopPropagation();
