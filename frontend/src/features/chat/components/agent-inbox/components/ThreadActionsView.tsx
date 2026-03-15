@@ -117,9 +117,7 @@ export function ThreadActionsView({
       {/* Header */}
       <div className="flex w-full flex-wrap items-center justify-between gap-3">
         <div className="flex items-center justify-start gap-3">
-          <p className="text-2xl tracking-tighter text-pretty">
-            {threadTitle}
-          </p>
+          <p className="text-2xl tracking-tighter text-pretty">{threadTitle}</p>
           {threadId && <ThreadIdCopyable threadId={threadId} />}
         </div>
         <div className="flex flex-row items-center justify-start gap-2">

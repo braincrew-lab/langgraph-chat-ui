@@ -104,10 +104,7 @@ export function createDefaultDecisions(
         Object.entries(actionRequest.args).forEach(([k, v]) => {
           const stringValue =
             typeof v === "string" ? v : JSON.stringify(v, null);
-          if (
-            !initialEditValues.current ||
-            !(k in initialEditValues.current)
-          ) {
+          if (!initialEditValues.current || !(k in initialEditValues.current)) {
             initialEditValues.current = {
               ...initialEditValues.current,
               [k]: stringValue,

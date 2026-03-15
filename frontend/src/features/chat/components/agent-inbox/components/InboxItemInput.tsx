@@ -117,9 +117,7 @@ function RejectComponent({
         />
       </div>
 
-      {showArgsInReject && currentAR && (
-        <ArgsRenderer args={currentAR.args} />
-      )}
+      {showArgsInReject && currentAR && <ArgsRenderer args={currentAR.args} />}
 
       <div className="flex w-full flex-col items-start gap-[6px]">
         <p className="min-w-fit text-sm font-medium">Rejection reason</p>

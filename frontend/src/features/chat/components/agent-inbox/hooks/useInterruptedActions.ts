@@ -1,4 +1,9 @@
-import { DecisionWithEdits, DecisionType, Decision, HITLRequest } from "../types";
+import {
+  DecisionWithEdits,
+  DecisionType,
+  Decision,
+  HITLRequest,
+} from "../types";
 import {
   KeyboardEvent,
   Dispatch,
@@ -70,8 +75,7 @@ export default function useInterruptedActions({
   const [streaming, setStreaming] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
   const initialHumanInterruptEditValue = useRef<Record<string, string>>({});
-  const [selectedSubmitType, setSelectedSubmitType] =
-    useState<DecisionType>();
+  const [selectedSubmitType, setSelectedSubmitType] = useState<DecisionType>();
   const [hasEdited, setHasEdited] = useState(false);
   const [hasAddedReject, setHasAddedReject] = useState(false);
   const [approveAllowed, setApproveAllowed] = useState(false);
@@ -333,9 +337,8 @@ export default function useInterruptedActions({
       ) ?? hitlRequest.review_configs[currentActionIndex];
     const allowed = rc?.allowed_decisions ?? [];
     return (
-      allowed.filter(
-        (d) => d === "edit" || d === "approve" || d === "reject",
-      ).length > 1
+      allowed.filter((d) => d === "edit" || d === "approve" || d === "reject")
+        .length > 1
     );
   }, [hitlRequest, currentActionIndex]);
 
