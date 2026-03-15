@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useSettings } from "@/shared/hooks/useSettings";
-import { FullDescriptionModal } from "./modals/FullDescriptionModal";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
 import { useSchemaUI } from "@/features/chat/hooks/useSchemaUI";
 import { UnifiedInputArea } from "./schema-ui";
@@ -57,7 +56,6 @@ export function ThreadContent() {
     parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
-  const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const {
     contentBlocks,
@@ -251,22 +249,14 @@ export function ThreadContent() {
 
   return (
     <ThreadErrorBoundary>
-      <div className="flex h-full w-full overflow-hidden">
-        <div
-          className="grid w-full transition-all duration-500"
-          style={{
-            gridTemplateColumns: sidebarOpen
-              ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px`
-              : "1fr 0fr",
-          }}
-        >
+      <div className="relative flex h-full w-full overflow-hidden">
           <div
             className={cn(
-              "relative flex min-w-0 flex-1 flex-col overflow-hidden transition-all",
+              "relative flex min-w-0 flex-1 flex-col overflow-hidden",
               !chatStarted && "grid-rows-[1fr]",
-              isLargeScreen ? "duration-300" : "duration-0",
             )}
           >
+
             <StickToBottom
               resize="smooth"
               className="relative flex-1 overflow-hidden"
@@ -318,20 +308,7 @@ export function ThreadContent() {
                       <WelcomeScreen
                         config={config}
                         chatWidth={userSettings.chatWidth}
-                        isFormMode={isFormMode}
                         isSchemaLoading={schemaUI.isLoading}
-                        isLoading={isLoading}
-                        isAssistantSelected={isAssistantSelected}
-                        onSelectOpener={(opener) => {
-                          setInput(opener);
-                          setTimeout(() => {
-                            const form = document.querySelector("form");
-                            form?.requestSubmit();
-                          }, 0);
-                        }}
-                        onFullDescriptionOpen={() =>
-                          setFullDescriptionOpen(true)
-                        }
                       />
                     )}
 
@@ -397,12 +374,8 @@ export function ThreadContent() {
             onRefresh={refetchLangSmith}
             selectedTaskId={selectedTaskId}
             onSelectTask={setSelectedTaskId}
+            isLargeScreen={isLargeScreen}
           />
-        </div>
-        <FullDescriptionModal
-          open={fullDescriptionOpen}
-          onOpenChange={setFullDescriptionOpen}
-        />
       </div>
     </ThreadErrorBoundary>
   );

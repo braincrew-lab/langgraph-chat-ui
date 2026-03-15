@@ -35,7 +35,6 @@ interface SettingsFormProps {
   serverDefaults: GlobalSettings;
 }
 
-import { StringArrayInput } from "./StringArrayInput";
 import { ImagePreview } from "./ImagePreview";
 
 export function SettingsForm({
@@ -168,28 +167,6 @@ export function SettingsForm({
               }
               placeholder={(defaultValue as string) || undefined}
               defaultValue={defaultValue as string}
-            />
-            <p className="text-muted-foreground text-sm">
-              {t(`settings.descriptions.${i18nKey}`)}
-            </p>
-          </div>
-        );
-
-      case "array":
-        return (
-          <div className="space-y-2">
-            <Label htmlFor={definition.key}>
-              {t(`settings.labels.${i18nKey}`)}
-            </Label>
-            <StringArrayInput
-              value={value as string[]}
-              onChange={(val) =>
-                handleChange(
-                  definition.key,
-                  val as GlobalSettings[typeof definition.key],
-                )
-              }
-              maxItems={definition.maxItems}
             />
             <p className="text-muted-foreground text-sm">
               {t(`settings.descriptions.${i18nKey}`)}

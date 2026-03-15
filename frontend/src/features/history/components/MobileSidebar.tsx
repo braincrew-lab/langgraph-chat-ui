@@ -1,13 +1,10 @@
 import { Thread } from "@langchain/langgraph-sdk";
 import { useTranslations } from "next-intl";
-import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/sheet";
 import { NewChatButton } from "./NewChatButton";
 import { ThreadList } from "./ThreadList";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { BookOpen } from "lucide-react";
-import { ICON_SIZE_SM } from "../constants";
 
 interface MobileSidebarProps {
   threads: Thread[];
@@ -15,7 +12,6 @@ interface MobileSidebarProps {
   onOpenChange: (open: boolean) => void;
   onNewChat: () => void;
   onThreadClick: () => void;
-  onShowGuide?: () => void;
 }
 
 export function MobileSidebar({
@@ -24,7 +20,6 @@ export function MobileSidebar({
   onOpenChange,
   onNewChat,
   onThreadClick,
-  onShowGuide,
 }: MobileSidebarProps) {
   const t = useTranslations("history");
 
@@ -44,21 +39,6 @@ export function MobileSidebar({
 
           {/* New Chat button */}
           <NewChatButton onClick={onNewChat} />
-
-          {/* Guide button */}
-          {onShowGuide && (
-            <Button
-              variant="ghost"
-              className="hover:bg-accent w-full justify-start gap-2 px-3 py-2 text-sm font-medium"
-              onClick={() => {
-                onShowGuide();
-                onOpenChange(false);
-              }}
-            >
-              <BookOpen className={ICON_SIZE_SM} />
-              <span>{t("sidebar.guide")}</span>
-            </Button>
-          )}
 
           {/* Separator */}
           <Separator />

@@ -36,7 +36,6 @@ export interface GlobalSettings {
   "branding.appTitle": string; // 앱 타이틀
   "branding.logoUrl": string; // 로고 이미지 URL
   "branding.faviconUrl": string; // Favicon URL (빈 값 = logoUrl 사용)
-  "branding.chatOpeners": string[]; // 채팅 시작 문구 목록 (빈 배열 = 정적 설정 사용)
 }
 
 export type SettingKey = keyof GlobalSettings;
@@ -49,9 +48,8 @@ export interface SettingMeta {
   label: string;
   description: string;
   category: SettingCategory;
-  type: "string" | "boolean" | "number" | "select" | "url" | "array";
+  type: "string" | "boolean" | "number" | "select" | "url";
   options?: string[];
-  maxItems?: number; // array 타입일 때 최대 항목 수
   defaultValue: GlobalSettings[SettingKey];
 }
 
@@ -77,8 +75,8 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "auth.allowRegistration": true,
 
   // UI (matches site.ts)
-  "ui.welcomeMessage": "테디노트 챗봇에게 무엇이든 물어보세요.",
-  "ui.chatInputPlaceholder": "궁금한 내용을 물어보세요.",
+  "ui.welcomeMessage": "Ask your LangGraph agent anything.",
+  "ui.chatInputPlaceholder": "Ask anything...",
 
   // Features (matches site.ts)
   "features.enableFileUpload": true,
@@ -94,10 +92,9 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "features.defaultConnectionApiUrl": "",
 
   // Branding
-  "branding.appTitle": "TeddyNote Chat",
-  "branding.logoUrl": "/logo.png",
+  "branding.appTitle": "LangGraph Chat UI",
+  "branding.logoUrl": "/logo.svg",
   "branding.faviconUrl": "", // 빈 값 = logoUrl 사용
-  "branding.chatOpeners": [], // 빈 배열 = 정적 설정 사용
 };
 
 /**
@@ -107,7 +104,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 export const LOCALE_SENSITIVE_KEYS: SettingKey[] = [
   "ui.welcomeMessage",
   "ui.chatInputPlaceholder",
-  "branding.chatOpeners",
 ];
 
 /**
@@ -254,15 +250,5 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
     category: "branding",
     type: "url",
     defaultValue: DEFAULT_SETTINGS["branding.faviconUrl"],
-  },
-  {
-    key: "branding.chatOpeners",
-    label: "채팅 시작 문구",
-    description:
-      "새 채팅 시작 시 표시되는 예시 질문 목록 (비워두면 기본값 사용)",
-    category: "branding",
-    type: "array",
-    maxItems: 20,
-    defaultValue: DEFAULT_SETTINGS["branding.chatOpeners"],
   },
 ];

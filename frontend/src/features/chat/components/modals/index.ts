@@ -1,1 +1,0 @@
-export { FullDescriptionModal } from "./FullDescriptionModal";

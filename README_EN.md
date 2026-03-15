@@ -403,8 +403,6 @@ docker run -p 3000:3000 \
 | [LangGraph Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose setup |
 | [Examples](examples/) | Per-auth-mode server/frontend configuration examples |
 
-The user guide can be edited at `public/full-description.md`. Use markdown to customize the in-app help page.
-
 ---
 
 ## Contributing

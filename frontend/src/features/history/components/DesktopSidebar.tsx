@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   LayoutDashboard,
-  BookOpen,
   Settings,
   Users,
   Shield,
@@ -25,14 +24,12 @@ interface DesktopSidebarProps {
   threads: Thread[];
   threadsLoading: boolean;
   onNewChat: () => void;
-  onShowGuide?: () => void;
 }
 
 export function DesktopSidebar({
   threads,
   threadsLoading,
   onNewChat,
-  onShowGuide,
 }: DesktopSidebarProps) {
   const t = useTranslations("history");
   const { user } = useAuth();
@@ -42,27 +39,13 @@ export function DesktopSidebar({
   return (
     <div className="shadow-inner-right border-border flex h-screen w-[300px] shrink-0 flex-col items-stretch justify-start border-r-[1px]">
       {/* New Chat button */}
-      <div className="mb-2 px-3 pt-4">
+      <div className="px-3 pt-4">
         <NewChatButton onClick={onNewChat} />
       </div>
 
-      {/* Guide button */}
-      {onShowGuide && (
-        <div className="px-3">
-          <button
-            type="button"
-            className="hover:bg-accent focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
-            onClick={onShowGuide}
-          >
-            <BookOpen className={ICON_SIZE_SM} />
-            <span className="text-sm font-medium">{t("sidebar.guide")}</span>
-          </button>
-        </div>
-      )}
-
       {/* Admin navigation (only for admins) */}
       {userIsAdmin && (
-        <div className="mt-4 px-3">
+        <div className="mt-3 px-3">
           <div className="border-border/60 bg-muted/35 rounded-lg border p-2">
             <p className="text-muted-foreground mb-2 px-2 text-xs font-medium">
               {t("sidebar.admin")}
@@ -130,7 +113,7 @@ export function DesktopSidebar({
       )}
 
       {/* Separator before thread list */}
-      <Separator className="my-4" />
+      <Separator className="my-2" />
 
       {/* Thread list */}
       <div className="flex-1 overflow-hidden">
