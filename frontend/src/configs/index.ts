@@ -9,6 +9,7 @@ export const fullConfig = {
     ...siteConfig.branding,
     chatOpeners: [...chatOpeners],
   },
+  langsmithEnabled: false,
 };
 
 export type FullConfig = typeof fullConfig;

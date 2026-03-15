@@ -93,7 +93,12 @@ export async function loadServerConfig(): Promise<ChatConfig> {
     };
 
     const mergedConfig = applyGlobalSettings(fullConfig, settings);
-    return mergedConfig;
+
+    // Auto-detect LangSmith availability from server env vars
+    const langsmithEnabled =
+      !!process.env.LANGSMITH_API_KEY && !!process.env.LANGSMITH_PROJECT;
+
+    return { ...mergedConfig, langsmithEnabled };
   } catch (error) {
     // If DB is unavailable, fall back to static config
     console.error("Failed to load global settings, using defaults:", error);

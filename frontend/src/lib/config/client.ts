@@ -37,6 +37,8 @@ export interface ChatConfig {
     chatHistoryOpen: boolean;
     tracingPanelOpen: boolean;
   };
+  /** Whether LangSmith tracing is available (env vars configured) */
+  langsmithEnabled: boolean;
 }
 
 // Default configuration (from src/configs)

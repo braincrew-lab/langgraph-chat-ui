@@ -118,8 +118,8 @@ export function Thread() {
     finalNodeNames,
   } = useAssistantConfig();
 
-  // LangSmith API 연동 - threadId로 runs 조회
-  // 스트리밍 중에만 2초 폴링 활성화
+  // LangSmith API 연동 (disabled when env vars not configured)
+  const langsmithEnabled = config.langsmithEnabled;
   const {
     runs: allRuns,
     middlewareRuns: langSmithMiddlewareRuns,
@@ -127,9 +127,9 @@ export function Thread() {
     llmRuns: langSmithLLMRuns,
     loading: langSmithLoading,
     refetch: refetchLangSmith,
-  } = useLangSmithRuns(threadId, null, {
+  } = useLangSmithRuns(langsmithEnabled ? threadId : null, null, {
     pollingInterval: TIMING.POLLING_INTERVAL,
-    autoPolling: isLoading, // 스트리밍 중에만 폴링
+    autoPolling: langsmithEnabled && isLoading,
   });
 
   // LangSmith runs를 타임라인 이벤트로 변환
@@ -599,7 +599,7 @@ export function Thread() {
         </div>
 
         {/* LangSmith Tracing sidebar */}
-        {sidebarOpen && (
+        {langsmithEnabled && sidebarOpen && (
           <ThreadTracingSidebar
             langSmithEvents={langSmithEvents}
             langSmithLoading={langSmithLoading}
