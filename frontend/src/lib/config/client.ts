@@ -12,8 +12,6 @@ export interface ChatConfig {
     logoWidth: number;
     logoHeight: number;
     description?: string;
-    chatOpeners?: string[];
-    fullDescription?: string;
   };
   buttons: {
     enableFileUpload: boolean;

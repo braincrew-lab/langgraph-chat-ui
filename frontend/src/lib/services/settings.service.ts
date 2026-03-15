@@ -302,15 +302,9 @@ export async function getLocalizedTextDefaults(): Promise<
   Partial<GlobalSettings>
 > {
   const t = await getTranslations("defaults");
-  const chatOpenersStr = t("chatOpeners");
-  const chatOpeners = chatOpenersStr
-    ? chatOpenersStr.split("\n").filter(Boolean)
-    : [];
-
   return {
     "ui.welcomeMessage": t("welcomeMessage"),
     "ui.chatInputPlaceholder": t("chatInputPlaceholder"),
-    "branding.chatOpeners": chatOpeners,
   };
 }
 
