@@ -1,20 +1,19 @@
 export const siteConfig = {
   meta: {
-    title: "TeddyNote Chat",
-    description: "AI 어시스턴트와 대화하세요",
+    title: "LangGraph Chat UI",
+    description: "A production-ready chat interface for LangGraph agents",
     favicon: "", // 빈값이면 logoPath 사용
   },
   branding: {
-    appName: "TeddyNote Chat",
-    logoPath: "/logo.png",
+    appName: "LangGraph Chat UI",
+    logoPath: "/logo.svg",
     logoWidth: 28,
     logoHeight: 28,
-    description: "테디노트 챗봇에게 무엇이든 물어보세요.",
-    fullDescription: "/full-description.md",
+    description: "Ask your LangGraph agent anything.",
   },
   buttons: {
     enableFileUpload: true,
-    chatInputPlaceholder: "궁금한 내용을 물어보세요.",
+    chatInputPlaceholder: "Ask anything...",
   },
   threads: {
     showHistory: true,

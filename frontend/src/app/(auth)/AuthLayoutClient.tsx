@@ -20,8 +20,8 @@ interface AuthContextType {
 }
 
 const defaultBranding: BrandingConfig = {
-  appName: "TeddyNote Chat",
-  logoPath: "/logo.png",
+  appName: "LangGraph Chat UI",
+  logoPath: "/logo.svg",
   logoWidth: 28,
   logoHeight: 28,
 };

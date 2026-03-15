@@ -16,10 +16,6 @@ function applyGlobalSettings(
   // Branding fallback chain
   const logoUrl = settings["branding.logoUrl"] || config.branding.logoPath;
   const faviconUrl = settings["branding.faviconUrl"] || logoUrl;
-  const chatOpeners =
-    settings["branding.chatOpeners"]?.length > 0
-      ? settings["branding.chatOpeners"]
-      : config.branding.chatOpeners;
   const appTitle = settings["branding.appTitle"] || config.meta.title;
 
   return {
@@ -39,8 +35,6 @@ function applyGlobalSettings(
       logoPath: logoUrl,
       // ui.welcomeMessage → branding.description
       description: settings["ui.welcomeMessage"] || config.branding.description,
-      // branding.chatOpeners → branding.chatOpeners (with fallback to static config)
-      chatOpeners,
     },
     buttons: {
       ...config.buttons,

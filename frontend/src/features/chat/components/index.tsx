@@ -15,7 +15,7 @@ import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { ensureToolCallsHaveResponses } from "@/lib/utils/ensure-tool-responses";
-import { LoaderCircle, BookOpen } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useLangSmithRuns } from "@/features/chat/hooks/useLangSmithRuns";
 import { useStreamingView } from "@/features/chat/hooks/useStreamingView";
 import {
@@ -38,9 +38,7 @@ import {
 } from "./thread";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useSettings } from "@/shared/hooks/useSettings";
-import { FullDescriptionModal } from "./modals/FullDescriptionModal";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
-import { ChatOpeners } from "./input/ChatOpeners";
 import { useSchemaUI } from "@/features/chat/hooks/useSchemaUI";
 import { UnifiedInputArea } from "./schema-ui";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
@@ -80,7 +78,6 @@ export function Thread() {
     parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
-  const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
   // TODO ↔ 사이드바 연동을 위한 선택된 Task ID
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const {
@@ -398,7 +395,6 @@ export function Thread() {
             >
               <div className="flex-1 overflow-hidden">
                 <ThreadHistory
-                  onShowGuide={() => setFullDescriptionOpen(true)}
                   chatHistoryOpen={chatHistoryOpen}
                   onChatHistoryOpenChange={setChatHistoryOpen}
                 />
@@ -408,14 +404,7 @@ export function Thread() {
         </div>
       )}
 
-      <div
-        className="grid w-full transition-all duration-500"
-        style={{
-          gridTemplateColumns: sidebarOpen
-            ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px`
-            : "1fr 0fr",
-        }}
-      >
+      <div className="relative flex w-full overflow-hidden">
         <div
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden transition-all",
@@ -429,6 +418,11 @@ export function Thread() {
                   ? 300
                   : 0
                 : 0,
+            marginRight: sidebarOpen
+              ? isLargeScreen
+                ? UI.TRACING_SIDEBAR_WIDTH
+                : 0
+              : 0,
             width:
               config.threads.showHistory && chatHistoryOpen
                 ? isLargeScreen
@@ -515,39 +509,14 @@ export function Thread() {
                           </h1>
                         </div>
                         {config.branding.description && (
-                          <p className="text-muted-foreground text-center text-sm">
+                          <p className="text-muted-foreground text-center text-base">
                             {config.branding.description}
                           </p>
-                        )}
-                        {config.branding.fullDescription && (
-                          <button
-                            onClick={() => setFullDescriptionOpen(true)}
-                            className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
-                          >
-                            <BookOpen className="h-4 w-4" />
-                            <span>{t("viewFullDescription")}</span>
-                          </button>
                         )}
                       </div>
                       {schemaUI.isLoading && (
                         <LoaderCircle className="text-muted-foreground h-6 w-6 animate-spin" />
                       )}
-                      {config.branding.chatOpeners &&
-                        config.branding.chatOpeners.length > 0 &&
-                        !isFormMode &&
-                        !schemaUI.isLoading && (
-                          <ChatOpeners
-                            disabled={isLoading || !isAssistantSelected}
-                            chatOpeners={config.branding.chatOpeners}
-                            onSelectOpener={(opener) => {
-                              setInput(opener);
-                              setTimeout(() => {
-                                const form = document.querySelector("form");
-                                form?.requestSubmit();
-                              }, 0);
-                            }}
-                          />
-                        )}
                     </div>
                   )}
 
@@ -598,7 +567,7 @@ export function Thread() {
         </div>
 
         {/* LangSmith Tracing sidebar */}
-        {langsmithEnabled && sidebarOpen && (
+        {langsmithEnabled && (
           <ThreadTracingSidebar
             langSmithEvents={langSmithEvents}
             langSmithLoading={langSmithLoading}
@@ -606,13 +575,11 @@ export function Thread() {
             selectedTaskId={selectedTaskId}
             onSelectTask={setSelectedTaskId}
             onClose={() => setSidebarOpen(false)}
+            open={sidebarOpen}
+            isLargeScreen={isLargeScreen}
           />
         )}
       </div>
-      <FullDescriptionModal
-        open={fullDescriptionOpen}
-        onOpenChange={setFullDescriptionOpen}
-      />
     </div>
   );
 }

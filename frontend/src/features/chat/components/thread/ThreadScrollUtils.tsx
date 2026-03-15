@@ -59,7 +59,7 @@ export function OpenGitHubRepo() {
       <Tooltip>
         <TooltipTrigger asChild>
           <a
-            href="https://github.com/teddylee777/agent-chat-ui"
+            href="https://github.com/teddynote-lab/langgraph-chat-ui"
             target="_blank"
             className="flex h-9 items-center justify-center pr-3"
           >

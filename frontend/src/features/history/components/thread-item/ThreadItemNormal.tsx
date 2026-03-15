@@ -19,9 +19,14 @@ export function ThreadItemNormal({
 }: ThreadItemNormalProps) {
   return (
     <div
-      className={`flex w-full cursor-pointer items-center justify-between rounded-md ${THREAD_ITEM_PADDING} hover:bg-accent transition-colors ${
+      className={`flex w-full cursor-pointer items-center justify-between rounded-md ${THREAD_ITEM_PADDING} hover:bg-accent focus-visible:ring-ring transition-colors focus-visible:ring-2 focus-visible:outline-none ${
         isActive ? "bg-accent" : ""
       }`}
+      tabIndex={0}
+      role="button"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
       onClick={onSelect}
     >
       <p className="min-w-0 flex-1 truncate text-sm text-ellipsis">

@@ -403,8 +403,6 @@ docker run -p 3000:3000 \
 | [LangGraph 서버 배포 가이드](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose 설정 |
 | [예제 모음](examples/) | 인증 모드별 서버/프론트엔드 설정 예제 |
 
-사용자 가이드는 `public/full-description.md`에서 편집할 수 있습니다. 마크다운 문법을 사용하여 앱 내 도움말 페이지를 커스터마이징하세요.
-
 ---
 
 ## 기여하기

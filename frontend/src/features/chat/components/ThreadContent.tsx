@@ -6,7 +6,7 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { UI, TIMING } from "@/lib/constants";
+import { TIMING } from "@/lib/constants";
 import { useStreamContext } from "@/features/chat/hooks/useStreamContext";
 import { useState } from "react";
 import { useQueryState, parseAsBoolean } from "nuqs";
@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useSettings } from "@/shared/hooks/useSettings";
-import { FullDescriptionModal } from "./modals/FullDescriptionModal";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
 import { useSchemaUI } from "@/features/chat/hooks/useSchemaUI";
 import { UnifiedInputArea } from "./schema-ui";
@@ -57,7 +56,6 @@ export function ThreadContent() {
     parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
-  const [fullDescriptionOpen, setFullDescriptionOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const {
     contentBlocks,
@@ -251,157 +249,131 @@ export function ThreadContent() {
 
   return (
     <ThreadErrorBoundary>
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="relative flex h-full w-full overflow-hidden">
         <div
-          className="grid w-full transition-all duration-500"
-          style={{
-            gridTemplateColumns: sidebarOpen
-              ? `1fr ${UI.TRACING_SIDEBAR_WIDTH}px`
-              : "1fr 0fr",
-          }}
+          className={cn(
+            "relative flex min-w-0 flex-1 flex-col overflow-hidden",
+            !chatStarted && "grid-rows-[1fr]",
+          )}
         >
-          <div
-            className={cn(
-              "relative flex min-w-0 flex-1 flex-col overflow-hidden transition-all",
-              !chatStarted && "grid-rows-[1fr]",
-              isLargeScreen ? "duration-300" : "duration-0",
-            )}
+          <StickToBottom
+            resize="smooth"
+            className="relative flex-1 overflow-hidden"
           >
-            <StickToBottom
-              resize="smooth"
-              className="relative flex-1 overflow-hidden"
-            >
-              <StickyToBottomContent
-                className={cn(
-                  "[&::-webkit-scrollbar-thumb]:bg-border absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
-                  !chatStarted &&
-                    "mt-0 flex flex-col items-stretch justify-center",
-                  chatStarted && "grid grid-rows-[1fr_auto]",
-                  userSettings.chatWidth === "default" ? "px-4" : "px-2",
-                )}
-                contentClassName={cn(
-                  messages.length > 0 || formSubmissions.length > 0
-                    ? "pt-8 pb-16 flex flex-col gap-4"
-                    : "",
-                  "mx-auto w-full",
-                  userSettings.chatWidth === "default"
-                    ? "max-w-3xl"
-                    : "max-w-5xl",
-                )}
-                content={
-                  <MessageList
-                    messages={messages}
-                    isLoading={isLoading}
-                    isFormMode={isFormMode}
-                    formSubmissions={formSubmissions}
-                    compactView={compactView ?? true}
-                    hasVisibleContent={hasVisibleContent}
-                    showTaskView={showTaskView}
-                    progress={progress}
-                    activeLeafTasks={activeLeafTasks}
-                    activityItems={activityItems}
-                    finalNodeNames={finalNodeNames}
-                    todoLifecycle={todoLifecycle}
-                    selectedTaskId={selectedTaskId}
-                    onSelectTask={setSelectedTaskId}
-                    handleRegenerate={handleRegenerate}
-                    firstTokenReceived={firstTokenReceived}
-                    interrupt={stream.interrupt}
-                    threadId={threadId}
-                    streamError={stream.error}
-                    onRetry={handleRetry}
-                  />
-                }
-                footer={
-                  <div className="sticky bottom-0 flex flex-col items-center gap-10 bg-none">
-                    {!chatStarted && (
-                      <WelcomeScreen
-                        config={config}
-                        chatWidth={userSettings.chatWidth}
-                        isFormMode={isFormMode}
-                        isSchemaLoading={schemaUI.isLoading}
-                        isLoading={isLoading}
-                        isAssistantSelected={isAssistantSelected}
-                        onSelectOpener={(opener) => {
-                          setInput(opener);
-                          setTimeout(() => {
-                            const form = document.querySelector("form");
-                            form?.requestSubmit();
-                          }, 0);
-                        }}
-                        onFullDescriptionOpen={() =>
-                          setFullDescriptionOpen(true)
-                        }
-                      />
+            <StickyToBottomContent
+              className={cn(
+                "[&::-webkit-scrollbar-thumb]:bg-border absolute inset-0 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
+                !chatStarted &&
+                  "mt-0 flex flex-col items-stretch justify-center",
+                chatStarted && "grid grid-rows-[1fr_auto]",
+                userSettings.chatWidth === "default" ? "px-4" : "px-2",
+              )}
+              contentClassName={cn(
+                messages.length > 0 || formSubmissions.length > 0
+                  ? "pt-8 pb-16 flex flex-col gap-4"
+                  : "",
+                "mx-auto w-full",
+                userSettings.chatWidth === "default"
+                  ? "max-w-3xl"
+                  : "max-w-5xl",
+              )}
+              content={
+                <MessageList
+                  messages={messages}
+                  isLoading={isLoading}
+                  isFormMode={isFormMode}
+                  formSubmissions={formSubmissions}
+                  compactView={compactView ?? true}
+                  hasVisibleContent={hasVisibleContent}
+                  showTaskView={showTaskView}
+                  progress={progress}
+                  activeLeafTasks={activeLeafTasks}
+                  activityItems={activityItems}
+                  finalNodeNames={finalNodeNames}
+                  todoLifecycle={todoLifecycle}
+                  selectedTaskId={selectedTaskId}
+                  onSelectTask={setSelectedTaskId}
+                  handleRegenerate={handleRegenerate}
+                  firstTokenReceived={firstTokenReceived}
+                  interrupt={stream.interrupt}
+                  threadId={threadId}
+                  streamError={stream.error}
+                  onRetry={handleRetry}
+                />
+              }
+              footer={
+                <div className="sticky bottom-0 flex flex-col items-center gap-10 bg-none">
+                  {!chatStarted && (
+                    <WelcomeScreen
+                      config={config}
+                      chatWidth={userSettings.chatWidth}
+                      isSchemaLoading={schemaUI.isLoading}
+                    />
+                  )}
+
+                  <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
+
+                  <div
+                    className={cn(
+                      "relative z-10 mx-auto mb-8 w-full",
+                      userSettings.chatWidth === "default"
+                        ? "max-w-3xl"
+                        : "max-w-5xl",
                     )}
-
-                    <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
-
-                    <div
-                      className={cn(
-                        "relative z-10 mx-auto mb-8 w-full",
-                        userSettings.chatWidth === "default"
-                          ? "max-w-3xl"
-                          : "max-w-5xl",
-                      )}
-                    >
-                      <UnifiedInputArea
-                        schemaUI={schemaUI}
-                        isFormMode={isFormMode}
-                        onFormSubmit={handleFormSubmit}
-                        input={input}
-                        onInputChange={setInput}
-                        onChatSubmit={handleSubmit}
-                        contentBlocks={contentBlocks}
-                        onRemoveBlock={removeBlock}
-                        onFileUpload={handleFileUpload}
-                        onPaste={handlePaste}
-                        dropRef={dropRef}
-                        dragOver={dragOver}
-                        isLoading={isLoading}
-                        onStop={() => {
-                          stream.stop();
-                          stream.deactivateAllNodes();
-                        }}
-                        isAssistantSelected={isAssistantSelected}
-                        enableFileUpload={config.buttons.enableFileUpload}
-                        placeholder={config.buttons.chatInputPlaceholder}
-                        compactView={compactView ?? true}
-                        onCompactViewChange={(value) => setCompactView(value)}
-                        assistants={assistants}
-                        selectedAssistantId={assistantSelectValue}
-                        assistantsLoading={assistantsLoading}
-                        onAssistantChange={handleAssistantChange}
-                        onRefreshAssistants={refetchAssistants}
-                        isChatPage={!!threadId}
-                        enableGraphSelection={
-                          globalSettings["features.enableGraphSelection"]
-                        }
-                        enableAdvancedInput={
-                          globalSettings["features.enableAdvancedInput"]
-                        }
-                      />
-                    </div>
+                  >
+                    <UnifiedInputArea
+                      schemaUI={schemaUI}
+                      isFormMode={isFormMode}
+                      onFormSubmit={handleFormSubmit}
+                      input={input}
+                      onInputChange={setInput}
+                      onChatSubmit={handleSubmit}
+                      contentBlocks={contentBlocks}
+                      onRemoveBlock={removeBlock}
+                      onFileUpload={handleFileUpload}
+                      onPaste={handlePaste}
+                      dropRef={dropRef}
+                      dragOver={dragOver}
+                      isLoading={isLoading}
+                      onStop={() => {
+                        stream.stop();
+                        stream.deactivateAllNodes();
+                      }}
+                      isAssistantSelected={isAssistantSelected}
+                      enableFileUpload={config.buttons.enableFileUpload}
+                      placeholder={config.buttons.chatInputPlaceholder}
+                      compactView={compactView ?? true}
+                      onCompactViewChange={(value) => setCompactView(value)}
+                      assistants={assistants}
+                      selectedAssistantId={assistantSelectValue}
+                      assistantsLoading={assistantsLoading}
+                      onAssistantChange={handleAssistantChange}
+                      onRefreshAssistants={refetchAssistants}
+                      isChatPage={!!threadId}
+                      enableGraphSelection={
+                        globalSettings["features.enableGraphSelection"]
+                      }
+                      enableAdvancedInput={
+                        globalSettings["features.enableAdvancedInput"]
+                      }
+                    />
                   </div>
-                }
-              />
-            </StickToBottom>
-          </div>
-
-          {/* LangSmith Tracing Sidebar */}
-          <TracingSidebar
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            langSmithEvents={langSmithEvents}
-            langSmithLoading={langSmithLoading}
-            onRefresh={refetchLangSmith}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={setSelectedTaskId}
-          />
+                </div>
+              }
+            />
+          </StickToBottom>
         </div>
-        <FullDescriptionModal
-          open={fullDescriptionOpen}
-          onOpenChange={setFullDescriptionOpen}
+
+        {/* LangSmith Tracing Sidebar */}
+        <TracingSidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          langSmithEvents={langSmithEvents}
+          langSmithLoading={langSmithLoading}
+          onRefresh={refetchLangSmith}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={setSelectedTaskId}
+          isLargeScreen={isLargeScreen}
         />
       </div>
     </ThreadErrorBoundary>

@@ -9,13 +9,11 @@ import { DesktopSidebar } from "./components/DesktopSidebar";
 import { MobileSidebar } from "./components/MobileSidebar";
 
 interface ThreadHistoryProps {
-  onShowGuide?: () => void;
   chatHistoryOpen: boolean;
   onChatHistoryOpenChange: (open: boolean) => void;
 }
 
 export default function ThreadHistory({
-  onShowGuide,
   chatHistoryOpen,
   onChatHistoryOpenChange,
 }: ThreadHistoryProps) {
@@ -62,7 +60,6 @@ export default function ThreadHistory({
         threads={threads}
         threadsLoading={threadsLoading}
         onNewChat={handleNewChat}
-        onShowGuide={onShowGuide}
       />
       <MobileSidebar
         threads={threads}
@@ -73,7 +70,6 @@ export default function ThreadHistory({
         }}
         onNewChat={handleMobileNewChat}
         onThreadClick={handleMobileThreadClick}
-        onShowGuide={onShowGuide}
       />
     </>
   );

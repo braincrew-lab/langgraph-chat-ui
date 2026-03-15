@@ -211,8 +211,7 @@
         "features_defaultConnectionApiUrl": "Default Connection API URL",
         "branding_appTitle": "App Title",
         "branding_logoUrl": "Logo Image URL",
-        "branding_faviconUrl": "Favicon URL",
-        "branding_chatOpeners": "Chat Openers"
+        "branding_faviconUrl": "Favicon URL"
       },
       "descriptions": {
         "auth_allowRegistration": "Allow new user registration",
@@ -230,8 +229,7 @@
         "features_defaultConnectionApiUrl": "Default API URL to use when connection selection is disabled",
         "branding_appTitle": "App name shown in browser tab and header",
         "branding_logoUrl": "Logo image URL shown in header and login page",
-        "branding_faviconUrl": "Icon URL shown in browser tab (uses logo if empty)",
-        "branding_chatOpeners": "Example question list shown when starting a new chat (uses defaults if empty)"
+        "branding_faviconUrl": "Icon URL shown in browser tab (uses logo if empty)"
       }
     },
     "table": {
@@ -288,21 +286,9 @@
   },
   "chat": {
     "selectGraph": "Please select a graph first.",
-    "usageGuide": "Usage Guide",
-    "viewFullDescription": "View full description",
     "graphChanged": "Graph changed.",
     "graphChangedDescription": "Selected assistant ID: {assistantId}",
     "loadingConversation": "Loading conversation...",
-    "fullDescriptionTitle": "Usage Guide",
-    "fullDescriptionError": "Failed to load the guide.",
-    "openers": {
-      "0": "What's the weather like today?",
-      "1": "Search for AI news and organize in a table.",
-      "2": "I'm curious about how LLMs work.",
-      "3": "What is an agent?",
-      "4": "Search for TeddyNote.",
-      "5": "Tell me about LangGraph."
-    },
     "placeholder": "Ask me anything",
     "streaming": {
       "error": {
@@ -404,10 +390,9 @@
     "languageDesc": "Select your preferred language"
   },
   "defaults": {
-    "welcomeMessage": "Ask TeddyNote Chatbot anything you want.",
+    "welcomeMessage": "Ask your LangGraph agent anything.",
     "chatInputPlaceholder": "Ask me anything.",
-    "metaDescription": "Chat with your AI assistant",
-    "chatOpeners": "What's the weather like today?\nSearch for AI news and organize in a table.\nI'm curious about how LLMs work.\nWhat is an agent?\nSearch for TeddyNote.\nTell me about LangGraph."
+    "metaDescription": "Chat with your AI assistant"
   },
   "history": {
     "newChat": "New Chat",
@@ -420,7 +405,6 @@
     "updateError": "Failed to update title",
     "chatHistory": "Chat History",
     "sidebar": {
-      "guide": "Usage Guide",
       "admin": "Admin",
       "dashboard": "Dashboard",
       "userManagement": "User Management",
