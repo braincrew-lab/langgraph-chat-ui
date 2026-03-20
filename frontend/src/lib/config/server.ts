@@ -46,6 +46,9 @@ function applyGlobalSettings(
       enableFileUpload:
         settings["features.enableFileUpload"] ??
         config.buttons.enableFileUpload,
+      // features.fileUploadMode → buttons.fileUploadMode
+      fileUploadMode:
+        settings["features.fileUploadMode"] || config.buttons.fileUploadMode,
     },
     threads: {
       ...config.threads,

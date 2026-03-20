@@ -28,12 +28,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SchemaFieldsSection } from "./SchemaFieldsSection";
-import { SchemaField } from "./SchemaField";
+import { SchemaField, isFileField } from "./SchemaField";
 import { ActionBar } from "./ActionBar";
 import { ContentBlocksPreview } from "../content/ContentBlocksPreview";
 import type { UseSchemaUIReturn } from "@/features/chat/hooks/useSchemaUI";
 import type { Assistant } from "@/app/actions/assistant";
 import type { Base64ContentBlock } from "@langchain/core/messages";
+import type { SchemaFieldType } from "@/types/schema-ui";
+import { getFieldType, getArrayItemSchema } from "@/lib/utils/schema";
 import { UI } from "@/lib/constants";
 
 interface UnifiedInputAreaProps {
@@ -79,6 +81,7 @@ interface UnifiedInputAreaProps {
   // Global settings controls
   enableGraphSelection?: boolean;
   enableAdvancedInput?: boolean;
+  fileUploadMode?: "base64" | "url";
 }
 
 export function UnifiedInputArea({
@@ -110,6 +113,7 @@ export function UnifiedInputArea({
   isChatPage = false,
   enableGraphSelection = true,
   enableAdvancedInput = true,
+  fileUploadMode = "base64",
 }: UnifiedInputAreaProps) {
   const t = useTranslations("chat");
   const {
@@ -173,6 +177,7 @@ export function UnifiedInputArea({
           <SchemaFieldsSection
             schemaUI={schemaUI}
             disabled={isLoading}
+            fileUploadMode={fileUploadMode}
           />
         ) : (
           /* 고급 입력 비활성화 시 상단 여백 */
@@ -234,6 +239,7 @@ export function UnifiedInputArea({
                                   setFieldValue(field.name, value)
                                 }
                                 disabled={true}
+                                fileUploadMode={fileUploadMode}
                               />
                             ))}
                           </div>
@@ -272,6 +278,7 @@ export function UnifiedInputArea({
                       value={formState[field.name]}
                       onChange={(value) => setFieldValue(field.name, value)}
                       disabled={isLoading}
+                      fileUploadMode={fileUploadMode}
                     />
                   ))}
                 </div>
@@ -293,56 +300,101 @@ export function UnifiedInputArea({
           )
         ) : (
           /* Chat mode: textarea + file upload + submit */
-          <>
-            <ContentBlocksPreview
-              blocks={contentBlocks}
-              onRemove={onRemoveBlock}
-            />
+          (() => {
+            // Find required file fields in chat mode schema
+            const requiredFileFields = rawSchema
+              ? requiredFields.filter((f) => {
+                  const ft = getFieldType(
+                    f.schema,
+                    rawSchema,
+                  ) as SchemaFieldType;
+                  const itemSchema =
+                    ft === "array" ? getArrayItemSchema(f, rawSchema) : null;
+                  const it = itemSchema
+                    ? (getFieldType(itemSchema, rawSchema) as SchemaFieldType)
+                    : undefined;
+                  return isFileField(f.name, ft, it);
+                })
+              : [];
 
-            <textarea
-              value={input}
-              onChange={(e) => onInputChange(e.target.value)}
-              onPaste={onPaste}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !e.shiftKey &&
-                  !e.metaKey &&
-                  !e.nativeEvent.isComposing
-                ) {
-                  e.preventDefault();
-                  const el = e.target as HTMLElement | undefined;
-                  const form = el?.closest("form");
-                  form?.requestSubmit();
-                }
-              }}
-              placeholder={placeholder || t("placeholder")}
-              rows={1}
-              style={{ maxHeight: `${UI.CHAT_TEXTAREA_MAX_HEIGHT}px` }}
-              className="placeholder:text-muted-foreground [&::-webkit-scrollbar-thumb]:bg-border field-sizing-content resize-none overflow-y-auto border-none bg-transparent px-4 pt-4 pb-2 text-base leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
-            />
+            // Check if all required file fields have values
+            const fileFieldsValid = requiredFileFields.every((f) => {
+              const v = formState[f.name];
+              if (Array.isArray(v)) return v.length > 0;
+              return !!v;
+            });
 
-            <ActionBar
-              isFormMode={false}
-              isLoading={isLoading}
-              disabled={
-                isLoading ||
-                (!input.trim() && contentBlocks.length === 0) ||
-                !isAssistantSelected
-              }
-              onStop={onStop}
-              enableFileUpload={enableFileUpload}
-              onFileUpload={onFileUpload}
-              compactView={compactView}
-              onCompactViewChange={onCompactViewChange}
-              assistants={assistants}
-              selectedAssistantId={selectedAssistantId}
-              assistantsLoading={assistantsLoading}
-              onAssistantChange={onAssistantChange}
-              onRefreshAssistants={onRefreshAssistants}
-              enableGraphSelection={enableGraphSelection}
-            />
-          </>
+            return (
+              <>
+                {/* Required file fields for chat mode schemas */}
+                {requiredFileFields.length > 0 && rawSchema && (
+                  <div className="min-w-0 space-y-3 overflow-hidden px-4 pt-3">
+                    {requiredFileFields.map((field) => (
+                      <SchemaField
+                        key={field.name}
+                        field={field}
+                        rootSchema={rawSchema}
+                        value={formState[field.name]}
+                        onChange={(value) => setFieldValue(field.name, value)}
+                        disabled={isLoading}
+                        fileUploadMode={fileUploadMode}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <ContentBlocksPreview
+                  blocks={contentBlocks}
+                  onRemove={onRemoveBlock}
+                />
+
+                <textarea
+                  value={input}
+                  onChange={(e) => onInputChange(e.target.value)}
+                  onPaste={onPaste}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !e.metaKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault();
+                      const el = e.target as HTMLElement | undefined;
+                      const form = el?.closest("form");
+                      form?.requestSubmit();
+                    }
+                  }}
+                  placeholder={placeholder || t("placeholder")}
+                  rows={1}
+                  style={{ maxHeight: `${UI.CHAT_TEXTAREA_MAX_HEIGHT}px` }}
+                  className="placeholder:text-muted-foreground [&::-webkit-scrollbar-thumb]:bg-border field-sizing-content resize-none overflow-y-auto border-none bg-transparent px-4 pt-4 pb-2 text-base leading-relaxed shadow-none ring-0 outline-none focus:ring-0 focus:outline-none [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+                />
+
+                <ActionBar
+                  isFormMode={false}
+                  isLoading={isLoading}
+                  disabled={
+                    isLoading ||
+                    (!input.trim() && contentBlocks.length === 0) ||
+                    !isAssistantSelected ||
+                    !fileFieldsValid
+                  }
+                  onStop={onStop}
+                  enableFileUpload={enableFileUpload}
+                  onFileUpload={onFileUpload}
+                  compactView={compactView}
+                  onCompactViewChange={onCompactViewChange}
+                  assistants={assistants}
+                  selectedAssistantId={selectedAssistantId}
+                  assistantsLoading={assistantsLoading}
+                  onAssistantChange={onAssistantChange}
+                  onRefreshAssistants={onRefreshAssistants}
+                  enableGraphSelection={enableGraphSelection}
+                />
+              </>
+            );
+          })()
         )}
       </form>
     </div>

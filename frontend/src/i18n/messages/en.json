@@ -207,6 +207,7 @@
         "features_enableGraphSelection": "Enable Graph Selection",
         "features_enableConnectionSelection": "Enable Connection Selection",
         "features_enableAdvancedInput": "Enable Advanced Input",
+        "features_fileUploadMode": "File Upload Mode",
         "features_defaultGraphId": "Default Graph ID",
         "features_defaultConnectionApiUrl": "Default Connection API URL",
         "branding_appTitle": "App Title",
@@ -225,6 +226,7 @@
         "features_enableGraphSelection": "Allow users to select graphs (Assistants). Uses default graph when disabled",
         "features_enableConnectionSelection": "Allow users to select LangGraph connections. Uses default connection when disabled",
         "features_enableAdvancedInput": "Show schema-based optional fields. Shows only basic chat input when disabled",
+        "features_fileUploadMode": "How schema file fields send data: base64 encodes inline, url uploads to server",
         "features_defaultGraphId": "Default graph ID to use when graph selection is disabled",
         "features_defaultConnectionApiUrl": "Default API URL to use when connection selection is disabled",
         "branding_appTitle": "App name shown in browser tab and header",
@@ -354,7 +356,9 @@
       "yes": "Yes",
       "no": "No",
       "fileCount": "{count} file(s)",
-      "itemCount": "{count} item(s)"
+      "itemCount": "{count} item(s)",
+      "uploadFailed": "File upload failed",
+      "uploading": "Uploading..."
     },
     "serverError": "Failed to connect to LangGraph server",
     "serverErrorDescription": "Please ensure your graph is running at {apiUrl} and your API key is correctly set (if connecting to a deployed graph)."

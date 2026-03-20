@@ -341,6 +341,7 @@ export function ThreadContent() {
                       }}
                       isAssistantSelected={isAssistantSelected}
                       enableFileUpload={config.buttons.enableFileUpload}
+                      fileUploadMode={config.buttons.fileUploadMode}
                       placeholder={config.buttons.chatInputPlaceholder}
                       compactView={compactView ?? true}
                       onCompactViewChange={(value) => setCompactView(value)}

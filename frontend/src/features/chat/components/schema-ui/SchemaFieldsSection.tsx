@@ -16,12 +16,14 @@ interface SchemaFieldsSectionProps {
   schemaUI: UseSchemaUIReturn;
   disabled?: boolean;
   className?: string;
+  fileUploadMode?: "base64" | "url";
 }
 
 export function SchemaFieldsSection({
   schemaUI,
   disabled = false,
   className,
+  fileUploadMode,
 }: SchemaFieldsSectionProps) {
   const t = useTranslations("chat");
   const {
@@ -86,6 +88,7 @@ export function SchemaFieldsSection({
                       onChange={(value) => setFieldValue(field.name, value)}
                       disabled={disabled}
                       compact
+                      fileUploadMode={fileUploadMode}
                     />
                   ))}
                 </div>

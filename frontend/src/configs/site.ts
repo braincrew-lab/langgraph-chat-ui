@@ -13,6 +13,7 @@ export const siteConfig = {
   },
   buttons: {
     enableFileUpload: true,
+    fileUploadMode: "base64" as const,
     chatInputPlaceholder: "Ask anything...",
   },
   threads: {

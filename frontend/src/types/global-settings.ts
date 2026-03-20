@@ -29,6 +29,7 @@ export interface GlobalSettings {
   "features.enableGraphSelection": boolean; // 그래프 선택 활성화 (비활성화 시 기본 그래프 사용)
   "features.enableConnectionSelection": boolean; // 커넥션 선택 활성화 (비활성화 시 기본 커넥션 사용)
   "features.enableAdvancedInput": boolean; // 고급 입력 활성화 (스키마 기반 선택적 필드)
+  "features.fileUploadMode": "base64" | "url"; // 파일 업로드 모드 (base64 데이터 URI 또는 서버 URL)
   "features.defaultGraphId": string; // 기본 그래프 ID (그래프 선택 비활성화 시 사용)
   "features.defaultConnectionApiUrl": string; // 기본 커넥션 API URL (커넥션 선택 비활성화 시 사용)
 
@@ -88,6 +89,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "features.enableGraphSelection": true,
   "features.enableConnectionSelection": true,
   "features.enableAdvancedInput": true,
+  "features.fileUploadMode": "base64",
   "features.defaultGraphId": "",
   "features.defaultConnectionApiUrl": "",
 
@@ -208,6 +210,16 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
     category: "features",
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.enableAdvancedInput"],
+  },
+  {
+    key: "features.fileUploadMode",
+    label: "File Upload Mode",
+    description:
+      "How schema file fields send data: base64 encodes file inline, url uploads to server",
+    category: "features",
+    type: "select",
+    options: ["base64", "url"],
+    defaultValue: DEFAULT_SETTINGS["features.fileUploadMode"],
   },
   {
     key: "features.defaultGraphId",
