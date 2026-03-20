@@ -113,9 +113,10 @@ async function handleRequest(req: NextRequest, method: string) {
       headers,
     };
 
-    // Add body for methods that support it
+    // Forward body for methods that support it
     if (["POST", "PUT", "PATCH"].includes(method)) {
-      options.body = await req.text();
+      const buffer = await req.arrayBuffer();
+      options.body = Buffer.from(buffer);
     }
 
     // Make request to LangGraph server

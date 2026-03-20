@@ -34,7 +34,7 @@ import {
  * Check if a field should use file upload UI
  * Rule: field name contains "file" (case-insensitive) AND type is string or string[]
  */
-function isFileField(
+export function isFileField(
   fieldName: string,
   fieldType: SchemaFieldType,
   itemType?: SchemaFieldType,
@@ -58,6 +58,7 @@ interface SchemaFieldProps {
   onChange: (value: FieldValue) => void;
   disabled?: boolean;
   compact?: boolean;
+  fileUploadMode?: "base64" | "url";
 }
 
 export function SchemaField({
@@ -67,6 +68,7 @@ export function SchemaField({
   onChange,
   disabled = false,
   compact = false,
+  fileUploadMode,
 }: SchemaFieldProps) {
   // Set the SchemaField reference for ObjectField to use for recursive rendering
   useEffect(() => {
@@ -98,6 +100,7 @@ export function SchemaField({
             onChange={onChange}
             disabled={disabled}
             compact={compact}
+            fileUploadMode={fileUploadMode}
           />
         );
       }
@@ -108,6 +111,7 @@ export function SchemaField({
           onChange={onChange}
           disabled={disabled}
           compact={compact}
+          fileUploadMode={fileUploadMode}
         />
       );
     }
@@ -194,7 +198,7 @@ export function SchemaField({
   // Boolean field has its own label layout
   if (fieldType === "boolean") {
     return (
-      <div className={cn("space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
+      <div className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
         {renderField()}
         {description && !compact && (
           <p className="text-muted-foreground text-xs">{description}</p>
@@ -204,7 +208,7 @@ export function SchemaField({
   }
 
   return (
-    <div className={cn("space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
+    <div className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
       <Label
         className={cn(
           "text-sm font-medium",

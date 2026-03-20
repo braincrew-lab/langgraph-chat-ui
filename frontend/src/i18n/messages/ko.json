@@ -207,6 +207,7 @@
         "features_enableGraphSelection": "그래프 선택 활성화",
         "features_enableConnectionSelection": "커넥션 선택 활성화",
         "features_enableAdvancedInput": "고급 입력 활성화",
+        "features_fileUploadMode": "파일 업로드 모드",
         "features_defaultGraphId": "기본 그래프 ID",
         "features_defaultConnectionApiUrl": "기본 커넥션 API URL",
         "branding_appTitle": "앱 타이틀",
@@ -225,6 +226,7 @@
         "features_enableGraphSelection": "사용자가 그래프(Assistant)를 선택할 수 있도록 허용. 비활성화 시 기본 그래프 사용",
         "features_enableConnectionSelection": "사용자가 LangGraph 커넥션을 선택할 수 있도록 허용. 비활성화 시 기본 커넥션 사용",
         "features_enableAdvancedInput": "스키마 기반 선택적 필드 표시. 비활성화 시 기본 채팅 입력만 표시",
+        "features_fileUploadMode": "스키마 파일 필드 데이터 전송 방식: base64는 인라인 인코딩, url은 서버 업로드",
         "features_defaultGraphId": "그래프 선택 비활성화 시 사용할 기본 그래프 ID",
         "features_defaultConnectionApiUrl": "커넥션 선택 비활성화 시 사용할 기본 API URL",
         "branding_appTitle": "브라우저 탭과 헤더에 표시되는 앱 이름",
@@ -354,7 +356,9 @@
       "yes": "예",
       "no": "아니오",
       "fileCount": "{count}개 파일",
-      "itemCount": "{count}개 항목"
+      "itemCount": "{count}개 항목",
+      "uploadFailed": "파일 업로드 실패",
+      "uploading": "업로드 중..."
     },
     "serverError": "LangGraph 서버에 연결할 수 없습니다",
     "serverErrorDescription": "그래프가 {apiUrl}에서 실행 중인지, API 키가 올바르게 설정되어 있는지 확인하세요."

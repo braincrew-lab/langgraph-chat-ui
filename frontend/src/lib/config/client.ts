@@ -15,6 +15,7 @@ export interface ChatConfig {
   };
   buttons: {
     enableFileUpload: boolean;
+    fileUploadMode: "base64" | "url";
     chatInputPlaceholder: string;
   };
   threads: {
