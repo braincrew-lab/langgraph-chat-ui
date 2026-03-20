@@ -6,8 +6,10 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: process.env.SERVER_ACTION_BODY_SIZE_LIMIT || "10mb",
+      bodySizeLimit: process.env.SERVER_ACTION_BODY_SIZE_LIMIT || "100mb",
     },
+    middlewareClientMaxBodySize:
+      process.env.MIDDLEWARE_CLIENT_MAX_BODY_SIZE || "100mb",
   },
   async headers() {
     const securityHeaders = [
