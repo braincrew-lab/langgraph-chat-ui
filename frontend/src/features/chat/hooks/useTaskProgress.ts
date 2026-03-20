@@ -833,6 +833,7 @@ function buildActivityItems(
   interface TaskToolCallInfo {
     description: string;
     subagentType?: string;
+    toolCallId?: string;
   }
   const taskToolCallInfos: TaskToolCallInfo[] = [];
   for (const msg of messages) {
@@ -857,7 +858,17 @@ function buildActivityItems(
       taskToolCallInfos.push({
         description: desc,
         subagentType: sat || undefined,
+        toolCallId: tc.id,
       });
+    }
+  }
+
+  // --- Collect completed root-level tool call IDs from messages ---
+  const rootCompletedToolIds = new Set<string>();
+  for (const msg of messages) {
+    const m = msg as { type?: string; tool_call_id?: string };
+    if (m.type === "tool" && m.tool_call_id) {
+      rootCompletedToolIds.add(m.tool_call_id);
     }
   }
 
@@ -909,8 +920,9 @@ function buildActivityItems(
         );
         if (isFinal) continue;
 
-        // Skip tool execution nodes — their content is tool responses, not LLM output
-        if (node.nodeName.toLowerCase() === "tools") continue;
+        // Skip internal graph nodes — their content is not useful as activity items
+        const lowerNodeName = node.nodeName.toLowerCase();
+        if (lowerNodeName === "tools" || lowerNodeName === "model") continue;
 
         const content = node.streamingContent || node.completedOutput;
         if (!content.trim()) continue;
@@ -947,35 +959,117 @@ function buildActivityItems(
       // Match with task tool_call info by order
       const taskInfo = taskToolCallInfos[subgraphIndex];
 
-      // Use subagentType for display name if available, else fall back to node name
+      // Use subagentType for display name, then task description, then node name
+      // Avoid generic internal names like "Tools" or "Model"
+      const isGenericName = ["tools", "model", "agent"].includes(
+        subgraph.name.toLowerCase(),
+      );
       const displayName = taskInfo?.subagentType
         ? humanizeNodeName(taskInfo.subagentType)
-        : humanizeNodeName(subgraph.name);
+        : isGenericName
+          ? taskInfo?.description
+            ? taskInfo.description.length > 50
+              ? taskInfo.description.slice(0, 50) + "..."
+              : taskInfo.description
+            : `Subagent ${subgraphIndex + 1}`
+          : humanizeNodeName(subgraph.name);
 
-      const childNodes = subgraph.nodes
-        .sort((a, b) => a.timestamp - b.timestamp)
-        .map((node, nodeIndex) => {
-          let content = node.streamingContent || node.completedOutput || "";
-          if (node.isActive && !content && streamingMessage) {
-            content = streamingMessage.content;
+      // --- Build childNodes from actual tool calls (not internal node names) ---
+      // Collect all tool_calls from model nodes and tool results from tools nodes
+      const toolCallMap = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          args?: Record<string, unknown>;
+          timestamp: number;
+          isCompleted: boolean;
+          isActive: boolean;
+        }
+      >();
+      const completedToolCallIds = new Set<string>();
+
+      // Collect tool results first (to know which calls are completed)
+      for (const node of subgraph.nodes) {
+        if (node.toolResults) {
+          for (const tr of node.toolResults) {
+            if (tr.toolCallId) completedToolCallIds.add(tr.toolCallId);
           }
-          return {
-            id: `${namespaceKey}-${node.nodeName}-${nodeIndex}`,
-            nodeName: node.nodeName,
-            displayName: humanizeNodeName(node.nodeName),
-            content,
-            status: node.isActive
-              ? ("streaming" as const)
-              : ("completed" as const),
-            isActive: node.isActive,
-          };
-        });
+        }
+      }
+
+      // Collect tool calls from model nodes
+      for (const node of subgraph.nodes) {
+        if (node.toolCalls) {
+          for (const tc of node.toolCalls) {
+            const key = tc.id || `${tc.name}-${node.timestamp}`;
+            if (!toolCallMap.has(key)) {
+              toolCallMap.set(key, {
+                id: key,
+                name: tc.name,
+                args: tc.args,
+                timestamp: node.timestamp,
+                isCompleted: tc.id ? completedToolCallIds.has(tc.id) : false,
+                isActive: node.isActive,
+              });
+            }
+          }
+        }
+      }
+
+      // Build childNodes from tool calls if available, else fallback to node names
+      let childNodes: SubgraphActivity["childNodes"];
+
+      if (toolCallMap.size > 0) {
+        // Filter out internal tool names (write_todos) — keep real tools only
+        const toolEntries = [...toolCallMap.values()]
+          .filter((tc) => !isTodoToolName(tc.name))
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        childNodes = toolEntries.map((tc, i) => ({
+          id: `${namespaceKey}-tool-${tc.id}-${i}`,
+          nodeName: tc.name,
+          displayName: tc.name, // Use raw tool name (not humanized)
+          content: "",
+          status: tc.isCompleted
+            ? ("completed" as const)
+            : ("streaming" as const),
+          isActive: !tc.isCompleted,
+          toolArgs: tc.args,
+        }));
+      } else {
+        // Fallback: show internal node names (backward compat)
+        childNodes = subgraph.nodes
+          .sort((a, b) => a.timestamp - b.timestamp)
+          .map((node, nodeIndex) => {
+            let content = node.streamingContent || node.completedOutput || "";
+            if (node.isActive && !content && streamingMessage) {
+              content = streamingMessage.content;
+            }
+            return {
+              id: `${namespaceKey}-${node.nodeName}-${nodeIndex}`,
+              nodeName: node.nodeName,
+              displayName: humanizeNodeName(node.nodeName),
+              content,
+              status: node.isActive
+                ? ("streaming" as const)
+                : ("completed" as const),
+              isActive: node.isActive,
+            };
+          });
+      }
+
+      // Subgraph status: use root task tool_call completion (most reliable)
+      // If the root-level task tool_call hasn't received its response, subgraph is still running
+      const taskCompleted = taskInfo?.toolCallId
+        ? rootCompletedToolIds.has(taskInfo.toolCallId)
+        : childNodes.every((c) => c.status === "completed");
 
       items.push({
         id: `subgraph-${subgraphIndex}-${namespaceKey}`,
         kind: "subgraph",
         timestamp: subgraph.earliestTimestamp,
-        status: subgraph.hasActiveNode ? "streaming" : "completed",
+        status: taskCompleted ? "completed" : "streaming",
         displayName,
         description: taskInfo?.description,
         subgraphNamespace: namespaceKey,
@@ -987,9 +1081,30 @@ function buildActivityItems(
     }
   }
 
+  // --- Collect root-level tool_call IDs (whitelist) ---
+  // streamValue.messages includes subgraph messages too;
+  // we use root nodeUpdates' toolCalls as a whitelist to prevent subgraph leaks.
+  const rootToolCallIds = new Set<string>();
+  if (nodeUpdates) {
+    for (const node of nodeUpdates) {
+      if (node.namespace.length > 0) continue; // subgraph — skip
+      if (node.toolCalls) {
+        for (const tc of node.toolCalls) {
+          if (tc.id) rootToolCallIds.add(tc.id);
+        }
+      }
+      if (node.toolResults) {
+        for (const tr of node.toolResults) {
+          if (tr.toolCallId) rootToolCallIds.add(tr.toolCallId);
+        }
+      }
+    }
+  }
+
   // --- LLMOutputActivity from completed messages (via messageNodeMap) ---
+  // NOTE: streamValue.messages may include subgraph messages.
+  // We filter them by checking if the message contains tool_calls that belong to subgraphs.
   if (finalNodeNames.length > 0 && messageNodeMap && messageNodeMap.size > 0) {
-    // Collect existing LLM output IDs to deduplicate
     const existingLLMIds = new Set(
       items.filter((i) => i.kind === "llm_output").map((i) => i.id),
     );
@@ -998,8 +1113,20 @@ function buildActivityItems(
       const msg = messages[i];
       if (msg.type !== "ai") continue;
 
+      // Skip messages whose tool_calls are NOT from root (they belong to subgraphs)
+      if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+        const hasOnlyNonRootToolCalls = msg.tool_calls.every(
+          (tc) => tc.id && !rootToolCallIds.has(tc.id),
+        );
+        if (hasOnlyNonRootToolCalls) continue;
+      }
+
       const nodeName = msg.id ? messageNodeMap.get(msg.id) : undefined;
       if (!nodeName) continue;
+
+      // Skip internal graph nodes
+      const lowerMappedName = nodeName.toLowerCase();
+      if (lowerMappedName === "tools" || lowerMappedName === "model") continue;
 
       const isFinal = finalNodeNames.some(
         (name) => nodeName.toLowerCase() === name.toLowerCase(),
@@ -1030,7 +1157,7 @@ function buildActivityItems(
       items.push({
         id: uniqueId,
         kind: "llm_output",
-        timestamp: i, // Use index for stable ordering
+        timestamp: i,
         status: "completed",
         nodeName,
         displayName: humanizeNodeName(nodeName),
@@ -1043,9 +1170,11 @@ function buildActivityItems(
     }
   }
 
-  // --- ToolCallActivity from running tools ---
-  if (isStreaming) {
-    for (let i = messages.length - 1; i >= 0; i--) {
+  // --- ToolCallActivity from root-level tool calls (both running AND completed) ---
+  {
+    const addedToolCallIds = new Set<string>();
+
+    for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
       if (
         msg.type !== "ai" ||
@@ -1054,35 +1183,40 @@ function buildActivityItems(
       )
         continue;
 
-      const completedToolIds = new Set<string>();
-      for (let j = i + 1; j < messages.length; j++) {
-        const toolMsg = messages[j] as {
-          type?: string;
-          tool_call_id?: string;
-        };
-        if (toolMsg.type === "tool" && toolMsg.tool_call_id) {
-          completedToolIds.add(toolMsg.tool_call_id);
-        }
-      }
-
       for (const tc of msg.tool_calls) {
         if (isTodoToolName(tc.name) || isTaskToolName(tc.name)) continue;
-        const isCompleted = tc.id && completedToolIds.has(tc.id);
-        if (isCompleted) continue;
+        if (tc.id && addedToolCallIds.has(tc.id)) continue;
+
+        // Only show root-level tool_calls (whitelist from root nodeUpdates).
+        // Any tool_call with an ID not seen in root nodeUpdates is from a subgraph.
+        // Only apply when nodeUpdates are available (active streaming session).
+        if (
+          nodeUpdates &&
+          nodeUpdates.length > 0 &&
+          tc.id &&
+          !rootToolCallIds.has(tc.id)
+        )
+          continue;
+
+        const completed = tc.id && rootCompletedToolIds.has(tc.id);
+
+        // During streaming: show both running and completed
+        // After streaming: show completed only
+        if (!isStreaming && !completed) continue;
 
         items.push({
           id: tc.id || `tool-${tc.name}-${i}`,
           kind: "tool_call",
-          timestamp: Date.now(),
-          status: "streaming",
+          timestamp: i,
+          status: completed ? "completed" : "streaming",
           toolName: tc.name,
           toolCallId: tc.id,
           toolArgs: tc.args || {},
           nodeName: msg.name,
         } satisfies ToolCallActivity);
-      }
 
-      break; // Only check the last AI message with tool calls
+        if (tc.id) addedToolCallIds.add(tc.id);
+      }
     }
   }
 

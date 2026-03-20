@@ -136,7 +136,7 @@ export const HumanMessage = memo(function HumanMessage({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <span className="text-muted-foreground/40 text-sm font-medium tabular-nums">
             {mountTime.current.toLocaleDateString([], {
               month: "short",

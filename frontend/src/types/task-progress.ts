@@ -51,6 +51,8 @@ export interface TaskChildNode {
   content: string;
   status: "streaming" | "completed";
   isActive: boolean;
+  /** Tool call args (for display in parentheses) */
+  toolArgs?: Record<string, unknown>;
 }
 
 export interface TaskProgressItem {

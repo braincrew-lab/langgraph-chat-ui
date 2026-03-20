@@ -47,6 +47,17 @@ export interface NodeUpdateInfo {
   streamingContent: string; // 현재까지의 스트리밍 콘텐츠
   isActive: boolean; // 현재 활성(스트리밍 중) 여부
   completedOutput: string; // 노드 완료 시 저장된 출력
+  /** 서브그래프 model 노드에서 추출한 tool_calls */
+  toolCalls?: Array<{
+    id?: string;
+    name: string;
+    args?: Record<string, unknown>;
+  }>;
+  /** 서브그래프 tools 노드에서 추출한 tool 결과 */
+  toolResults?: Array<{
+    name: string;
+    toolCallId?: string;
+  }>;
 }
 
 const useTypedStream = useStream<
@@ -172,12 +183,15 @@ const StreamSession = ({
     ) => {
       const nodeNames = Object.keys(data);
       const timestamp = Date.now();
+      const incomingNs = JSON.stringify(options.namespace || []);
 
-      // 모든 기존 노드를 비활성화 (immutable update로 React 변경 감지 보장)
-      nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => ({
-        ...u,
-        isActive: false,
-      }));
+      // 같은 namespace 내 기존 노드만 비활성화 (다른 서브그래프는 건드리지 않음)
+      nodeUpdatesRef.current = nodeUpdatesRef.current.map((u) => {
+        if (JSON.stringify(u.namespace) === incomingNs) {
+          return { ...u, isActive: false };
+        }
+        return u;
+      });
 
       for (const nodeName of nodeNames) {
         // 내부 노드(__start__, __end__) 및 미들웨어 노드 제외
@@ -253,28 +267,107 @@ const StreamSession = ({
           }
         }
 
+        // 서브그래프 내부 이벤트에서 tool 정보 추출
+        let toolCalls:
+          | Array<{
+              id?: string;
+              name: string;
+              args?: Record<string, unknown>;
+            }>
+          | undefined;
+        let toolResults:
+          | Array<{ name: string; toolCallId?: string }>
+          | undefined;
+
+        if (nodeData) {
+          const rawMessages = nodeData.messages as unknown;
+          // Handle both formats: direct array or {value: [...]}
+          const msgs = Array.isArray(rawMessages)
+            ? rawMessages
+            : rawMessages && typeof rawMessages === "object"
+              ? Array.isArray((rawMessages as Record<string, unknown>).value)
+                ? ((rawMessages as Record<string, unknown>).value as unknown[])
+                : [rawMessages]
+              : [];
+
+          for (const msg of msgs) {
+            if (!msg || typeof msg !== "object") continue;
+            const m = msg as Record<string, unknown>;
+
+            // model 노드: tool_calls 추출 (모든 AI 메시지에서 누적)
+            if (
+              m.type === "ai" &&
+              Array.isArray(m.tool_calls) &&
+              (m.tool_calls as unknown[]).length > 0
+            ) {
+              if (!toolCalls) toolCalls = [];
+              for (const tc of m.tool_calls as Array<{
+                id?: string;
+                name: string;
+                args?: Record<string, unknown>;
+              }>) {
+                if (!toolCalls.some((e) => e.id && e.id === tc.id)) {
+                  toolCalls.push({
+                    id: tc.id,
+                    name: tc.name,
+                    args: tc.args,
+                  });
+                }
+              }
+            }
+
+            // tools 노드: tool 결과 추출
+            if (m.type === "tool" && typeof m.name === "string") {
+              if (!toolResults) toolResults = [];
+              toolResults.push({
+                name: m.name as string,
+                toolCallId: (m.tool_call_id as string) || undefined,
+              });
+            }
+          }
+        }
+
         // 동일 노드의 기존 업데이트를 찾기
         const existingIndex = nodeUpdatesRef.current.findIndex(
           (u) =>
             u.nodeName === nodeName &&
-            JSON.stringify(u.namespace) ===
-              JSON.stringify(options.namespace || []),
+            JSON.stringify(u.namespace) === incomingNs,
         );
 
         if (existingIndex >= 0) {
-          // 기존 노드 업데이트 - 콘텐츠 누적
-          const existingContent =
-            nodeUpdatesRef.current[existingIndex].streamingContent;
+          // 기존 노드 업데이트 - 콘텐츠 누적, tool 정보 병합
+          const existing = nodeUpdatesRef.current[existingIndex];
+          const mergedToolCalls = toolCalls
+            ? [
+                ...(existing.toolCalls || []),
+                ...toolCalls.filter(
+                  (tc) =>
+                    !existing.toolCalls?.some((e) => e.id && e.id === tc.id),
+                ),
+              ]
+            : existing.toolCalls;
+          const mergedToolResults = toolResults
+            ? [
+                ...(existing.toolResults || []),
+                ...toolResults.filter(
+                  (tr) =>
+                    !existing.toolResults?.some(
+                      (e) => e.toolCallId && e.toolCallId === tr.toolCallId,
+                    ),
+                ),
+              ]
+            : existing.toolResults;
+
           nodeUpdatesRef.current[existingIndex] = {
-            ...nodeUpdatesRef.current[existingIndex],
+            ...existing,
             timestamp,
-            hasMessages:
-              nodeUpdatesRef.current[existingIndex].hasMessages ||
-              !!hasMessages,
+            hasMessages: existing.hasMessages || !!hasMessages,
             // LangGraph SDK's onUpdateEvent delivers the full accumulated state per node,
             // so replacement (not concatenation) is the correct behavior here.
-            streamingContent: messageContent || existingContent,
+            streamingContent: messageContent || existing.streamingContent,
             isActive: true,
+            toolCalls: mergedToolCalls,
+            toolResults: mergedToolResults,
           };
         } else {
           // 새 노드 추가
@@ -283,9 +376,11 @@ const StreamSession = ({
             namespace: options.namespace || [],
             timestamp,
             hasMessages: !!hasMessages,
-            streamingContent: messageContent, // SSE에서 직접 추출한 콘텐츠
+            streamingContent: messageContent,
             isActive: true,
-            completedOutput: "", // 완료 시 저장될 출력
+            completedOutput: "",
+            toolCalls,
+            toolResults,
           });
         }
       }
