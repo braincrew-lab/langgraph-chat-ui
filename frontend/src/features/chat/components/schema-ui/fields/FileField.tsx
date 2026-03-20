@@ -39,8 +39,7 @@ export function FileField({
       } catch (err) {
         toast.error(
           t("form.uploadFailed", {
-            fallback:
-              err instanceof Error ? err.message : "Upload failed",
+            fallback: err instanceof Error ? err.message : "Upload failed",
           }),
         );
       } finally {

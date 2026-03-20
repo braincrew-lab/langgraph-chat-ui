@@ -48,8 +48,7 @@ export function FileArrayField({
       } catch (err) {
         toast.error(
           t("form.uploadFailed", {
-            fallback:
-              err instanceof Error ? err.message : "Upload failed",
+            fallback: err instanceof Error ? err.message : "Upload failed",
           }),
         );
       } finally {
@@ -77,9 +76,11 @@ export function FileArrayField({
         onClick={() => !disabled && !isUploading && inputRef.current?.click()}
         className={cn(
           "cursor-pointer rounded-lg border-2 border-dashed p-3",
-          "max-h-[120px] min-h-[80px] overflow-y-auto overflow-x-hidden",
+          "max-h-[120px] min-h-[80px] overflow-x-hidden overflow-y-auto",
           "hover:border-primary/50 hover:bg-muted/30 transition-colors",
-          items.length === 0 && !isUploading && "flex items-center justify-center",
+          items.length === 0 &&
+            !isUploading &&
+            "flex items-center justify-center",
           (disabled || isUploading) && "cursor-not-allowed opacity-50",
         )}
       >
@@ -108,10 +109,7 @@ export function FileArrayField({
                 <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <TruncatedFileName
                   name={displayNames[index] || extractDisplayName(items[index])}
-                  className={cn(
-                    "min-w-0 flex-1 text-sm",
-                    compact && "text-xs",
-                  )}
+                  className={cn("min-w-0 flex-1 text-sm", compact && "text-xs")}
                 />
                 <Button
                   type="button"

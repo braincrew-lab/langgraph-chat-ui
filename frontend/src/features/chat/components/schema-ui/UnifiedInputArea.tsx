@@ -309,14 +309,9 @@ export function UnifiedInputArea({
                     rawSchema,
                   ) as SchemaFieldType;
                   const itemSchema =
-                    ft === "array"
-                      ? getArrayItemSchema(f, rawSchema)
-                      : null;
+                    ft === "array" ? getArrayItemSchema(f, rawSchema) : null;
                   const it = itemSchema
-                    ? (getFieldType(
-                        itemSchema,
-                        rawSchema,
-                      ) as SchemaFieldType)
+                    ? (getFieldType(itemSchema, rawSchema) as SchemaFieldType)
                     : undefined;
                   return isFileField(f.name, ft, it);
                 })
@@ -340,9 +335,7 @@ export function UnifiedInputArea({
                         field={field}
                         rootSchema={rawSchema}
                         value={formState[field.name]}
-                        onChange={(value) =>
-                          setFieldValue(field.name, value)
-                        }
+                        onChange={(value) => setFieldValue(field.name, value)}
                         disabled={isLoading}
                         fileUploadMode={fileUploadMode}
                       />

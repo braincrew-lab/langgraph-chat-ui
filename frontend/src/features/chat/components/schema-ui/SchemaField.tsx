@@ -198,7 +198,12 @@ export function SchemaField({
   // Boolean field has its own label layout
   if (fieldType === "boolean") {
     return (
-      <div className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
+      <div
+        className={cn(
+          "min-w-0 space-y-1",
+          compact ? "space-y-0.5" : "space-y-2",
+        )}
+      >
         {renderField()}
         {description && !compact && (
           <p className="text-muted-foreground text-xs">{description}</p>
@@ -208,7 +213,9 @@ export function SchemaField({
   }
 
   return (
-    <div className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}>
+    <div
+      className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}
+    >
       <Label
         className={cn(
           "text-sm font-medium",

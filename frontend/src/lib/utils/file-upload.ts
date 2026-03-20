@@ -65,7 +65,10 @@ export function extractDisplayName(value: string): string {
   if (!value) return "";
 
   // Raw base64 or data URI — no filename available
-  if (value.startsWith("data:") || /^[A-Za-z0-9+/]/.test(value) && value.length > 200) {
+  if (
+    value.startsWith("data:") ||
+    (/^[A-Za-z0-9+/]/.test(value) && value.length > 200)
+  ) {
     return "file";
   }
 
