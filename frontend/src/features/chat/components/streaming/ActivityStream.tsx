@@ -172,10 +172,19 @@ const ChildNodeItem = memo(function ChildNodeItem({
     return () => clearTimeout(timer);
   }, [node.isActive, scrollContainerRef]);
 
+  // Format toolArgs keys for display: "(key1, key2)"
+  const toolArgsDisplay = node.toolArgs
+    ? `(${Object.keys(node.toolArgs).join(", ")})`
+    : "";
+
   return (
     <div
       ref={itemRef}
       className="border-border/50 ml-4 border-l-2"
+      data-activity-item
+      data-depth="1"
+      data-kind="tool_call"
+      data-status={node.isActive ? "streaming" : "completed"}
     >
       <div
         className={cn(
@@ -196,9 +205,14 @@ const ChildNodeItem = memo(function ChildNodeItem({
         )}
 
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          <span className="text-foreground font-medium">
+          <span className="text-foreground font-mono font-medium">
             {node.displayName}
           </span>
+          {toolArgsDisplay && (
+            <span className="text-muted-foreground/70 text-xs">
+              {toolArgsDisplay}
+            </span>
+          )}
           {node.isActive ? (
             <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-blue-500" />
           ) : (
@@ -253,7 +267,13 @@ const ToolCallRow = memo(function ToolCallRow({
   item: ToolCallActivity;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 text-sm">
+    <div
+      className="flex items-center gap-2 px-3 py-1.5 text-sm"
+      data-activity-item
+      data-depth="0"
+      data-kind="tool_call"
+      data-status={item.status}
+    >
       <div className="mt-0.5">
         <StatusIcon status={item.status} />
       </div>
@@ -265,6 +285,7 @@ const ToolCallRow = memo(function ToolCallRow({
               ({Object.keys(item.toolArgs).join(", ")})
             </span>
           )}
+          <span className="text-muted-foreground/40 text-[10px]">tool</span>
           {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
         </div>
       </div>
@@ -284,6 +305,7 @@ const SubgraphRow = memo(function SubgraphRow({
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  // Default collapsed; user can expand manually
   const [isOpen, setIsOpen] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
 
@@ -346,37 +368,48 @@ const SubgraphRow = memo(function SubgraphRow({
     <div
       ref={itemRef}
       className="text-sm"
+      data-activity-item
+      data-depth="0"
+      data-kind="subgraph"
+      data-status={item.status}
     >
       {/* Header */}
       <div
         className={cn(
-          "flex items-start gap-2 px-3 py-1.5",
+          "flex items-center gap-2 px-3 py-1.5",
           "hover:bg-muted/30 cursor-pointer",
-          item.status === "streaming" &&
-            "bg-purple-50/50 dark:bg-purple-950/20",
+          "border-l-2",
+          item.status === "streaming"
+            ? "border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/20"
+            : "border-l-green-500/50",
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <ChevronIcon className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0" />
-        <div className="mt-0.5">
-          <StatusIcon status={item.status} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                item.status === "streaming" && "text-foreground font-medium",
-                item.status === "completed" && "text-muted-foreground",
-              )}
-            >
-              {item.displayName}
+        <ChevronIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+        <StatusIcon status={item.status} />
+        <span
+          className={cn(
+            "font-medium",
+            item.status === "streaming"
+              ? "text-foreground"
+              : "text-muted-foreground",
+          )}
+        >
+          {item.displayName}
+        </span>
+        <span className="text-muted-foreground/40 text-[10px]">subgraph</span>
+        {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
+        {/* Right side: running tool indicator (collapsed) or child count */}
+        <div className="ml-auto flex items-center gap-2">
+          {!isOpen && item.status === "streaming" && item.childNodes.length > 0 && (
+            <span className="text-muted-foreground font-mono text-xs">
+              {item.childNodes[item.childNodes.length - 1]?.displayName}
             </span>
-            {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
-          </div>
-          {item.description && (
-            <div className="text-muted-foreground mt-0.5 truncate text-xs">
-              {item.description}
-            </div>
+          )}
+          {!isOpen && item.childNodes.length > 0 && (
+            <span className="text-muted-foreground/60 text-xs">
+              {item.childNodes.length}
+            </span>
           )}
         </div>
       </div>
@@ -437,7 +470,13 @@ const LLMOutputRow = memo(function LLMOutputRow({
   }, [isStreaming]);
 
   return (
-    <div className="ml-2">
+    <div
+      className="ml-2"
+      data-activity-item
+      data-depth="0"
+      data-kind="llm_output"
+      data-status={item.status}
+    >
       <div
         className={cn(
           "flex items-start gap-2 px-2 py-1.5 text-xs",
@@ -516,18 +555,26 @@ export const ActivityStream = memo(function ActivityStream({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevItemsLengthRef = useRef(0);
+  const isUserScrolledRef = useRef(false);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+    isUserScrolledRef.current = !atBottom;
+  }, []);
 
   const hasStreamingItem = useMemo(
     () => items.some((i) => i.status === "streaming"),
     [items],
   );
 
-  // Auto-expand when there's a streaming item
+  // Auto-expand when streaming is active
   useEffect(() => {
-    if (hasStreamingItem && isCollapsed) {
+    if ((isStreaming || hasStreamingItem) && isCollapsed) {
       setIsCollapsed(false);
     }
-  }, [hasStreamingItem, isCollapsed]);
+  }, [isStreaming, hasStreamingItem, isCollapsed]);
 
   // Auto-scroll when new items appear
   const itemsLength = items.length;
@@ -546,7 +593,7 @@ export const ActivityStream = memo(function ActivityStream({
   );
 
   useEffect(() => {
-    if (isCollapsed) {
+    if (isCollapsed || isUserScrolledRef.current) {
       prevItemsLengthRef.current = itemsLength;
       return;
     }
@@ -586,7 +633,7 @@ export const ActivityStream = memo(function ActivityStream({
             ({items.length})
           </span>
         </div>
-        {hasStreamingItem && (
+        {(isStreaming || hasStreamingItem) && (
           <span className="flex items-center gap-1 text-xs text-blue-500">
             <Loader2 className="h-3 w-3 animate-spin" />
             In Progress
@@ -607,6 +654,7 @@ export const ActivityStream = memo(function ActivityStream({
               ref={scrollContainerRef}
               className="divide-border/20 divide-y overflow-y-auto"
               style={{ maxHeight: MAX_HEIGHT }}
+              onScroll={handleScroll}
             >
               {items.map((item) => {
                 switch (item.kind) {
@@ -634,6 +682,14 @@ export const ActivityStream = memo(function ActivityStream({
                     );
                 }
               })}
+              {isStreaming && !hasStreamingItem && (
+                <div className="flex items-center gap-2 px-3 py-1.5 text-sm">
+                  <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />
+                  <span className="text-muted-foreground text-xs">
+                    Thinking...
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
