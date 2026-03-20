@@ -285,9 +285,7 @@ const StreamSession = ({
           const msgs = Array.isArray(rawMessages)
             ? rawMessages
             : rawMessages && typeof rawMessages === "object"
-              ? Array.isArray(
-                  (rawMessages as Record<string, unknown>).value,
-                )
+              ? Array.isArray((rawMessages as Record<string, unknown>).value)
                 ? ((rawMessages as Record<string, unknown>).value as unknown[])
                 : [rawMessages]
               : [];
@@ -354,8 +352,7 @@ const StreamSession = ({
                 ...toolResults.filter(
                   (tr) =>
                     !existing.toolResults?.some(
-                      (e) =>
-                        e.toolCallId && e.toolCallId === tr.toolCallId,
+                      (e) => e.toolCallId && e.toolCallId === tr.toolCallId,
                     ),
                 ),
               ]

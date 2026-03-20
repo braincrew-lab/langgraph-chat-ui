@@ -401,11 +401,13 @@ const SubgraphRow = memo(function SubgraphRow({
         {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
         {/* Right side: running tool indicator (collapsed) or child count */}
         <div className="ml-auto flex items-center gap-2">
-          {!isOpen && item.status === "streaming" && item.childNodes.length > 0 && (
-            <span className="text-muted-foreground font-mono text-xs">
-              {item.childNodes[item.childNodes.length - 1]?.displayName}
-            </span>
-          )}
+          {!isOpen &&
+            item.status === "streaming" &&
+            item.childNodes.length > 0 && (
+              <span className="text-muted-foreground font-mono text-xs">
+                {item.childNodes[item.childNodes.length - 1]?.displayName}
+              </span>
+            )}
           {!isOpen && item.childNodes.length > 0 && (
             <span className="text-muted-foreground/60 text-xs">
               {item.childNodes.length}

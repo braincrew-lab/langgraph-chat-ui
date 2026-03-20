@@ -1009,9 +1009,7 @@ function buildActivityItems(
                 name: tc.name,
                 args: tc.args,
                 timestamp: node.timestamp,
-                isCompleted: tc.id
-                  ? completedToolCallIds.has(tc.id)
-                  : false,
+                isCompleted: tc.id ? completedToolCallIds.has(tc.id) : false,
                 isActive: node.isActive,
               });
             }
@@ -1033,7 +1031,9 @@ function buildActivityItems(
           nodeName: tc.name,
           displayName: tc.name, // Use raw tool name (not humanized)
           content: "",
-          status: tc.isCompleted ? ("completed" as const) : ("streaming" as const),
+          status: tc.isCompleted
+            ? ("completed" as const)
+            : ("streaming" as const),
           isActive: !tc.isCompleted,
           toolArgs: tc.args,
         }));
@@ -1042,8 +1042,7 @@ function buildActivityItems(
         childNodes = subgraph.nodes
           .sort((a, b) => a.timestamp - b.timestamp)
           .map((node, nodeIndex) => {
-            let content =
-              node.streamingContent || node.completedOutput || "";
+            let content = node.streamingContent || node.completedOutput || "";
             if (node.isActive && !content && streamingMessage) {
               content = streamingMessage.content;
             }
