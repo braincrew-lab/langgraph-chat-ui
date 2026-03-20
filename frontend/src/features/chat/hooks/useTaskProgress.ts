@@ -834,9 +834,11 @@ function buildActivityItems(
     description: string;
     subagentType?: string;
     toolCallId?: string;
+    messageIndex: number;
   }
   const taskToolCallInfos: TaskToolCallInfo[] = [];
-  for (const msg of messages) {
+  for (let mi = 0; mi < messages.length; mi++) {
+    const msg = messages[mi];
     if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
     for (const tc of msg.tool_calls) {
       if (!isTaskToolName(tc.name)) continue;
@@ -859,6 +861,7 @@ function buildActivityItems(
         description: desc,
         subagentType: sat || undefined,
         toolCallId: tc.id,
+        messageIndex: mi,
       });
     }
   }
@@ -1068,7 +1071,7 @@ function buildActivityItems(
       items.push({
         id: `subgraph-${subgraphIndex}-${namespaceKey}`,
         kind: "subgraph",
-        timestamp: subgraph.earliestTimestamp,
+        timestamp: taskInfo?.messageIndex ?? subgraphIndex,
         status: taskCompleted ? "completed" : "streaming",
         displayName,
         description: taskInfo?.description,
