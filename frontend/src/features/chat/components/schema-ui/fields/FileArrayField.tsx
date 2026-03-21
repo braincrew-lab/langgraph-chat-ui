@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { File as FileIcon, X, Loader2 } from "lucide-react";
@@ -14,7 +14,9 @@ import type { FileArrayFieldProps } from "./types";
 export function FileArrayField({
   field,
   value,
+  displayValue,
   onChange,
+  onDisplayValueChange,
   disabled,
   compact,
   fileUploadMode = "base64",
@@ -22,14 +24,20 @@ export function FileArrayField({
   const t = useTranslations("chat");
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [displayNames, setDisplayNames] = useState<string[]>(() =>
-    (Array.isArray(value) ? value : []).map(extractDisplayName),
+  const [displayNames, setDisplayNames] = useState<string[]>(
+    () =>
+      displayValue ||
+      (Array.isArray(value) ? value : []).map(extractDisplayName),
   );
 
   const items = useMemo(
     (): string[] => (Array.isArray(value) ? value : []),
     [value],
   );
+
+  useEffect(() => {
+    setDisplayNames(displayValue || items.map(extractDisplayName));
+  }, [displayValue, items]);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,8 +51,13 @@ export function FileArrayField({
           fileArray.map((f) => processFileForField(f, fileUploadMode)),
         );
         const newNames = fileArray.map((f) => f.name);
+        const nextDisplayNames = [
+          ...items.map(extractDisplayName),
+          ...newNames,
+        ];
         onChange([...items, ...results]);
-        setDisplayNames((prev) => [...prev, ...newNames]);
+        onDisplayValueChange?.(nextDisplayNames);
+        setDisplayNames(nextDisplayNames);
       } catch (err) {
         toast.error(
           t("form.uploadFailed", {
@@ -64,10 +77,12 @@ export function FileArrayField({
   const handleRemove = useCallback(
     (index: number) => {
       const newItems = items.filter((_, i) => i !== index);
+      const newDisplayNames = displayNames.filter((_, i) => i !== index);
       onChange(newItems);
-      setDisplayNames((prev) => prev.filter((_, i) => i !== index));
+      onDisplayValueChange?.(newDisplayNames);
+      setDisplayNames(newDisplayNames);
     },
-    [items, onChange],
+    [items, displayNames, onChange, onDisplayValueChange],
   );
 
   return (

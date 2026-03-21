@@ -55,7 +55,9 @@ interface SchemaFieldProps {
   field: SchemaFieldConfig;
   rootSchema: JSONSchema;
   value: FieldValue;
+  displayValue?: FieldValue;
   onChange: (value: FieldValue) => void;
+  onDisplayValueChange?: (value: FieldValue) => void;
   disabled?: boolean;
   compact?: boolean;
   fileUploadMode?: "base64" | "url";
@@ -65,7 +67,9 @@ export function SchemaField({
   field,
   rootSchema,
   value,
+  displayValue,
   onChange,
+  onDisplayValueChange,
   disabled = false,
   compact = false,
   fileUploadMode,
@@ -97,7 +101,9 @@ export function SchemaField({
           <FileArrayField
             field={field}
             value={value as string[]}
+            displayValue={displayValue as string[] | undefined}
             onChange={onChange}
+            onDisplayValueChange={onDisplayValueChange}
             disabled={disabled}
             compact={compact}
             fileUploadMode={fileUploadMode}
@@ -108,7 +114,9 @@ export function SchemaField({
         <FileField
           field={field}
           value={value as string}
+          displayValue={displayValue as string | undefined}
           onChange={onChange}
+          onDisplayValueChange={onDisplayValueChange}
           disabled={disabled}
           compact={compact}
           fileUploadMode={fileUploadMode}

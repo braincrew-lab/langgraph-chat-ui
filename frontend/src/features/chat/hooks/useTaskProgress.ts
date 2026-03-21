@@ -834,11 +834,14 @@ function buildActivityItems(
     description: string;
     subagentType?: string;
     toolCallId?: string;
+    messageIndex: number;
   }
   const taskToolCallInfos: TaskToolCallInfo[] = [];
-  for (const msg of messages) {
+  for (let mi = 0; mi < messages.length; mi++) {
+    const msg = messages[mi];
     if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
-    for (const tc of msg.tool_calls) {
+    for (let tci = 0; tci < msg.tool_calls.length; tci++) {
+      const tc = msg.tool_calls[tci];
       if (!isTaskToolName(tc.name)) continue;
       let args: unknown = tc.args;
       if (typeof args === "string" && args.length > 0) {
@@ -859,6 +862,7 @@ function buildActivityItems(
         description: desc,
         subagentType: sat || undefined,
         toolCallId: tc.id,
+        messageIndex: mi + tci / 1000,
       });
     }
   }
@@ -1068,7 +1072,7 @@ function buildActivityItems(
       items.push({
         id: `subgraph-${subgraphIndex}-${namespaceKey}`,
         kind: "subgraph",
-        timestamp: subgraph.earliestTimestamp,
+        timestamp: taskInfo?.messageIndex ?? subgraphIndex,
         status: taskCompleted ? "completed" : "streaming",
         displayName,
         description: taskInfo?.description,
@@ -1183,7 +1187,8 @@ function buildActivityItems(
       )
         continue;
 
-      for (const tc of msg.tool_calls) {
+      for (let tci = 0; tci < msg.tool_calls.length; tci++) {
+        const tc = msg.tool_calls[tci];
         if (isTodoToolName(tc.name) || isTaskToolName(tc.name)) continue;
         if (tc.id && addedToolCallIds.has(tc.id)) continue;
 
@@ -1207,7 +1212,7 @@ function buildActivityItems(
         items.push({
           id: tc.id || `tool-${tc.name}-${i}`,
           kind: "tool_call",
-          timestamp: i,
+          timestamp: i + tci / 1000,
           status: completed ? "completed" : "streaming",
           toolName: tc.name,
           toolCallId: tc.id,
@@ -1221,7 +1226,24 @@ function buildActivityItems(
   }
 
   // Sort by timestamp (oldest first)
-  return items.sort((a, b) => a.timestamp - b.timestamp);
+  items.sort((a, b) => a.timestamp - b.timestamp);
+
+  // Group consecutive tool_calls with same toolName
+  const grouped: ActivityItem[] = [];
+  for (const item of items) {
+    const prev = grouped[grouped.length - 1];
+    if (
+      prev &&
+      item.kind === "tool_call" &&
+      prev.kind === "tool_call" &&
+      item.toolName === prev.toolName
+    ) {
+      prev.groupCount = (prev.groupCount ?? 1) + 1;
+    } else {
+      grouped.push(item);
+    }
+  }
+  return grouped;
 }
 
 // ============================================

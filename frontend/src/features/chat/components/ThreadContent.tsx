@@ -70,7 +70,8 @@ export function ThreadContent() {
 
   // Schema UI for dynamic form fields
   const schemaUI = useSchemaUI();
-  const { parsedSchema, getSubmitPayload, resetForm } = schemaUI;
+  const { parsedSchema, getSubmitPayload, getDisplayPayload, resetForm } =
+    schemaUI;
   const isFormMode = parsedSchema.uiMode === "form";
 
   const stream = useStreamContext();
@@ -106,6 +107,7 @@ export function ThreadContent() {
     contentBlocks,
     setContentBlocks,
     getSubmitPayload,
+    getDisplayPayload,
     resetForm,
     parsedSchema,
   });
