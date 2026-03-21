@@ -378,16 +378,25 @@ export function MessageList({
         </div>
       )}
 
-      {/* Form mode: render form submissions */}
-      {isFormMode &&
-        formSubmissions.map((submission, idx) => (
+      {/* Form submissions (Form mode: all fields, Chat mode: file fields only) */}
+      {formSubmissions.map((submission, idx) => {
+        const fields = isFormMode
+          ? submission.fields
+          : submission.fields.filter((f) => {
+              if (!f.name.toLowerCase().includes("file")) return false;
+              const val = submission.data[f.name];
+              return Array.isArray(val) ? val.length > 0 : !!val;
+            });
+        if (fields.length === 0) return null;
+        return (
           <FormSubmissionMessage
             key={`form-submission-${idx}`}
             formData={submission.data}
-            fields={submission.fields}
+            fields={fields}
             timestamp={submission.timestamp}
           />
-        ))}
+        );
+      })}
 
       {!showHistoryLoading && renderMessages()}
 

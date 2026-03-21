@@ -4,6 +4,7 @@
   "private": true,
   "description": "Chat UI for LangGraph agents with multiple authentication modes",
   "scripts": {
+    "prelaunch": "pnpm install",
     "launch": "npx tsx scripts/setup.ts",
     "dev": "cd frontend && pnpm dev",
     "build": "cd frontend && pnpm build",

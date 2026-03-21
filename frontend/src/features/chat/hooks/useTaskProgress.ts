@@ -840,7 +840,8 @@ function buildActivityItems(
   for (let mi = 0; mi < messages.length; mi++) {
     const msg = messages[mi];
     if (msg.type !== "ai" || !Array.isArray(msg.tool_calls)) continue;
-    for (const tc of msg.tool_calls) {
+    for (let tci = 0; tci < msg.tool_calls.length; tci++) {
+      const tc = msg.tool_calls[tci];
       if (!isTaskToolName(tc.name)) continue;
       let args: unknown = tc.args;
       if (typeof args === "string" && args.length > 0) {
@@ -861,7 +862,7 @@ function buildActivityItems(
         description: desc,
         subagentType: sat || undefined,
         toolCallId: tc.id,
-        messageIndex: mi,
+        messageIndex: mi * 1000 + tci,
       });
     }
   }
@@ -1160,7 +1161,7 @@ function buildActivityItems(
       items.push({
         id: uniqueId,
         kind: "llm_output",
-        timestamp: i,
+        timestamp: i * 1000,
         status: "completed",
         nodeName,
         displayName: humanizeNodeName(nodeName),
@@ -1186,7 +1187,8 @@ function buildActivityItems(
       )
         continue;
 
-      for (const tc of msg.tool_calls) {
+      for (let tci = 0; tci < msg.tool_calls.length; tci++) {
+        const tc = msg.tool_calls[tci];
         if (isTodoToolName(tc.name) || isTaskToolName(tc.name)) continue;
         if (tc.id && addedToolCallIds.has(tc.id)) continue;
 
@@ -1210,7 +1212,7 @@ function buildActivityItems(
         items.push({
           id: tc.id || `tool-${tc.name}-${i}`,
           kind: "tool_call",
-          timestamp: i,
+          timestamp: i * 1000 + tci,
           status: completed ? "completed" : "streaming",
           toolName: tc.name,
           toolCallId: tc.id,

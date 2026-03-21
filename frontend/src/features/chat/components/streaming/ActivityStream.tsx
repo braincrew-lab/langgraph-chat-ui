@@ -33,6 +33,22 @@ import type {
 
 const MAX_HEIGHT = 250;
 
+/** Extract the first sentence from text using Intl.Segmenter */
+const sentenceSegmenter = (() => {
+  try {
+    return new Intl.Segmenter("ko", { granularity: "sentence" });
+  } catch {
+    return null;
+  }
+})();
+
+function firstSentence(text: string): string {
+  if (sentenceSegmenter) {
+    return [...sentenceSegmenter.segment(text)][0]?.segment.trim() ?? text;
+  }
+  return text.split("\n")[0];
+}
+
 // ============================================
 // Types
 // ============================================
@@ -263,8 +279,10 @@ const ChildNodeItem = memo(function ChildNodeItem({
 
 const ToolCallRow = memo(function ToolCallRow({
   item,
+  count,
 }: {
   item: ToolCallActivity;
+  count?: number;
 }) {
   return (
     <div
@@ -286,6 +304,9 @@ const ToolCallRow = memo(function ToolCallRow({
             </span>
           )}
           <span className="text-muted-foreground/40 text-[10px]">tool</span>
+          {count && count > 1 && (
+            <span className="text-muted-foreground/50 text-xs">×{count}</span>
+          )}
           {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
         </div>
       </div>
@@ -387,17 +408,24 @@ const SubgraphRow = memo(function SubgraphRow({
       >
         <ChevronIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
         <StatusIcon status={item.status} />
-        <span
-          className={cn(
-            "font-medium",
-            item.status === "streaming"
-              ? "text-foreground"
-              : "text-muted-foreground",
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span
+            className={cn(
+              "shrink-0 font-medium",
+              item.status === "streaming"
+                ? "text-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            {item.displayName}
+          </span>
+          <span className="text-muted-foreground/40 shrink-0 text-[10px]">subgraph</span>
+          {item.description && (
+            <span className="text-muted-foreground/50 min-w-0 truncate text-xs">
+              {firstSentence(item.description)}
+            </span>
           )}
-        >
-          {item.displayName}
-        </span>
-        <span className="text-muted-foreground/40 text-[10px]">subgraph</span>
+        </div>
         {item.langsmith && <LangSmithBadge langsmith={item.langsmith} />}
         {/* Right side: running tool indicator (collapsed) or child count */}
         <div className="ml-auto flex items-center gap-2">
@@ -658,32 +686,53 @@ export const ActivityStream = memo(function ActivityStream({
               style={{ maxHeight: MAX_HEIGHT }}
               onScroll={handleScroll}
             >
-              {items.map((item) => {
-                switch (item.kind) {
-                  case "tool_call":
-                    return (
-                      <ToolCallRow
-                        key={item.id}
-                        item={item}
-                      />
-                    );
-                  case "subgraph":
-                    return (
-                      <SubgraphRow
-                        key={item.id}
-                        item={item}
-                        scrollContainerRef={scrollContainerRef}
-                      />
-                    );
-                  case "llm_output":
-                    return (
-                      <LLMOutputRow
-                        key={item.id}
-                        item={item}
-                      />
-                    );
+              {(() => {
+                // Group consecutive tool_calls with same toolName
+                const grouped: Array<{
+                  item: ActivityItem;
+                  count: number;
+                }> = [];
+                for (const item of items) {
+                  const prev = grouped[grouped.length - 1];
+                  if (
+                    prev &&
+                    item.kind === "tool_call" &&
+                    prev.item.kind === "tool_call" &&
+                    item.toolName === prev.item.toolName
+                  ) {
+                    prev.count++;
+                  } else {
+                    grouped.push({ item, count: 1 });
+                  }
                 }
-              })}
+                return grouped.map(({ item, count }) => {
+                  switch (item.kind) {
+                    case "tool_call":
+                      return (
+                        <ToolCallRow
+                          key={item.id}
+                          item={item}
+                          count={count}
+                        />
+                      );
+                    case "subgraph":
+                      return (
+                        <SubgraphRow
+                          key={item.id}
+                          item={item}
+                          scrollContainerRef={scrollContainerRef}
+                        />
+                      );
+                    case "llm_output":
+                      return (
+                        <LLMOutputRow
+                          key={item.id}
+                          item={item}
+                        />
+                      );
+                  }
+                });
+              })()}
               {isStreaming && !hasStreamingItem && (
                 <div className="flex items-center gap-2 px-3 py-1.5 text-sm">
                   <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-blue-500" />

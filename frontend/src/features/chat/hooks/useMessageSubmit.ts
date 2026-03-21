@@ -84,13 +84,41 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       const schemaPayload = getSubmitPayload();
       stream.clearNodeUpdates();
 
+      // Capture values before clearing
+      const currentInput = input;
+      const currentBlocks = [...contentBlocks];
+
+      // Store form submission if schema has file fields with values
+      const allFields = [
+        ...parsedSchema.requiredFields,
+        ...parsedSchema.optionalFields,
+      ];
+      const hasFileData = allFields.some((f) => {
+        if (!f.name.toLowerCase().includes("file")) return false;
+        const val = schemaPayload[f.name];
+        return Array.isArray(val) ? val.length > 0 : !!val;
+      });
+      if (hasFileData) {
+        setFormSubmissions((prev) => [
+          ...prev,
+          { data: schemaPayload, fields: allFields, timestamp: new Date() },
+        ]);
+      }
+
+      // Clear form immediately
+      setInput("");
+      setContentBlocks([]);
+      resetForm();
+
       if (parsedSchema.hasMessages) {
         const newHumanMessage: Message = {
           id: uuidv4(),
           type: "human",
           content: [
-            ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
-            ...contentBlocks,
+            ...(currentInput.trim().length > 0
+              ? [{ type: "text", text: currentInput }]
+              : []),
+            ...currentBlocks,
           ] as Message["content"],
         };
 
@@ -113,9 +141,6 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       } else {
         stream.submit(schemaPayload, STREAM_OPTIONS);
       }
-
-      setInput("");
-      setContentBlocks([]);
     },
     [
       t,
@@ -127,6 +152,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       setInput,
       setContentBlocks,
       getSubmitPayload,
+      resetForm,
       parsedSchema.hasMessages,
     ],
   );
@@ -190,8 +216,8 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     ]);
 
     setFirstTokenReceived(false);
-    stream.submit(payload, STREAM_OPTIONS);
     resetForm();
+    stream.submit(payload, STREAM_OPTIONS);
   }, [
     t,
     isAssistantSelected,
