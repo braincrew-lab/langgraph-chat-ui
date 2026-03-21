@@ -129,14 +129,20 @@ export function MessageList({
   );
 
   // Check if a message is from an intermediate node (not final)
-  // Uses streamMetadata.langgraph_node from SDK
+  // Uses streamMetadata.langgraph_node from SDK, with message.name fallback for history
   const isIntermediateNodeMessage = useCallback(
     (message: Message): boolean => {
       if (message.type !== "ai") return false;
 
+      // Try stream metadata first (available during streaming)
       const meta = stream.getMessagesMetadata(message);
-      const nodeName = (meta?.streamMetadata as Record<string, unknown>)
+      let nodeName = (meta?.streamMetadata as Record<string, unknown>)
         ?.langgraph_node as string | undefined;
+
+      // Fallback to message.name for historical messages loaded from thread
+      if (!nodeName && message.name) {
+        nodeName = message.name;
+      }
 
       // If no node name, treat as final (main agent output)
       if (!nodeName) return false;
@@ -146,7 +152,7 @@ export function MessageList({
 
       // Check if this node is in the final node list
       const isFinal = finalNodeNames.some(
-        (name) => nodeName.toLowerCase() === name.toLowerCase(),
+        (name) => nodeName!.toLowerCase() === name.toLowerCase(),
       );
 
       return !isFinal;
@@ -195,7 +201,7 @@ export function MessageList({
     let lastAiMessageId: string | null = null;
     let lastAiMessageIndex: number = -1;
 
-    if (compactView && (hasVisibleContent || isLoading)) {
+    if (compactView) {
       const startIndex = lastHumanIndex >= 0 ? lastHumanIndex : -1;
       for (let i = filteredMessages.length - 1; i > startIndex; i--) {
         const msg = filteredMessages[i];
@@ -321,9 +327,7 @@ export function MessageList({
           // Apply compact filter during streaming (isLoading) OR when there's visible content
           // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
           const shouldApplyCompactFilter =
-            compactView &&
-            (hasVisibleContent || isLoading) &&
-            (isAfterLastHuman || lastHumanIndex === -1);
+            compactView && (isAfterLastHuman || lastHumanIndex === -1);
 
           if (shouldApplyCompactFilter) {
             if (message.type === "tool") {
