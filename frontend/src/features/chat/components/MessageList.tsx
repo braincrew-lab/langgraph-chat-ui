@@ -205,6 +205,11 @@ export function MessageList({
             lastAiMessageIndex = i;
           }
 
+          // Skip subagent messages to find the actual final AI response
+          if (subagentContext.subagentMessageIds.has(msg.id || "")) {
+            continue;
+          }
+
           if (hasAiTextContent(msg)) {
             lastAiMessageId = msg.id ?? null;
             break;
@@ -325,16 +330,22 @@ export function MessageList({
               return;
             }
             if (message.type === "ai") {
-              // 서브에이전트 메시지는 항상 숨김
-              if (subagentContext.subagentMessageIds.has(message.id || "")) {
-                return;
-              }
-              // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
-              if (isIntermediateNodeMessage(message)) {
-                return;
+              // After streaming ends, always show the last non-subagent AI message
+              // to ensure the final response is never hidden by incorrect classification
+              const isFinalResponse =
+                !isLoading && lastAiMessageId && message.id === lastAiMessageId;
+
+              if (!isFinalResponse) {
+                // 서브에이전트 메시지는 항상 숨김
+                if (subagentContext.subagentMessageIds.has(message.id || "")) {
+                  return;
+                }
+                // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
+                if (isIntermediateNodeMessage(message)) {
+                  return;
+                }
               }
               // 스트리밍 중에는 마지막 AI 메시지만 표시
-              // Use lastAiMessageId if found, otherwise use lastAiMessageIndex
               if (isLoading) {
                 const isLastAiMessage = lastAiMessageId
                   ? message.id === lastAiMessageId
