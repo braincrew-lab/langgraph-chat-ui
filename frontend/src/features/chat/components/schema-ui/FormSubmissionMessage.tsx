@@ -3,13 +3,14 @@
  * Displays submitted form data in the thread (similar to HumanMessage style)
  */
 
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
 import { getFieldLabel } from "@/lib/utils/schema";
+import { extractDisplayName } from "@/lib/utils/file-upload";
 
 // Check if a field is a file field (name contains "file" and type is string or string array)
 function isFileField(field: SchemaFieldConfig): boolean {
@@ -29,7 +30,7 @@ interface FormSubmissionMessageProps {
   className?: string;
 }
 
-export function FormSubmissionMessage({
+export const FormSubmissionMessage = memo(function FormSubmissionMessage({
   formData,
   fields,
   timestamp,
@@ -126,7 +127,7 @@ export function FormSubmissionMessage({
       </div>
     </div>
   );
-}
+});
 
 // Individual field display
 function FieldDisplay({
@@ -160,7 +161,7 @@ function FieldDisplay({
         </span>
         <div className="flex flex-col gap-1">
           {validFiles.map((filePath, idx) => {
-            const fileName = filePath.split("/").pop() || filePath;
+            const fileName = extractDisplayName(filePath);
             return (
               <div
                 key={idx}
@@ -169,7 +170,7 @@ function FieldDisplay({
                 <File className="h-4 w-4 flex-shrink-0 text-blue-500" />
                 <span
                   className="truncate"
-                  title={filePath}
+                  title={fileName}
                 >
                   {fileName}
                 </span>
@@ -236,34 +237,43 @@ function formatValue(
   if (typeof value === "boolean") {
     return value ? (t ? t("form.yes") : "Yes") : t ? t("form.no") : "No";
   }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "-";
-    // For file fields, show count
-    if (field && isFileField(field)) {
+  // File fields: show count or filename only, never stringify raw data
+  if (field && isFileField(field)) {
+    if (Array.isArray(value)) {
       return t
         ? t("form.fileCount", { count: value.length })
         : `${value.length} files`;
     }
+    if (typeof value === "string") {
+      return extractDisplayName(value);
+    }
+    return "-";
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
     // For string arrays, show count if more than 2 items
     if (value.length > 2 && value.every((v) => typeof v === "string")) {
       return t
         ? t("form.itemCount", { count: value.length })
         : `${value.length} items`;
     }
-    return value.join(", ");
+    // Truncate long string values to prevent rendering huge base64 data
+    return value
+      .map((v) => {
+        const s = String(v);
+        return s.length > 200 ? s.slice(0, 200) + "…" : s;
+      })
+      .join(", ");
   }
   if (typeof value === "object") {
-    // Check if object is empty
     if (Object.keys(value).length === 0) return "-";
     try {
-      return JSON.stringify(value, null, 2);
+      const json = JSON.stringify(value, null, 2);
+      return json.length > 2000 ? json.slice(0, 2000) + "\n…" : json;
     } catch {
       return String(value);
     }
   }
-  // For single file field, show filename only
-  if (field && isFileField(field) && typeof value === "string") {
-    return value.split("/").pop() || value;
-  }
-  return String(value);
+  const str = String(value);
+  return str.length > 2000 ? str.slice(0, 2000) + "…" : str;
 }

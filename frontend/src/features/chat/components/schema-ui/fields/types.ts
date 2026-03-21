@@ -47,12 +47,16 @@ export interface ObjectFieldProps extends BaseFieldProps {
 
 export interface FileFieldProps extends BaseFieldProps {
   value: string;
+  displayValue?: string;
   onChange: (value: FieldValue) => void;
+  onDisplayValueChange?: (value: FieldValue) => void;
   fileUploadMode?: "base64" | "url";
 }
 
 export interface FileArrayFieldProps extends BaseFieldProps {
   value: string[];
+  displayValue?: string[];
   onChange: (value: FieldValue) => void;
+  onDisplayValueChange?: (value: FieldValue) => void;
   fileUploadMode?: "base64" | "url";
 }

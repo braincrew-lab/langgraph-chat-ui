@@ -11,9 +11,14 @@ import type { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import type { Base64ContentBlock } from "@langchain/core/messages";
 import { STREAM_OPTIONS } from "@/lib/constants";
 import { ensureToolCallsHaveResponses } from "@/lib/utils/ensure-tool-responses";
+import { extractDisplayName } from "@/lib/utils/file-upload";
 import { toast } from "sonner";
 import type { StreamContextType } from "@/providers/Stream";
-import type { FormState, SchemaFieldConfig } from "@/types/schema-ui";
+import type {
+  FieldValue,
+  FormState,
+  SchemaFieldConfig,
+} from "@/types/schema-ui";
 
 interface UseMessageSubmitOptions {
   stream: StreamContextType;
@@ -23,6 +28,7 @@ interface UseMessageSubmitOptions {
   contentBlocks: Base64ContentBlock[];
   setContentBlocks: (blocks: Base64ContentBlock[]) => void;
   getSubmitPayload: () => FormState;
+  getDisplayPayload: () => FormState;
   resetForm: () => void;
   parsedSchema: {
     hasMessages: boolean;
@@ -30,6 +36,77 @@ interface UseMessageSubmitOptions {
     requiredFields: SchemaFieldConfig[];
     optionalFields: SchemaFieldConfig[];
   };
+}
+
+const MAX_DISPLAY_STRING_LENGTH = 2000;
+const MAX_DISPLAY_ARRAY_ITEM_LENGTH = 200;
+
+function isFileField(field: SchemaFieldConfig): boolean {
+  const nameContainsFile = field.name.toLowerCase().includes("file");
+  const schema = field.resolvedSchema;
+  const fieldType = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+  const isStringType = fieldType === "string";
+  const isStringArrayType =
+    fieldType === "array" && schema.items?.type === "string";
+  return nameContainsFile && (isStringType || isStringArrayType);
+}
+
+function sanitizeDisplayValue(
+  value: FieldValue,
+  field?: SchemaFieldConfig,
+): FieldValue {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (field && isFileField(field)) {
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        typeof item === "string" ? extractDisplayName(item) : String(item),
+      );
+    }
+    if (typeof value === "string") {
+      return extractDisplayName(value);
+    }
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return value.length > MAX_DISPLAY_STRING_LENGTH
+      ? `${value.slice(0, MAX_DISPLAY_STRING_LENGTH)}...`
+      : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (typeof item !== "string") return item;
+      return item.length > MAX_DISPLAY_ARRAY_ITEM_LENGTH
+        ? `${item.slice(0, MAX_DISPLAY_ARRAY_ITEM_LENGTH)}...`
+        : item;
+    });
+  }
+
+  return value;
+}
+
+function buildDisplaySubmission(
+  payload: FormState,
+  displayPayload: FormState,
+  fields: SchemaFieldConfig[],
+): FormState {
+  const displayData: FormState = {};
+
+  for (const field of fields) {
+    const value = payload[field.name];
+    if (value === undefined) continue;
+    const displayValue = displayPayload[field.name];
+    displayData[field.name] =
+      displayValue !== undefined && isFileField(field)
+        ? displayValue
+        : sanitizeDisplayValue(value, field);
+  }
+
+  return displayData;
 }
 
 export function useMessageSubmit(options: UseMessageSubmitOptions) {
@@ -42,6 +119,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     contentBlocks,
     setContentBlocks,
     getSubmitPayload,
+    getDisplayPayload,
     resetForm,
     parsedSchema,
   } = options;
@@ -50,6 +128,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
   const [formSubmissions, setFormSubmissions] = useState<
     Array<{ data: FormState; fields: SchemaFieldConfig[]; timestamp: Date }>
   >([]);
+  const lastFormSubmissionPayloadRef = useRef<FormState | null>(null);
   const prevMessageLength = useRef(0);
   const messages = stream.messages;
   const isLoading = stream.isLoading;
@@ -82,6 +161,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       setFirstTokenReceived(false);
 
       const schemaPayload = getSubmitPayload();
+      const displayPayload = getDisplayPayload();
       stream.clearNodeUpdates();
 
       // Capture values before clearing
@@ -99,9 +179,18 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
         return Array.isArray(val) ? val.length > 0 : !!val;
       });
       if (hasFileData) {
+        lastFormSubmissionPayloadRef.current = schemaPayload;
         setFormSubmissions((prev) => [
-          ...prev,
-          { data: schemaPayload, fields: allFields, timestamp: new Date() },
+          ...prev.slice(-4),
+          {
+            data: buildDisplaySubmission(
+              schemaPayload,
+              displayPayload,
+              allFields,
+            ),
+            fields: allFields,
+            timestamp: new Date(),
+          },
         ]);
       }
 
@@ -152,6 +241,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       setInput,
       setContentBlocks,
       getSubmitPayload,
+      getDisplayPayload,
       resetForm,
       parsedSchema.hasMessages,
     ],
@@ -190,13 +280,12 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
         { messages: [...toolMessages, lastHumanMessage] },
         STREAM_OPTIONS,
       );
-    } else if (formSubmissions.length > 0) {
-      const lastSubmission = formSubmissions[formSubmissions.length - 1];
+    } else if (lastFormSubmissionPayloadRef.current) {
       setFirstTokenReceived(false);
       stream.clearNodeUpdates();
-      stream.submit(lastSubmission.data, STREAM_OPTIONS);
+      stream.submit(lastFormSubmissionPayloadRef.current, STREAM_OPTIONS);
     }
-  }, [messages, stream, formSubmissions]);
+  }, [messages, stream]);
 
   const handleFormSubmit = useCallback(() => {
     if (!isAssistantSelected) {
@@ -205,14 +294,20 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     }
 
     const payload = getSubmitPayload();
+    const displayPayload = getDisplayPayload();
     const allFields = [
       ...parsedSchema.requiredFields,
       ...parsedSchema.optionalFields,
     ];
 
+    lastFormSubmissionPayloadRef.current = payload;
     setFormSubmissions((prev) => [
-      ...prev,
-      { data: payload, fields: allFields, timestamp: new Date() },
+      ...prev.slice(-4),
+      {
+        data: buildDisplaySubmission(payload, displayPayload, allFields),
+        fields: allFields,
+        timestamp: new Date(),
+      },
     ]);
 
     setFirstTokenReceived(false);
@@ -222,6 +317,7 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
     t,
     isAssistantSelected,
     getSubmitPayload,
+    getDisplayPayload,
     parsedSchema,
     stream,
     resetForm,

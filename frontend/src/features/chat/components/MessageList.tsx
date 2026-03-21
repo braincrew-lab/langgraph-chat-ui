@@ -100,6 +100,24 @@ export function MessageList({
   const t = useTranslations("chat");
   const stream = useStreamContext();
 
+  const filteredSubmissions = useMemo(() => {
+    return formSubmissions.flatMap((submission) => {
+      const fields = isFormMode
+        ? submission.fields
+        : submission.fields.filter((field) => {
+            if (!field.name.toLowerCase().includes("file")) return false;
+            const value = submission.data[field.name];
+            return Array.isArray(value) ? value.length > 0 : !!value;
+          });
+
+      if (fields.length === 0) {
+        return [];
+      }
+
+      return [{ ...submission, fields }];
+    });
+  }, [formSubmissions, isFormMode]);
+
   // Build subagent context for message detection
   const subagentContext = useMemo(() => {
     return buildSubagentContext(messages);
@@ -379,24 +397,14 @@ export function MessageList({
       )}
 
       {/* Form submissions (Form mode: all fields, Chat mode: file fields only) */}
-      {formSubmissions.map((submission, idx) => {
-        const fields = isFormMode
-          ? submission.fields
-          : submission.fields.filter((f) => {
-              if (!f.name.toLowerCase().includes("file")) return false;
-              const val = submission.data[f.name];
-              return Array.isArray(val) ? val.length > 0 : !!val;
-            });
-        if (fields.length === 0) return null;
-        return (
-          <FormSubmissionMessage
-            key={`form-submission-${idx}`}
-            formData={submission.data}
-            fields={fields}
-            timestamp={submission.timestamp}
-          />
-        );
-      })}
+      {filteredSubmissions.map((submission, idx) => (
+        <FormSubmissionMessage
+          key={`form-submission-${idx}`}
+          formData={submission.data}
+          fields={submission.fields}
+          timestamp={submission.timestamp}
+        />
+      ))}
 
       {!showHistoryLoading && renderMessages()}
 

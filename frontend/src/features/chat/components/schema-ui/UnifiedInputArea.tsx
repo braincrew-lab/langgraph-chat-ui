@@ -120,7 +120,9 @@ export function UnifiedInputArea({
     isFormValid,
     parsedSchema,
     formState,
+    displayState,
     setFieldValue,
+    setFieldDisplayValue,
     isLoading: schemaLoading,
   } = schemaUI;
   const { requiredFields, rawSchema } = parsedSchema;
@@ -235,8 +237,12 @@ export function UnifiedInputArea({
                                 field={field}
                                 rootSchema={rawSchema}
                                 value={formState[field.name]}
+                                displayValue={displayState[field.name]}
                                 onChange={(value) =>
                                   setFieldValue(field.name, value)
+                                }
+                                onDisplayValueChange={(value) =>
+                                  setFieldDisplayValue(field.name, value)
                                 }
                                 disabled={true}
                                 fileUploadMode={fileUploadMode}
@@ -276,7 +282,11 @@ export function UnifiedInputArea({
                       field={field}
                       rootSchema={rawSchema}
                       value={formState[field.name]}
+                      displayValue={displayState[field.name]}
                       onChange={(value) => setFieldValue(field.name, value)}
+                      onDisplayValueChange={(value) =>
+                        setFieldDisplayValue(field.name, value)
+                      }
                       disabled={isLoading}
                       fileUploadMode={fileUploadMode}
                     />
@@ -335,7 +345,11 @@ export function UnifiedInputArea({
                         field={field}
                         rootSchema={rawSchema}
                         value={formState[field.name]}
+                        displayValue={displayState[field.name]}
                         onChange={(value) => setFieldValue(field.name, value)}
+                        onDisplayValueChange={(value) =>
+                          setFieldDisplayValue(field.name, value)
+                        }
                         disabled={isLoading}
                         fileUploadMode={fileUploadMode}
                       />

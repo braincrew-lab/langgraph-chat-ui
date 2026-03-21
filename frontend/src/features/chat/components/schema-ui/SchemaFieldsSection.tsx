@@ -29,7 +29,9 @@ export function SchemaFieldsSection({
   const {
     parsedSchema,
     formState,
+    displayState,
     setFieldValue,
+    setFieldDisplayValue,
     advancedExpanded,
     setAdvancedExpanded,
   } = schemaUI;
@@ -85,7 +87,11 @@ export function SchemaFieldsSection({
                       field={field}
                       rootSchema={rawSchema}
                       value={formState[field.name]}
+                      displayValue={displayState[field.name]}
                       onChange={(value) => setFieldValue(field.name, value)}
+                      onDisplayValueChange={(value) =>
+                        setFieldDisplayValue(field.name, value)
+                      }
                       disabled={disabled}
                       compact
                       fileUploadMode={fileUploadMode}

@@ -4,11 +4,13 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useAssistantConfig } from "@/shared/hooks/useAssistantConfig";
+import { extractDisplayName } from "@/lib/utils/file-upload";
 import type {
   ParsedInputSchema,
   FormState,
   FieldValue,
   JSONSchema,
+  SchemaFieldConfig,
 } from "@/types/schema-ui";
 import {
   parseInputSchema,
@@ -22,12 +24,18 @@ export interface UseSchemaUIReturn {
   parsedSchema: ParsedInputSchema;
   /** Current form state */
   formState: FormState;
+  /** Display-only field state (e.g. selected file names) */
+  displayState: FormState;
   /** Set a single field value */
   setFieldValue: (fieldName: string, value: FieldValue) => void;
+  /** Set display-only metadata for a field (e.g. selected file names) */
+  setFieldDisplayValue: (fieldName: string, value: FieldValue) => void;
   /** Set multiple field values at once */
   setFieldValues: (values: FormState) => void;
   /** Get the submit payload (with messages excluded) */
   getSubmitPayload: () => Record<string, FieldValue>;
+  /** Get display-only field metadata snapshot */
+  getDisplayPayload: () => Record<string, FieldValue>;
   /** Reset form to default values */
   resetForm: () => void;
   /** Whether all required fields are filled */
@@ -42,12 +50,59 @@ export interface UseSchemaUIReturn {
   hasDynamicFields: boolean;
 }
 
+function isFileField(field: SchemaFieldConfig): boolean {
+  const nameContainsFile = field.name.toLowerCase().includes("file");
+  const schema = field.resolvedSchema;
+  const fieldType = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+  const isStringType = fieldType === "string";
+  const isStringArrayType =
+    fieldType === "array" && schema.items?.type === "string";
+  return nameContainsFile && (isStringType || isStringArrayType);
+}
+
+function toDisplayValue(value: FieldValue): FieldValue {
+  if (typeof value === "string") {
+    return extractDisplayName(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      typeof item === "string" ? extractDisplayName(item) : item,
+    );
+  }
+
+  return value;
+}
+
+function buildInitialDisplayState(
+  fields: SchemaFieldConfig[],
+  rawSchema: JSONSchema | null,
+): FormState {
+  if (!rawSchema) return {};
+
+  const initialDisplayState: FormState = {};
+
+  for (const field of fields) {
+    if (!isFileField(field)) continue;
+
+    const defaultValue = getDefaultValue(field.schema, rawSchema);
+    if (defaultValue !== undefined) {
+      initialDisplayState[field.name] = toDisplayValue(
+        defaultValue as FieldValue,
+      );
+    }
+  }
+
+  return initialDisplayState;
+}
+
 /**
  * Hook for managing schema-based dynamic UI
  */
 export function useSchemaUI(): UseSchemaUIReturn {
   const { schemas, isLoading: schemasLoading } = useAssistantConfig();
   const [formState, setFormState] = useState<FormState>({});
+  const [displayState, setDisplayState] = useState<FormState>({});
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
   // Parse the input schema
@@ -87,6 +142,9 @@ export function useSchemaUI(): UseSchemaUIReturn {
     }
 
     setFormState(initialState);
+    setDisplayState(
+      buildInitialDisplayState(allFields, parsedSchema.rawSchema),
+    );
   }, [parsedSchema]);
 
   // Set a single field value
@@ -96,6 +154,16 @@ export function useSchemaUI(): UseSchemaUIReturn {
       [fieldName]: value,
     }));
   }, []);
+
+  const setFieldDisplayValue = useCallback(
+    (fieldName: string, value: FieldValue) => {
+      setDisplayState((prev) => ({
+        ...prev,
+        [fieldName]: value,
+      }));
+    },
+    [],
+  );
 
   // Set multiple field values at once
   const setFieldValues = useCallback((values: FormState) => {
@@ -113,6 +181,10 @@ export function useSchemaUI(): UseSchemaUIReturn {
       parsedSchema.optionalFields,
     );
   }, [formState, parsedSchema.requiredFields, parsedSchema.optionalFields]);
+
+  const getDisplayPayload = useCallback((): Record<string, FieldValue> => {
+    return displayState;
+  }, [displayState]);
 
   // Reset form to defaults
   const resetForm = useCallback(() => {
@@ -138,6 +210,9 @@ export function useSchemaUI(): UseSchemaUIReturn {
     }
 
     setFormState(initialState);
+    setDisplayState(
+      buildInitialDisplayState(allFields, parsedSchema.rawSchema),
+    );
     setAdvancedExpanded(false);
   }, [parsedSchema]);
 
@@ -157,9 +232,12 @@ export function useSchemaUI(): UseSchemaUIReturn {
   return {
     parsedSchema,
     formState,
+    displayState,
     setFieldValue,
+    setFieldDisplayValue,
     setFieldValues,
     getSubmitPayload,
+    getDisplayPayload,
     resetForm,
     isFormValid,
     advancedExpanded,

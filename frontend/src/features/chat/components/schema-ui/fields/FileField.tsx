@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
@@ -14,7 +14,9 @@ import type { FileFieldProps } from "./types";
 export function FileField({
   field,
   value,
+  displayValue,
   onChange,
+  onDisplayValueChange,
   disabled,
   compact,
   fileUploadMode = "base64",
@@ -22,9 +24,13 @@ export function FileField({
   const t = useTranslations("chat");
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [displayName, setDisplayName] = useState(() =>
-    extractDisplayName(value),
+  const [displayName, setDisplayName] = useState(
+    () => displayValue || extractDisplayName(value),
   );
+
+  useEffect(() => {
+    setDisplayName(displayValue || extractDisplayName(value));
+  }, [displayValue, value]);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +41,7 @@ export function FileField({
       try {
         const result = await processFileForField(file, fileUploadMode);
         onChange(result);
+        onDisplayValueChange?.(file.name);
         setDisplayName(file.name);
       } catch (err) {
         toast.error(
@@ -54,11 +61,12 @@ export function FileField({
 
   const handleClear = useCallback(() => {
     onChange("");
+    onDisplayValueChange?.("");
     setDisplayName("");
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [onChange]);
+  }, [onChange, onDisplayValueChange]);
 
   return (
     <div className="flex items-center gap-2">
