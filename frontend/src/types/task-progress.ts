@@ -144,6 +144,7 @@ export interface ToolCallActivity extends ActivityItemBase {
   toolArgs?: Record<string, unknown>;
   nodeName?: string;
   langsmith?: LangSmithEnrichment;
+  groupCount?: number;
 }
 
 export interface SubgraphActivity extends ActivityItemBase {

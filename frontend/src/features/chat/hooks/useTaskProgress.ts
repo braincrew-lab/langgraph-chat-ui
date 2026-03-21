@@ -862,7 +862,7 @@ function buildActivityItems(
         description: desc,
         subagentType: sat || undefined,
         toolCallId: tc.id,
-        messageIndex: mi * 1000 + tci,
+        messageIndex: mi + tci / 1000,
       });
     }
   }
@@ -1161,7 +1161,7 @@ function buildActivityItems(
       items.push({
         id: uniqueId,
         kind: "llm_output",
-        timestamp: i * 1000,
+        timestamp: i,
         status: "completed",
         nodeName,
         displayName: humanizeNodeName(nodeName),
@@ -1212,7 +1212,7 @@ function buildActivityItems(
         items.push({
           id: tc.id || `tool-${tc.name}-${i}`,
           kind: "tool_call",
-          timestamp: i * 1000 + tci,
+          timestamp: i + tci / 1000,
           status: completed ? "completed" : "streaming",
           toolName: tc.name,
           toolCallId: tc.id,
@@ -1226,7 +1226,24 @@ function buildActivityItems(
   }
 
   // Sort by timestamp (oldest first)
-  return items.sort((a, b) => a.timestamp - b.timestamp);
+  items.sort((a, b) => a.timestamp - b.timestamp);
+
+  // Group consecutive tool_calls with same toolName
+  const grouped: ActivityItem[] = [];
+  for (const item of items) {
+    const prev = grouped[grouped.length - 1];
+    if (
+      prev &&
+      item.kind === "tool_call" &&
+      prev.kind === "tool_call" &&
+      item.toolName === prev.toolName
+    ) {
+      prev.groupCount = (prev.groupCount ?? 1) + 1;
+    } else {
+      grouped.push(item);
+    }
+  }
+  return grouped;
 }
 
 // ============================================

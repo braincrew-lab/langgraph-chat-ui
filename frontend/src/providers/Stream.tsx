@@ -360,7 +360,7 @@ const StreamSession = ({
 
           nodeUpdatesRef.current[existingIndex] = {
             ...existing,
-            timestamp,
+            // Keep original timestamp for stable ordering (don't overwrite with Date.now())
             hasMessages: existing.hasMessages || !!hasMessages,
             // LangGraph SDK's onUpdateEvent delivers the full accumulated state per node,
             // so replacement (not concatenation) is the correct behavior here.
