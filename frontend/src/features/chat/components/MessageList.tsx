@@ -129,14 +129,20 @@ export function MessageList({
   );
 
   // Check if a message is from an intermediate node (not final)
-  // Uses streamMetadata.langgraph_node from SDK
+  // Uses streamMetadata.langgraph_node from SDK, with message.name fallback for history
   const isIntermediateNodeMessage = useCallback(
     (message: Message): boolean => {
       if (message.type !== "ai") return false;
 
+      // Try stream metadata first (available during streaming)
       const meta = stream.getMessagesMetadata(message);
-      const nodeName = (meta?.streamMetadata as Record<string, unknown>)
+      let nodeName = (meta?.streamMetadata as Record<string, unknown>)
         ?.langgraph_node as string | undefined;
+
+      // Fallback to message.name for historical messages loaded from thread
+      if (!nodeName && message.name) {
+        nodeName = message.name;
+      }
 
       // If no node name, treat as final (main agent output)
       if (!nodeName) return false;
@@ -146,7 +152,7 @@ export function MessageList({
 
       // Check if this node is in the final node list
       const isFinal = finalNodeNames.some(
-        (name) => nodeName.toLowerCase() === name.toLowerCase(),
+        (name) => nodeName!.toLowerCase() === name.toLowerCase(),
       );
 
       return !isFinal;
@@ -195,7 +201,7 @@ export function MessageList({
     let lastAiMessageId: string | null = null;
     let lastAiMessageIndex: number = -1;
 
-    if (compactView && (hasVisibleContent || isLoading)) {
+    if (compactView) {
       const startIndex = lastHumanIndex >= 0 ? lastHumanIndex : -1;
       for (let i = filteredMessages.length - 1; i > startIndex; i--) {
         const msg = filteredMessages[i];
@@ -203,6 +209,11 @@ export function MessageList({
           // Track last AI message index for streaming (even without content)
           if (lastAiMessageIndex === -1) {
             lastAiMessageIndex = i;
+          }
+
+          // Skip subagent messages to find the actual final AI response
+          if (subagentContext.subagentMessageIds.has(msg.id || "")) {
+            continue;
           }
 
           if (hasAiTextContent(msg)) {
@@ -316,25 +327,29 @@ export function MessageList({
           // Apply compact filter during streaming (isLoading) OR when there's visible content
           // This ensures intermediate node outputs are hidden even before hasVisibleContent becomes true
           const shouldApplyCompactFilter =
-            compactView &&
-            (hasVisibleContent || isLoading) &&
-            (isAfterLastHuman || lastHumanIndex === -1);
+            compactView && (isAfterLastHuman || lastHumanIndex === -1);
 
           if (shouldApplyCompactFilter) {
             if (message.type === "tool") {
               return;
             }
             if (message.type === "ai") {
-              // 서브에이전트 메시지는 항상 숨김
-              if (subagentContext.subagentMessageIds.has(message.id || "")) {
-                return;
-              }
-              // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
-              if (isIntermediateNodeMessage(message)) {
-                return;
+              // After streaming ends, always show the last non-subagent AI message
+              // to ensure the final response is never hidden by incorrect classification
+              const isFinalResponse =
+                !isLoading && lastAiMessageId && message.id === lastAiMessageId;
+
+              if (!isFinalResponse) {
+                // 서브에이전트 메시지는 항상 숨김
+                if (subagentContext.subagentMessageIds.has(message.id || "")) {
+                  return;
+                }
+                // 중간 노드 메시지는 숨김 (Task Viewer에서 표시)
+                if (isIntermediateNodeMessage(message)) {
+                  return;
+                }
               }
               // 스트리밍 중에는 마지막 AI 메시지만 표시
-              // Use lastAiMessageId if found, otherwise use lastAiMessageIndex
               if (isLoading) {
                 const isLastAiMessage = lastAiMessageId
                   ? message.id === lastAiMessageId

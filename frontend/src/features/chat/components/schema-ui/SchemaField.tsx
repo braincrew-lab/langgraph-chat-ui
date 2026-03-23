@@ -3,8 +3,10 @@
  * Renders appropriate UI controls based on JSON Schema field type
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Label } from "@/shared/components/ui/label";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   SchemaFieldConfig,
@@ -220,6 +222,26 @@ export function SchemaField({
     );
   }
 
+  // File fields: collapsible at label level
+  if (isFile) {
+    return (
+      <CollapsibleFileField
+        label={label}
+        isRequired={field.isRequired}
+        description={description}
+        compact={compact}
+        hasValue={
+          Array.isArray(value) ? (value as unknown[]).length > 0 : !!value
+        }
+        count={
+          Array.isArray(value) ? (value as unknown[]).length : value ? 1 : 0
+        }
+      >
+        {renderField()}
+      </CollapsibleFileField>
+    );
+  }
+
   return (
     <div
       className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}
@@ -237,6 +259,74 @@ export function SchemaField({
       {description && !compact && (
         <p className="text-muted-foreground text-xs">{description}</p>
       )}
+    </div>
+  );
+}
+
+function CollapsibleFileField({
+  label,
+  isRequired,
+  description,
+  compact,
+  hasValue,
+  count,
+  children,
+}: {
+  label: string;
+  isRequired?: boolean;
+  description?: string;
+  compact: boolean;
+  hasValue: boolean;
+  count: number;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(!hasValue);
+
+  return (
+    <div
+      className={cn("min-w-0 space-y-1", compact ? "space-y-0.5" : "space-y-2")}
+    >
+      <button
+        type="button"
+        className="flex items-center gap-1"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <motion.span
+          animate={{ rotate: isOpen ? 0 : -90 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="text-muted-foreground h-3.5 w-3.5" />
+        </motion.span>
+        <Label
+          className={cn(
+            "cursor-pointer text-sm font-medium",
+            isRequired && "after:ml-0.5 after:text-red-500 after:content-['*']",
+          )}
+        >
+          {label}
+        </Label>
+        {!isOpen && count > 0 && (
+          <span className="text-muted-foreground text-xs">({count})</span>
+        )}
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            {children}
+            {description && !compact && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                {description}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
