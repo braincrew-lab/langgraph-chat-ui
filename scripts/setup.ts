@@ -17,6 +17,19 @@ import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
 import crossSpawn from "cross-spawn";
 
+function resolveCommand(command: string): string {
+  if (process.platform !== "win32") return command;
+
+  switch (command) {
+    case "pnpm":
+    case "npm":
+    case "npx":
+      return `${command}.cmd`;
+    default:
+      return command;
+  }
+}
+
 /**
  * Run a command asynchronously (allows spinner to animate)
  */
