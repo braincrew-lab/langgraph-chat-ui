@@ -15,19 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
-
-function resolveCommand(command: string): string {
-  if (process.platform !== "win32") return command;
-
-  switch (command) {
-    case "pnpm":
-    case "npm":
-    case "npx":
-      return `${command}.cmd`;
-    default:
-      return command;
-  }
-}
+import crossSpawn from "cross-spawn";
 
 /**
  * Run a command asynchronously (allows spinner to animate)
@@ -38,7 +26,7 @@ function runAsync(
   options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(resolveCommand(command), args, {
+    const proc = crossSpawn(command, args, {
       cwd: options.cwd,
       env: options.env || process.env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -1081,7 +1069,7 @@ async function runDevelopment(config: SetupConfig) {
   p.log.info(pc.dim(t("pressCtrlC")));
 
   // Run dev server with minimal output
-  const devProcess = spawn(resolveCommand("pnpm"), ["dev"], {
+  const devProcess = crossSpawn("pnpm", ["dev"], {
     cwd: FRONTEND_DIR,
     stdio: ["ignore", "ignore", "ignore"],
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
@@ -1275,7 +1263,7 @@ ${pc.cyan(`tail -f ${logFile}`)}`,
 
     p.log.info(pc.dim(t("pressCtrlC")));
 
-    const startProcess = spawn(resolveCommand("pnpm"), ["start"], {
+    const startProcess = crossSpawn("pnpm", ["start"], {
       cwd: FRONTEND_DIR,
       stdio: ["ignore", "ignore", "ignore"],
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
