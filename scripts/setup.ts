@@ -16,6 +16,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
 
+function resolveCommand(command: string): string {
+  if (process.platform !== "win32") return command;
+
+  switch (command) {
+    case "pnpm":
+    case "npm":
+    case "npx":
+      return `${command}.cmd`;
+    default:
+      return command;
+  }
+}
+
 /**
  * Run a command asynchronously (allows spinner to animate)
  */
@@ -25,7 +38,7 @@ function runAsync(
   options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, {
+    const proc = spawn(resolveCommand(command), args, {
       cwd: options.cwd,
       env: options.env || process.env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -1068,7 +1081,7 @@ async function runDevelopment(config: SetupConfig) {
   p.log.info(pc.dim(t("pressCtrlC")));
 
   // Run dev server with minimal output
-  const devProcess = spawn("pnpm", ["dev"], {
+  const devProcess = spawn(resolveCommand("pnpm"), ["dev"], {
     cwd: FRONTEND_DIR,
     stdio: ["ignore", "ignore", "ignore"],
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
@@ -1262,7 +1275,7 @@ ${pc.cyan(`tail -f ${logFile}`)}`,
 
     p.log.info(pc.dim(t("pressCtrlC")));
 
-    const startProcess = spawn("pnpm", ["start"], {
+    const startProcess = spawn(resolveCommand("pnpm"), ["start"], {
       cwd: FRONTEND_DIR,
       stdio: ["ignore", "ignore", "ignore"],
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
