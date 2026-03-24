@@ -969,15 +969,22 @@ async function runSetup(config: SetupConfig) {
   generateEnvFile(config);
   s.stop(t("envCreated"));
 
-  // 2. Install dependencies (async to allow spinner animation)
-  s.start(t("installingDeps"));
+  // 2. Install dependencies (use stdio: inherit so progress/errors are visible)
+  p.log.step(t("installingDeps"));
   try {
-    await runAsync("pnpm", ["install", "--silent"], { cwd: FRONTEND_DIR });
-    s.stop(t("depsInstalled"));
+    const installResult = crossSpawn.sync("pnpm", ["install"], {
+      cwd: FRONTEND_DIR,
+      stdio: "inherit",
+      env: { ...process.env, NODE_ENV: "development" },
+    });
+    if (installResult.status !== 0) {
+      throw new Error(`pnpm install exited with code ${installResult.status}`);
+    }
+    p.log.success(t("depsInstalled"));
   } catch (error) {
-    s.stop(LANG === "ko" ? "의존성 설치 실패" : "Failed to install dependencies");
-    if (error instanceof Error && "stderr" in error) {
-      console.error((error as { stderr: string }).stderr);
+    p.log.error(LANG === "ko" ? "의존성 설치 실패" : "Failed to install dependencies");
+    if (error instanceof Error) {
+      console.error(error.message);
     }
     throw error;
   }
