@@ -4,6 +4,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
   experimental: {
     serverActions: {
       bodySizeLimit: process.env.SERVER_ACTION_BODY_SIZE_LIMIT || "100mb",
