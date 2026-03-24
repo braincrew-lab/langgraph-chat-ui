@@ -3,7 +3,7 @@
  * Dynamic Prisma schema generator
  * Reads DATABASE_PROVIDER env var and patches schema.prisma before running prisma generate
  */
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { execSync } from "child_process";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -48,7 +48,21 @@ try {
       "This is OK if you are using AUTH_MODE=none (no database required). " +
       "If you need authentication, check your network/SSL settings and run: npx prisma generate",
   );
-  // Don't exit(1) — allow postinstall to continue for AUTH_MODE=none
+
+  // Create stub .prisma/client so the bundler can resolve the module.
+  // The actual PrismaClient is never instantiated when AUTH_MODE=none.
+  const stubDir = resolve(__dirname, "..", "node_modules", ".prisma", "client");
+  if (!existsSync(resolve(stubDir, "index.js"))) {
+    mkdirSync(stubDir, { recursive: true });
+    const stub = `
+const empty = {};
+module.exports = { PrismaClient: class PrismaClient {}, Prisma: { ModelName: {} } };
+module.exports.default = empty;
+`;
+    writeFileSync(resolve(stubDir, "index.js"), stub);
+    writeFileSync(resolve(stubDir, "default.js"), stub);
+    console.log("[prisma-generate] Created stub .prisma/client for AUTH_MODE=none");
+  }
 } finally {
   // Restore original schema to keep git clean
   if (schema !== originalSchema) {
