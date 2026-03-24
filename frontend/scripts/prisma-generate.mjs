@@ -43,7 +43,12 @@ try {
     cwd: resolve(__dirname, ".."),
   });
 } catch (e) {
-  process.exit(1);
+  console.warn(
+    "[prisma-generate] Failed to generate Prisma client. " +
+      "This is OK if you are using AUTH_MODE=none (no database required). " +
+      "If you need authentication, check your network/SSL settings and run: npx prisma generate",
+  );
+  // Don't exit(1) — allow postinstall to continue for AUTH_MODE=none
 } finally {
   // Restore original schema to keep git clean
   if (schema !== originalSchema) {
