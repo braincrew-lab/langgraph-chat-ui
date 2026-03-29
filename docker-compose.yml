@@ -1,0 +1,63 @@
+# ============================================================================
+# LangGraph Chat UI — Docker Compose (UI + PostgreSQL)
+# ============================================================================
+# Usage:
+#   cp frontend/.env.example frontend/.env   # edit as needed
+#   docker compose up -d
+# ============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chatui
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatui_secret}
+      POSTGRES_DB: chatui
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatui"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  chat-ui:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Auth
+      AUTH_MODE: ${AUTH_MODE:-standalone}
+      NEXT_PUBLIC_AUTH_MODE: ${AUTH_MODE:-standalone}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+
+      # Database (PostgreSQL via internal Docker network)
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://chatui:${POSTGRES_PASSWORD:-chatui_secret}@db:5432/chatui
+
+      # LangGraph server
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://host.docker.internal:2024}
+      LANGGRAPH_API_URL: ${LANGGRAPH_API_URL:-}
+      NEXT_PUBLIC_ASSISTANT_ID: ${NEXT_PUBLIC_ASSISTANT_ID:-}
+
+      # LangSmith (optional)
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-}
+
+      # OAuth (optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    volumes:
+      - uploads:/app/data/uploads
+
+volumes:
+  pgdata:
+  uploads:

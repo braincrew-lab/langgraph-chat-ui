@@ -1,4 +1,10 @@
 node_modules
-.next
+frontend/node_modules
+frontend/.next
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/prisma/dev.db
 .git
-.env
+.claude
+docs-site

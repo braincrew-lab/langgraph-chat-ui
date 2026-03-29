@@ -1,0 +1,103 @@
+# ============================================================================
+# LangGraph Chat UI — Full Stack (UI + LangGraph Server + PostgreSQL + Redis)
+# ============================================================================
+# Usage:
+#   1. Build your LangGraph server image:
+#      cd your-langgraph-project && langgraph build -t my-langgraph-api
+#   2. Set LANGGRAPH_IMAGE in .env or export it:
+#      export LANGGRAPH_IMAGE=my-langgraph-api
+#   3. Run:
+#      docker compose -f docker-compose.full.yml up -d
+# ============================================================================
+
+services:
+  # ---------- LangGraph Server Stack ----------
+  langgraph-redis:
+    image: redis:6-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  langgraph-db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langgraph
+      POSTGRES_PASSWORD: ${LANGGRAPH_POSTGRES_PASSWORD:-langgraph_secret}
+      POSTGRES_DB: langgraph
+    volumes:
+      - langgraph_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langgraph"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  langgraph-api:
+    image: ${LANGGRAPH_IMAGE:-langchain/langgraph-api:latest}
+    restart: unless-stopped
+    depends_on:
+      langgraph-redis:
+        condition: service_healthy
+      langgraph-db:
+        condition: service_healthy
+    environment:
+      REDIS_URI: redis://langgraph-redis:6379
+      DATABASE_URI: postgresql://langgraph:${LANGGRAPH_POSTGRES_PASSWORD:-langgraph_secret}@langgraph-db:5432/langgraph
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+    ports:
+      - "${LANGGRAPH_PORT:-8123}:8000"
+
+  # ---------- Chat UI Stack ----------
+  chat-ui-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chatui
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatui_secret}
+      POSTGRES_DB: chatui
+    volumes:
+      - chatui_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatui"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  chat-ui:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      chat-ui-db:
+        condition: service_healthy
+      langgraph-api:
+        condition: service_started
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      AUTH_MODE: ${AUTH_MODE:-standalone}
+      NEXT_PUBLIC_AUTH_MODE: ${AUTH_MODE:-standalone}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://chatui:${POSTGRES_PASSWORD:-chatui_secret}@chat-ui-db:5432/chatui
+      # Point to LangGraph API via Docker internal network
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${LANGGRAPH_PORT:-8123}}
+      LANGGRAPH_API_URL: http://langgraph-api:8000
+      NEXT_PUBLIC_ASSISTANT_ID: ${NEXT_PUBLIC_ASSISTANT_ID:-}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    volumes:
+      - uploads:/app/data/uploads
+
+volumes:
+  langgraph_pgdata:
+  chatui_pgdata:
+  uploads:
