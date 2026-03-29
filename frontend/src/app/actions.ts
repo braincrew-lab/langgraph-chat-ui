@@ -18,35 +18,37 @@ export async function updateConnectionAction(connection: {
   await requireAuth();
   const cookieStore = await cookies();
 
-  // Set cookies with proper options
-  cookieStore.set(CONNECTION_COOKIE_NAMES.apiUrl, connection.apiUrl, {
+  const isProduction = process.env.NODE_ENV === "production";
+  const secureOptions = {
     path: "/",
     maxAge: COOKIE_MAX_AGE,
-    sameSite: "lax",
-  });
+    sameSite: "lax" as const,
+    httpOnly: isProduction,
+    secure: isProduction,
+  };
+
+  cookieStore.set(
+    CONNECTION_COOKIE_NAMES.apiUrl,
+    connection.apiUrl,
+    secureOptions,
+  );
 
   if (connection.assistantId) {
     cookieStore.set(
       CONNECTION_COOKIE_NAMES.assistantId,
       connection.assistantId,
-      {
-        path: "/",
-        maxAge: COOKIE_MAX_AGE,
-        sameSite: "lax",
-      },
+      secureOptions,
     );
   } else {
     cookieStore.delete(CONNECTION_COOKIE_NAMES.assistantId);
   }
 
   if (connection.apiKey) {
-    cookieStore.set(CONNECTION_COOKIE_NAMES.apiKey, connection.apiKey, {
-      path: "/",
-      maxAge: COOKIE_MAX_AGE,
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
+    cookieStore.set(
+      CONNECTION_COOKIE_NAMES.apiKey,
+      connection.apiKey,
+      secureOptions,
+    );
   }
 
   return { success: true };
@@ -58,12 +60,15 @@ export async function updateConnectionAction(connection: {
 export async function updateAssistantIdAction(assistantId: string | null) {
   await requireAuth();
   const cookieStore = await cookies();
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (assistantId) {
     cookieStore.set(CONNECTION_COOKIE_NAMES.assistantId, assistantId, {
       path: "/",
       maxAge: COOKIE_MAX_AGE,
       sameSite: "lax",
+      httpOnly: isProduction,
+      secure: isProduction,
     });
   } else {
     cookieStore.delete(CONNECTION_COOKIE_NAMES.assistantId);

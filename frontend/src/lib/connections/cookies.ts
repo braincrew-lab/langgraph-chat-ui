@@ -5,17 +5,11 @@
  * The full connections list remains in localStorage (not needed for SSR).
  */
 
-import { COOKIES } from "@/lib/constants";
-
 // Cookie names (using underscores for better compatibility)
 const COOKIE_API_URL = "lg_apiUrl";
 const COOKIE_ASSISTANT_ID = "lg_assistantId";
 const COOKIE_API_KEY = "lg_apiKey";
 const COOKIE_CONNECTION_ID = "lg_connectionId";
-
-// Cookie options
-const COOKIE_MAX_AGE = COOKIES.MAX_AGE;
-const COOKIE_PATH = "/";
 
 /**
  * Active connection data stored in cookies
@@ -25,74 +19,6 @@ export interface ActiveConnectionCookies {
   assistantId: string | null;
   apiKey: string | null;
   connectionId: string | null;
-}
-
-/**
- * Set a cookie (client-side only)
- */
-function setCookie(name: string, value: string | undefined): void {
-  if (typeof document === "undefined") return;
-
-  if (!value) {
-    // Delete cookie by setting expired date
-    document.cookie = `${name}=; path=${COOKIE_PATH}; max-age=0; SameSite=Lax`;
-  } else {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=${COOKIE_PATH}; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
-  }
-}
-
-/**
- * Get a cookie value (client-side only)
- */
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split("=");
-    if (cookieName === name) {
-      return cookieValue ? decodeURIComponent(cookieValue) : null;
-    }
-  }
-  return null;
-}
-
-/**
- * Save active connection to cookies (client-side)
- * Call this when switching connections or updating connection details
- */
-export function saveActiveConnectionToCookies(connection: {
-  id: string;
-  apiUrl: string;
-  assistantId?: string;
-  apiKey?: string;
-}): void {
-  setCookie(COOKIE_CONNECTION_ID, connection.id);
-  setCookie(COOKIE_API_URL, connection.apiUrl);
-  setCookie(COOKIE_ASSISTANT_ID, connection.assistantId);
-  setCookie(COOKIE_API_KEY, connection.apiKey);
-}
-
-/**
- * Clear connection cookies (client-side)
- */
-export function clearConnectionCookies(): void {
-  setCookie(COOKIE_CONNECTION_ID, undefined);
-  setCookie(COOKIE_API_URL, undefined);
-  setCookie(COOKIE_ASSISTANT_ID, undefined);
-  setCookie(COOKIE_API_KEY, undefined);
-}
-
-/**
- * Get active connection from cookies (client-side)
- */
-export function getActiveConnectionFromCookies(): ActiveConnectionCookies {
-  return {
-    apiUrl: getCookie(COOKIE_API_URL),
-    assistantId: getCookie(COOKIE_ASSISTANT_ID),
-    apiKey: getCookie(COOKIE_API_KEY),
-    connectionId: getCookie(COOKIE_CONNECTION_ID),
-  };
 }
 
 /**

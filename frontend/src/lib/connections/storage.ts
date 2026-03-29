@@ -1,4 +1,4 @@
-import { saveActiveConnectionToCookies } from "./cookies";
+import { updateConnectionAction } from "@/app/actions";
 
 const STORAGE_KEY = "lg:connections";
 
@@ -144,15 +144,14 @@ export function getAllConnections(): Connection[] {
 }
 
 // Switch active connection
-export function switchConnection(connectionId: string): void {
+export async function switchConnection(connectionId: string): Promise<void> {
   const storage = loadConnections();
   storage.activeConnectionId = connectionId;
   saveConnections(storage);
 
-  // Sync to cookies for SSR
+  // Sync to cookies via server action (sets httpOnly/secure in production)
   const activeConn = getActiveConnection();
-  saveActiveConnectionToCookies({
-    id: activeConn.id,
+  await updateConnectionAction({
     apiUrl: activeConn.apiUrl,
     assistantId: activeConn.assistantId,
     apiKey: activeConn.apiKey,
@@ -160,10 +159,9 @@ export function switchConnection(connectionId: string): void {
 }
 
 // Sync active connection to cookies (call on app init)
-export function syncActiveConnectionToCookies(): void {
+export async function syncActiveConnectionToCookies(): Promise<void> {
   const activeConn = getActiveConnection();
-  saveActiveConnectionToCookies({
-    id: activeConn.id,
+  await updateConnectionAction({
     apiUrl: activeConn.apiUrl,
     assistantId: activeConn.assistantId,
     apiKey: activeConn.apiKey,

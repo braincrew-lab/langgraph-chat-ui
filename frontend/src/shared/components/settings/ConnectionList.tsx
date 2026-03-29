@@ -103,10 +103,10 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
     }
   };
 
-  const handleSwitchConnection = (connection: Connection) => {
+  const handleSwitchConnection = async (connection: Connection) => {
     if (connection.isActive) return;
 
-    switchConnection(connection.id);
+    await switchConnection(connection.id);
 
     // Save API key to localStorage if provided
     if (connection.apiKey) {

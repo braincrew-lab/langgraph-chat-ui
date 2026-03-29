@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { isPublicMode } from "@/lib/auth/mode";
+import { getSetting } from "@/lib/services/settings.service";
 import { writeFile, mkdir, access, constants } from "fs/promises";
 import path from "path";
 
@@ -43,6 +44,15 @@ export async function POST(request: NextRequest) {
       if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+    }
+
+    // Check if file upload is enabled in global settings
+    const fileUploadEnabled = await getSetting("features.enableFileUpload");
+    if (fileUploadEnabled === false) {
+      return NextResponse.json(
+        { error: "File upload is disabled" },
+        { status: 403 },
+      );
     }
 
     const formData = await request.formData();
