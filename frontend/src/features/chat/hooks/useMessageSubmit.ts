@@ -244,6 +244,8 @@ export function useMessageSubmit(options: UseMessageSubmitOptions) {
       getDisplayPayload,
       resetForm,
       parsedSchema.hasMessages,
+      parsedSchema.optionalFields,
+      parsedSchema.requiredFields,
     ],
   );
 

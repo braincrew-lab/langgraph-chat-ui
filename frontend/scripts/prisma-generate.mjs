@@ -61,7 +61,9 @@ module.exports.default = empty;
 `;
     writeFileSync(resolve(stubDir, "index.js"), stub);
     writeFileSync(resolve(stubDir, "default.js"), stub);
-    console.log("[prisma-generate] Created stub .prisma/client for AUTH_MODE=none");
+    console.log(
+      "[prisma-generate] Created stub .prisma/client for AUTH_MODE=none",
+    );
   }
 } finally {
   // Restore original schema to keep git clean

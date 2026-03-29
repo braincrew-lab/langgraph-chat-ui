@@ -7,8 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClientType {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { PrismaClient } = require("@prisma/client") as typeof import("@prisma/client");
+  const { PrismaClient } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("@prisma/client") as typeof import("@prisma/client");
   return new PrismaClient();
 }
 

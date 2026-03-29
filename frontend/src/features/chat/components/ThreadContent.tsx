@@ -193,7 +193,7 @@ export function ThreadContent() {
 
   const assistantSelectValue = useMemo(
     () => currentAssistantId?.trim() || "none",
-    [currentAssistantId, t],
+    [currentAssistantId],
   );
 
   const handleAssistantChange = useCallback(
