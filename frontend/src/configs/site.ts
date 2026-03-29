@@ -20,7 +20,6 @@ export const siteConfig = {
     showHistory: true,
     enableDeletion: true,
     enableTitleEdit: true,
-    autoGenerateTitles: true,
     sidebarOpenByDefault: true,
   },
   theme: {

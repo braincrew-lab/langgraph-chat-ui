@@ -58,10 +58,6 @@ function applyGlobalSettings(
       // features.enableDeletion → threads.enableDeletion
       enableDeletion:
         settings["features.enableDeletion"] ?? config.threads.enableDeletion,
-      // features.autoGenerateTitles → threads.autoGenerateTitles
-      autoGenerateTitles:
-        settings["features.autoGenerateTitles"] ??
-        config.threads.autoGenerateTitles,
     },
   };
 }

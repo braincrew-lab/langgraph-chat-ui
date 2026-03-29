@@ -1,0 +1,138 @@
+---
+title: 설정 레퍼런스
+description: 모든 설정 옵션에 대한 완전한 레퍼런스
+---
+
+## 환경 변수
+
+모든 환경 변수는 프로젝트 루트의 `.env` 파일에서 설정합니다.
+
+### 핵심 설정
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `NEXT_PUBLIC_API_URL` | O | `http://localhost:2024` | LangGraph 서버 URL (클라이언트 사이드) |
+| `NEXT_PUBLIC_ASSISTANT_ID` | - | `agent` | 기본 Graph ID |
+| `LANGGRAPH_API_URL` | - | (`NEXT_PUBLIC_API_URL` 사용) | 서버 사이드 LangGraph URL (Docker 내부 네트워크 등) |
+
+### 인증 모드
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `AUTH_MODE` | O | `credentials` | 인증 모드: `standalone`, `credentials`, `oauth`, `email`, `oauth-direct` |
+| `NEXT_PUBLIC_AUTH_MODE` | O | `credentials` | 클라이언트 사이드 인증 모드 (`AUTH_MODE`와 동일하게 설정) |
+| `REGISTRATION_POLICY` | - | `open` | 가입 정책: `open` (자동 승인) 또는 `approval` (관리자 승인 필요) |
+| `INITIAL_ADMIN_EMAIL` | - | - | 이 이메일로 최초 가입한 사용자가 super_admin이 됨 |
+
+### 인증 (NextAuth)
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `NEXTAUTH_URL` | 인증 사용 시 | - | NextAuth 기본 URL (예: `http://localhost:3000`) |
+| `NEXTAUTH_SECRET` / `AUTH_SECRET` | 인증 사용 시 | - | JWT 서명 시크릿 (LangGraph의 `JWT_SECRET_KEY`와 동일해야 함) |
+| `JWT_EXPIRATION_TIME` | - | `1h` | JWT 토큰 만료 시간 (예: `1h`, `2h`, `30m`, `1d`) |
+| `AUTH_TRUST_HOST` | - | - | 리버스 프록시 또는 Docker 환경에서 `true`로 설정 |
+
+### OAuth 프로바이더
+
+| 변수 | 필수 | 설명 |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | Google OAuth 사용 시 | Google OAuth 클라이언트 ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 사용 시 | Google OAuth 클라이언트 시크릿 |
+| `GITHUB_CLIENT_ID` | GitHub OAuth 사용 시 | GitHub OAuth 클라이언트 ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth 사용 시 | GitHub OAuth 클라이언트 시크릿 |
+
+### 이메일 프로바이더
+
+| 변수 | 필수 | 설명 |
+|---|---|---|
+| `EMAIL_SERVER_HOST` | 이메일 인증 사용 시 | SMTP 서버 호스트 |
+| `EMAIL_SERVER_PORT` | 이메일 인증 사용 시 | SMTP 서버 포트 |
+| `EMAIL_SERVER_USER` | 이메일 인증 사용 시 | SMTP 사용자명 |
+| `EMAIL_SERVER_PASSWORD` | 이메일 인증 사용 시 | SMTP 비밀번호 |
+| `EMAIL_FROM` | 이메일 인증 사용 시 | 발신자 이메일 주소 |
+
+### 데이터베이스
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `DATABASE_URL` | 인증 사용 시 | `file:./prisma/dev.db` | 데이터베이스 연결 URL |
+| `DATABASE_PROVIDER` | - | `sqlite` | 데이터베이스 프로바이더: `sqlite`, `postgresql`, `mysql` |
+
+### LangSmith
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `LANGSMITH_API_KEY` | - | - | 트레이싱을 위한 LangSmith API 키 |
+| `LANGSMITH_PROJECT` | - | - | LangSmith 프로젝트 이름 |
+| `LANGSMITH_TRACING` | - | - | `true`로 설정하여 LangSmith 트레이싱 활성화 |
+
+### API 토큰
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `API_TOKEN_EXPIRATION_DAYS` | - | `0` | 기본 토큰 만료 기간 (일 단위, `0` = 만료 없음) |
+
+### 로케일
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | - | `ko` | 기본 로케일: `ko` 또는 `en` |
+
+### 보안 헤더
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `SECURITY_HEADER_X_FRAME_OPTIONS` | - | `DENY` | `X-Frame-Options` 헤더 값 |
+| `SECURITY_HEADER_CONTENT_TYPE_OPTIONS` | - | `nosniff` | `X-Content-Type-Options` 헤더 값 |
+| `SECURITY_HEADER_REFERRER_POLICY` | - | `strict-origin-when-cross-origin` | `Referrer-Policy` 헤더 값 |
+| `SECURITY_HEADER_CSP` | - | `frame-ancestors 'none'` | `Content-Security-Policy` 헤더 값 |
+
+### 서버 설정
+
+| 변수 | 필수 | 기본값 | 설명 |
+|---|---|---|---|
+| `SERVER_ACTION_BODY_SIZE_LIMIT` | - | `10mb` | 서버 액션의 최대 본문 크기 |
+
+## 사이트 설정 (site.ts)
+
+`src/configs/site.ts` 파일은 앱의 외형과 동작을 제어합니다.
+
+```typescript
+export const siteConfig = {
+  meta: {
+    title: "LangGraph Chat UI",
+    description: "A production-ready chat interface for LangGraph agents",
+    favicon: "",
+  },
+  branding: {
+    appName: "LangGraph Chat UI",
+    logoPath: "/logo.svg",
+    logoWidth: 28,
+    logoHeight: 28,
+    description: "Ask your LangGraph agent anything.",
+  },
+  buttons: {
+    enableFileUpload: true,
+    fileUploadMode: "base64",
+    chatInputPlaceholder: "Ask anything...",
+  },
+  threads: {
+    showHistory: true,
+    enableDeletion: true,
+    enableTitleEdit: true,
+    sidebarOpenByDefault: true,
+  },
+  theme: {
+    fontFamily: "sans",
+    fontSize: "medium",
+    colorScheme: "light",
+  },
+  ui: {
+    autoCollapseToolCalls: false,
+    chatWidth: "default",
+    chatHistoryOpen: false,
+    tracingPanelOpen: false,
+  },
+};
+```

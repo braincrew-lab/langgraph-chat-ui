@@ -1,0 +1,138 @@
+---
+title: Configuration Reference
+description: Complete reference for all configuration options
+---
+
+## Environment Variables
+
+All environment variables are configured in the `.env` file at the project root.
+
+### Core Settings
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:2024` | LangGraph server URL (client-side) |
+| `NEXT_PUBLIC_ASSISTANT_ID` | No | `agent` | Default graph ID |
+| `LANGGRAPH_API_URL` | No | (uses `NEXT_PUBLIC_API_URL`) | Server-side LangGraph URL (for Docker internal network, etc.) |
+
+### Auth Mode
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `AUTH_MODE` | Yes | `credentials` | Authentication mode: `standalone`, `credentials`, `oauth`, `email`, `oauth-direct` |
+| `NEXT_PUBLIC_AUTH_MODE` | Yes | `credentials` | Client-side auth mode (must match `AUTH_MODE`) |
+| `REGISTRATION_POLICY` | No | `open` | Registration policy: `open` (auto-approve) or `approval` (admin approval required) |
+| `INITIAL_ADMIN_EMAIL` | No | - | First user to register with this email becomes super_admin |
+
+### Authentication (NextAuth)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NEXTAUTH_URL` | When using auth | - | NextAuth base URL (e.g. `http://localhost:3000`) |
+| `NEXTAUTH_SECRET` / `AUTH_SECRET` | When using auth | - | JWT signing secret (must match `JWT_SECRET_KEY` on LangGraph) |
+| `JWT_EXPIRATION_TIME` | No | `1h` | JWT token expiration time (e.g. `1h`, `2h`, `30m`, `1d`) |
+| `AUTH_TRUST_HOST` | No | - | Set to `true` if running behind a reverse proxy or in Docker |
+
+### OAuth Providers
+
+| Variable | Required | Description |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | For Google OAuth | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | For Google OAuth | Google OAuth client secret |
+| `GITHUB_CLIENT_ID` | For GitHub OAuth | GitHub OAuth client ID |
+| `GITHUB_CLIENT_SECRET` | For GitHub OAuth | GitHub OAuth client secret |
+
+### Email Provider
+
+| Variable | Required | Description |
+|---|---|---|
+| `EMAIL_SERVER_HOST` | For email auth | SMTP server host |
+| `EMAIL_SERVER_PORT` | For email auth | SMTP server port |
+| `EMAIL_SERVER_USER` | For email auth | SMTP username |
+| `EMAIL_SERVER_PASSWORD` | For email auth | SMTP password |
+| `EMAIL_FROM` | For email auth | Sender email address |
+
+### Database
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | When using auth | `file:./prisma/dev.db` | Database connection URL |
+| `DATABASE_PROVIDER` | No | `sqlite` | Database provider: `sqlite`, `postgresql`, `mysql` |
+
+### LangSmith
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `LANGSMITH_API_KEY` | No | - | LangSmith API key for tracing |
+| `LANGSMITH_PROJECT` | No | - | LangSmith project name |
+| `LANGSMITH_TRACING` | No | - | Set to `true` to enable LangSmith tracing |
+
+### API Token
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `API_TOKEN_EXPIRATION_DAYS` | No | `0` | Default token expiration in days (`0` = never expires) |
+
+### Locale
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | No | `ko` | Default locale: `ko` or `en` |
+
+### Security Headers
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SECURITY_HEADER_X_FRAME_OPTIONS` | No | `DENY` | `X-Frame-Options` header value |
+| `SECURITY_HEADER_CONTENT_TYPE_OPTIONS` | No | `nosniff` | `X-Content-Type-Options` header value |
+| `SECURITY_HEADER_REFERRER_POLICY` | No | `strict-origin-when-cross-origin` | `Referrer-Policy` header value |
+| `SECURITY_HEADER_CSP` | No | `frame-ancestors 'none'` | `Content-Security-Policy` header value |
+
+### Server Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SERVER_ACTION_BODY_SIZE_LIMIT` | No | `10mb` | Maximum body size for server actions |
+
+## Site Configuration (site.ts)
+
+The `src/configs/site.ts` file controls the app's appearance and behavior.
+
+```typescript
+export const siteConfig = {
+  meta: {
+    title: "LangGraph Chat UI",
+    description: "A production-ready chat interface for LangGraph agents",
+    favicon: "",
+  },
+  branding: {
+    appName: "LangGraph Chat UI",
+    logoPath: "/logo.svg",
+    logoWidth: 28,
+    logoHeight: 28,
+    description: "Ask your LangGraph agent anything.",
+  },
+  buttons: {
+    enableFileUpload: true,
+    fileUploadMode: "base64",
+    chatInputPlaceholder: "Ask anything...",
+  },
+  threads: {
+    showHistory: true,
+    enableDeletion: true,
+    enableTitleEdit: true,
+    sidebarOpenByDefault: true,
+  },
+  theme: {
+    fontFamily: "sans",
+    fontSize: "medium",
+    colorScheme: "light",
+  },
+  ui: {
+    autoCollapseToolCalls: false,
+    chatWidth: "default",
+    chatHistoryOpen: false,
+    tracingPanelOpen: false,
+  },
+};
+```

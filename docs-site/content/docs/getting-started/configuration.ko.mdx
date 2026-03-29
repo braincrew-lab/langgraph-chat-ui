@@ -1,0 +1,53 @@
+---
+title: 설정
+description: LangGraph Chat UI 설정 방법
+---
+
+## 앱 설정 파일
+
+설정은 `src/configs/` 디렉토리에서 관리됩니다.
+
+| 파일 | 설명 |
+|---|---|
+| `site.ts` | 앱 전체 설정 (브랜딩, 테마, UI 동작) |
+
+## 주요 설정 항목
+
+```typescript
+// src/configs/site.ts
+export const siteConfig = {
+  meta: {
+    title: "My Chat",
+    description: "AI 어시스턴트",
+  },
+  branding: {
+    appName: "My Chat",
+    logoPath: "/logo.png",
+    description: "무엇이든 물어보세요.",
+  },
+  buttons: {
+    enableFileUpload: true,
+    chatInputPlaceholder: "메시지를 입력하세요.",
+  },
+  threads: {
+    showHistory: true,
+    enableDeletion: true,
+  },
+  theme: {
+    colorScheme: "auto", // light, dark, auto
+  },
+};
+```
+
+모든 설정 옵션의 전체 목록은 [설정 레퍼런스](../reference/configuration)를 참조하세요.
+
+## Connection 관리
+
+앱 실행 후 설정에서 여러 LangGraph 서버를 관리할 수 있습니다.
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| API URL | O | LangGraph 서버 URL |
+| Connection 이름 | - | 구분을 위한 이름 |
+| Assistant ID | - | Graph ID (미입력시 목록 선택) |
+| API 키 | - | LangSmith API 키 |
