@@ -76,12 +76,12 @@ async def get_current_user(
         raise AUTH_EXCEPTION from e
 
 
-@auth.on
+@auth.on.threads
 async def add_owner(
     ctx: Auth.types.AuthContext,
     value: dict,
 ):
-    """Add owner metadata to resources for per-user isolation."""
+    """Add owner metadata to threads for per-user isolation."""
     filters = {"owner": ctx.user.identity}
     metadata = value.setdefault("metadata", {})
     metadata.update(filters)
