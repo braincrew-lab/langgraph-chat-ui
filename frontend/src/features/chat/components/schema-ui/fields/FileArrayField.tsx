@@ -71,7 +71,7 @@ export function FileArrayField({
         }
       }
     },
-    [items, onChange, fileUploadMode, t],
+    [items, onChange, fileUploadMode, t, onDisplayValueChange],
   );
 
   const handleRemove = useCallback(

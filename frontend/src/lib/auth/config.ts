@@ -1,5 +1,4 @@
 import { NextAuthConfig } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import { getAuthProviders } from "./providers";
 import {
@@ -29,7 +28,14 @@ export const authConfig: NextAuthConfig = {
   secret: requiresNextAuth()
     ? process.env.NEXTAUTH_SECRET
     : "standalone-dummy-secret-not-used",
-  adapter: requiresNextAuth() ? PrismaAdapter(prisma) : undefined,
+  adapter: requiresNextAuth()
+    ? (() => {
+        // Dynamic import to avoid bundling @auth/prisma-adapter when not needed
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { PrismaAdapter } = require("@auth/prisma-adapter");
+        return PrismaAdapter(prisma);
+      })()
+    : undefined,
   session: {
     strategy: getSessionStrategy(),
   },

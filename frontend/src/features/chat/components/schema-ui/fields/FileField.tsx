@@ -56,7 +56,7 @@ export function FileField({
         }
       }
     },
-    [onChange, fileUploadMode, t],
+    [onChange, fileUploadMode, t, onDisplayValueChange],
   );
 
   const handleClear = useCallback(() => {

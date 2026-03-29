@@ -8,7 +8,6 @@ import {
   FormEvent,
 } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { UI, STREAM_OPTIONS, TIMING } from "@/lib/constants";
@@ -48,8 +47,6 @@ import { MessageList } from "./MessageList";
 export function Thread() {
   const { config, userSettings, updateUserSettings } = useSettings();
   const t = useTranslations("chat");
-  const router = useRouter();
-
   const [threadId, setThreadId] = useQueryState("threadId");
 
   // Sidebar states from settings (persisted)
@@ -221,7 +218,7 @@ export function Thread() {
       // Full page reload to ensure cookie is properly read
       window.location.reload();
     },
-    [currentAssistantId, router, setThreadId, setContentBlocks, t],
+    [currentAssistantId, t],
   );
 
   useEffect(() => {

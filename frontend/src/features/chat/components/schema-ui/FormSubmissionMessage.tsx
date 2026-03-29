@@ -225,10 +225,10 @@ function FieldDisplay({
 }
 
 // Format value for display (used in collapsed summary)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatValue(
   value: unknown,
   field?: SchemaFieldConfig,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t?: any,
 ): string {
   if (value === null || value === undefined) {

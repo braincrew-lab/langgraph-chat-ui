@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
+import crossSpawn from "cross-spawn";
 
 function resolveCommand(command: string): string {
   if (process.platform !== "win32") return command;
@@ -38,7 +39,7 @@ function runAsync(
   options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(resolveCommand(command), args, {
+    const proc = crossSpawn(command, args, {
       cwd: options.cwd,
       env: options.env || process.env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -968,15 +969,22 @@ async function runSetup(config: SetupConfig) {
   generateEnvFile(config);
   s.stop(t("envCreated"));
 
-  // 2. Install dependencies (async to allow spinner animation)
-  s.start(t("installingDeps"));
+  // 2. Install dependencies (use stdio: inherit so progress/errors are visible)
+  p.log.step(t("installingDeps"));
   try {
-    await runAsync("pnpm", ["install", "--silent"], { cwd: FRONTEND_DIR });
-    s.stop(t("depsInstalled"));
+    const installResult = crossSpawn.sync("pnpm", ["install"], {
+      cwd: FRONTEND_DIR,
+      stdio: "inherit",
+      env: { ...process.env, NODE_ENV: "development" },
+    });
+    if (installResult.status !== 0) {
+      throw new Error(`pnpm install exited with code ${installResult.status}`);
+    }
+    p.log.success(t("depsInstalled"));
   } catch (error) {
-    s.stop(LANG === "ko" ? "의존성 설치 실패" : "Failed to install dependencies");
-    if (error instanceof Error && "stderr" in error) {
-      console.error((error as { stderr: string }).stderr);
+    p.log.error(LANG === "ko" ? "의존성 설치 실패" : "Failed to install dependencies");
+    if (error instanceof Error) {
+      console.error(error.message);
     }
     throw error;
   }
@@ -1081,7 +1089,7 @@ async function runDevelopment(config: SetupConfig) {
   p.log.info(pc.dim(t("pressCtrlC")));
 
   // Run dev server with minimal output
-  const devProcess = spawn(resolveCommand("pnpm"), ["dev"], {
+  const devProcess = crossSpawn("pnpm", ["dev"], {
     cwd: FRONTEND_DIR,
     stdio: ["ignore", "ignore", "ignore"],
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
@@ -1275,7 +1283,7 @@ ${pc.cyan(`tail -f ${logFile}`)}`,
 
     p.log.info(pc.dim(t("pressCtrlC")));
 
-    const startProcess = spawn(resolveCommand("pnpm"), ["start"], {
+    const startProcess = crossSpawn("pnpm", ["start"], {
       cwd: FRONTEND_DIR,
       stdio: ["ignore", "ignore", "ignore"],
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
