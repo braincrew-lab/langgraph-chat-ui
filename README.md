@@ -4,7 +4,7 @@
 
 ![LangGraph Chat UI](./assets/chat-interface.png)
 
-**A production-ready chat interface for LangGraph agents**
+**Chat interface for LangGraph agents with auth, admin dashboard, and multi-server management**
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
@@ -38,15 +38,12 @@ English | [한국어](./README.ko.md)
 
 ## Introduction
 
-LangGraph Chat UI is a Next.js-based web application for interacting with [LangGraph](https://github.com/langchain-ai/langgraph) agents. Beyond a simple chat interface, it provides production-grade features including user authentication, an admin dashboard, and multi-connection management.
+LangGraph Chat UI is a Next.js-based web application for interacting with [LangGraph](https://github.com/langchain-ai/langgraph) agents. It provides user authentication (NextAuth), an admin dashboard with user/signup management, and the ability to manage multiple LangGraph server connections from a single interface.
 
-### Why LangGraph Chat UI?
-
-- **Production Ready** — Built-in NextAuth authentication, user management, and admin dashboard
-- **Flexible Configuration** — Control settings from environment variables to the admin UI
-- **Multi-Server Support** — Manage multiple LangGraph servers from a single UI
-- **Security Hardened** — Server Action auth, SSRF prevention, CORS restrictions, cookie security
-- **Modern Stack** — Next.js 15, React 19, Tailwind CSS 4, TypeScript
+- Connect to multiple LangGraph servers and switch between graphs
+- NextAuth-based auth (credentials, OAuth, email) with role-based access control
+- Admin dashboard for user management, signup approval, and feature toggles
+- Server Action auth checks, SSRF prevention, CORS restrictions, cookie security
 
 ---
 
@@ -55,56 +52,44 @@ LangGraph Chat UI is a Next.js-based web application for interacting with [LangG
 <details>
 <summary><b>Chat Interface</b></summary>
 
-| Feature | Description |
-|---|---|
-| Real-time Streaming | SSE-based real-time response streaming |
-| Multi-Connection | Manage multiple LangGraph server connections |
-| Multi-Graph | Select from multiple graphs on a single server |
-| Tool Call Visualization | Display agent tool call processes |
-| Intermediate Node Tracking | Real-time display of subgraph execution |
-| Thread Management | Save, rename, and delete conversation history |
-| File Upload | Image and file attachment support |
-| LaTeX Rendering | KaTeX-based mathematical formula rendering |
-| LangSmith Tracing | Real-time integration with LangSmith tracing |
-| Dynamic Form UI | Automatic form generation from input_schema |
+- SSE-based real-time response streaming
+- Manage multiple LangGraph server connections and switch between graphs on a single server
+- Visualize tool calls and track intermediate subgraph node execution in real-time
+- Thread management: save, rename, delete conversation history
+- File upload (images and attachments)
+- KaTeX-based LaTeX rendering, LangSmith trace linking
+- Automatic form UI generation from `input_schema`
 
 </details>
 
 <details>
 <summary><b>Authentication & User Management</b></summary>
 
-| Feature | Description |
-|---|---|
-| NextAuth Integration | Credentials, OAuth, and Email authentication |
-| Signup Policy | Open signup or admin approval required |
-| User Status | Active / pending / suspended state management |
-| Role-Based Access | Admin and regular user roles |
-| Server Action Protection | Auth checks on all server actions |
+- NextAuth integration: credentials, OAuth (Google, GitHub, etc.), email
+- Signup policy: open signup or admin approval required
+- User status: active / pending / suspended
+- Role-based access: admin and regular user roles
+- Auth checks on all server actions via `requireAuth`
 
 </details>
 
 <details>
 <summary><b>Admin Dashboard</b></summary>
 
-| Feature | Description |
-|---|---|
-| User Management | List, role changes, status changes, deletion |
-| Signup Approval | Approve or reject pending signup requests |
-| Global Settings | Feature toggles, default connection settings |
-| Feature Control | Per-feature enable/disable |
-| Audit Logging | User management operation history |
+- User management: list, role/status changes, deletion
+- Approve or reject pending signup requests
+- Global settings: feature toggles, default connection values
+- Audit logging for user management operations
 
 </details>
 
 <details>
 <summary><b>Customization</b></summary>
 
-| Feature | Description |
-|---|---|
-| Branding | Custom logo, app name, and description |
-| Theming | Dark / light / auto theme (system-aware) |
-| Chat Openers | Customizable conversation starter questions |
-| User Guide | Markdown-based help page |
+- Branding: custom logo, app name, description
+- Dark / light / auto theme (follows system preference)
+- Configurable conversation starter questions
+- Markdown-based user guide page
 
 </details>
 
@@ -207,7 +192,6 @@ Configuration is managed in the `src/configs/` directory.
 | File | Description |
 |---|---|
 | `site.ts` | App-wide settings (branding, theme, UI behavior) |
-| `chat-openers.ts` | Conversation starter questions |
 
 ### Key Settings
 
@@ -230,7 +214,6 @@ export const siteConfig = {
   threads: {
     showHistory: true,
     enableDeletion: true,
-    autoGenerateTitles: true,
   },
   theme: {
     colorScheme: "auto", // light, dark, auto
@@ -294,13 +277,7 @@ sequenceDiagram
 
 ### Supported Databases
 
-| DB | Status | Use Case |
-|---|---|---|
-| **SQLite** | Supported | Development, small deployments |
-| **PostgreSQL** | Planned | Production scaling |
-| **MySQL** | Planned | Production scaling |
-
-> Uses Prisma ORM, making it easy to switch to other relational databases in the future.
+Supports **SQLite** (development), **PostgreSQL**, and **MySQL**. Set `DATABASE_PROVIDER` env var (`sqlite`, `postgresql`, `mysql`) and the matching `DATABASE_URL`. Schema setup is handled automatically by `pnpm db:setup`.
 
 ### Signup Policy
 
@@ -356,13 +333,11 @@ When signup policy is set to `approval`:
 
 ## Security
 
-This project implements the following security measures:
-
 | Area | Measure |
 |---|---|
 | **Server Actions** | Auth checks on all server actions (`requireAuth`) |
 | **API Proxy** | SSRF prevention (private IP blocking), CORS origin restrictions |
-| **Cookie Security** | `httpOnly` and `secure` flags on API key cookies |
+| **Cookie Security** | `httpOnly` and `secure` flags on connection cookies (production only) |
 | **File Upload** | MIME-type-based extension detection, SVG XSS prevention |
 | **JWT** | Shared-secret server-to-server auth, secure token generation |
 | **Data Integrity** | Prisma transactions for atomic user state changes |
@@ -381,26 +356,27 @@ This project implements the following security measures:
 
 For details, see the [LangGraph Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md).
 
-### Docker Deployment (Planned)
+### Docker Deployment
 
 ```bash
-# Build Docker image
-docker build -t langgraph-chat-ui .
+# Basic (UI + PostgreSQL)
+docker compose up -d
 
-# Run
-docker run -p 3000:3000 \
-  -e DATABASE_URL="..." \
-  -e AUTH_SECRET="..." \
-  langgraph-chat-ui
+# Full stack (UI + LangGraph server + PostgreSQL + Redis)
+docker compose -f docker-compose.full.yml up -d
 ```
+
+See `docker-compose.yml` for configuration options. Set `NEXT_PUBLIC_API_URL` to your LangGraph server endpoint.
 
 ### Vercel Deployment
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/teddynote-lab/langgraph-chat-ui)
 
+> **Note**: SQLite is not supported on Vercel (serverless has no persistent filesystem). You must use PostgreSQL.
+
 1. Connect your repository on Vercel
-2. Configure environment variables
-3. Connect a PostgreSQL database (Vercel Postgres recommended)
+2. Set `DATABASE_PROVIDER=postgresql` and `DATABASE_URL` (Vercel Postgres or external)
+3. Configure remaining environment variables (`AUTH_MODE`, `NEXT_PUBLIC_API_URL`, etc.)
 
 ---
 
@@ -423,37 +399,27 @@ docker run -p 3000:3000 \
 
 | Document | Description |
 |---|---|
+| [Quick Start](docs/QUICK_START.md) | Get running in 5 minutes (standalone, no auth) |
+| [Integration Guide](docs/INTEGRATION.md) | Connect to your LangGraph server with auth + JWT |
+| [Production Deployment](docs/PRODUCTION.md) | Docker, Vercel, self-hosted deployment |
+| [Environment Variable Matrix](docs/ENV_MATRIX.md) | All env vars by auth mode (required/optional) |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common errors and fixes |
 | [Auth Guide Overview](docs/00-OVERVIEW.md) | Auth method comparison and selection guide |
-| [LangGraph Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) | Platform vs FastAPI, Docker Compose setup |
 | [Examples](examples/) | Per-auth-mode server/frontend configuration examples |
 
 ---
 
 ## Contributing
 
-Contributions are always welcome! Follow these steps:
-
-1. Fork this repository
-2. Create a new branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Create a Pull Request
-
-### Development Setup
-
 ```bash
-# Install dependencies
 pnpm install
-
-# Start dev server
-pnpm dev
-
-# Production build
-pnpm build
-
-# Lint
-pnpm lint
+pnpm dev          # dev server on :3000
+pnpm lint         # ESLint
+pnpm format:check # Prettier
+pnpm build        # production build
 ```
+
+Fork the repo, create a branch, and open a PR. Run `pnpm lint` and `pnpm format:check` before submitting — CI will reject PRs that fail either check.
 
 ---
 
@@ -474,9 +440,5 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-
-Made with ❤️ by [TeddyNote Lab](https://github.com/teddynote-lab)
-<br/>
-<sub>Based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
-
+<sub>Built by <a href="https://github.com/teddynote-lab">TeddyNote Lab</a>, based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
 </div>
