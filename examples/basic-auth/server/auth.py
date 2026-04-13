@@ -76,14 +76,15 @@ async def get_current_user(
         raise AUTH_EXCEPTION from e
 
 
-@auth.on
+@auth.on.threads
 async def add_owner(
     ctx: Auth.types.AuthContext,
     value: dict,
 ):
-    """Add owner metadata to resources for per-user isolation.
+    """Add owner metadata to threads for per-user isolation.
 
-    This ensures that users can only access their own threads and data.
+    Applied only to threads (not assistants) so that system-created
+    assistants remain visible to all authenticated users.
 
     Args:
         ctx: Authentication context with user information
