@@ -72,7 +72,8 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
-    const errorDesc = req.nextUrl.searchParams.get("error_description") || error;
+    const errorDesc =
+      req.nextUrl.searchParams.get("error_description") || error;
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(errorDesc)}`, req.url),
     );

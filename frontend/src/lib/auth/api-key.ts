@@ -35,8 +35,7 @@ export async function getStoredApiKey(): Promise<string | null> {
  */
 export function hasApiKeyFromEnv(): boolean {
   return !!(
-    process.env.LANGCHAIN_API_KEY ||
-    process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY
+    process.env.LANGCHAIN_API_KEY || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY
   );
 }
 
@@ -49,17 +48,14 @@ export async function validateApiKey(
   apiKey: string,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const response = await fetch(
-      `${apiUrl}/assistants/search?limit=1`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-        },
-        body: JSON.stringify({ limit: 1 }),
+    const response = await fetch(`${apiUrl}/assistants/search?limit=1`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
       },
-    );
+      body: JSON.stringify({ limit: 1 }),
+    });
 
     if (response.ok) {
       return { valid: true };

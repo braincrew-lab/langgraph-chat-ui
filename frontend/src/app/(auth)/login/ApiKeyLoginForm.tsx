@@ -72,7 +72,10 @@ export function ApiKeyLoginForm() {
         router.push("/");
         router.refresh();
       } else {
-        setError(data.error || "Invalid API key — could not connect to LangGraph server");
+        setError(
+          data.error ||
+            "Invalid API key — could not connect to LangGraph server",
+        );
       }
     } catch {
       setError("Failed to validate API key. Please check your connection.");

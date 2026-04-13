@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
     // SSRF prevention: reject private network URLs from cookies
     if (cookieApiUrl && cookieApiUrl === apiUrl && isPrivateUrl(apiUrl)) {
       return NextResponse.json(
-        { valid: false, error: "Invalid API URL: private network addresses are not allowed" },
+        {
+          valid: false,
+          error: "Invalid API URL: private network addresses are not allowed",
+        },
         { status: 400 },
       );
     }

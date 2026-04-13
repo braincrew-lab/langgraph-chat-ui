@@ -81,7 +81,10 @@ export default async function middleware(req: NextRequest) {
     }
 
     // API routes with Bearer token or x-api-key: let through
-    if (routeType === "api" && (hasBearerToken(req) || req.headers.get("x-api-key"))) {
+    if (
+      routeType === "api" &&
+      (hasBearerToken(req) || req.headers.get("x-api-key"))
+    ) {
       return NextResponse.next();
     }
 

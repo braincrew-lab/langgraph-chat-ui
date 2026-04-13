@@ -35,8 +35,7 @@ export function getCustomJwtConfig(): CustomJwtConfig | null {
   return {
     issuer,
     jwksUri:
-      process.env.JWT_JWKS_URI ||
-      `${issuer}/.well-known/openid-configuration`,
+      process.env.JWT_JWKS_URI || `${issuer}/.well-known/openid-configuration`,
     audience: process.env.JWT_AUDIENCE,
     loginUrl:
       process.env.JWT_LOGIN_URL || `${issuer}/protocol/openid-connect/auth`,
@@ -113,9 +112,7 @@ export function generatePkce(): {
   // Generate random code verifier (43-128 chars, URL-safe)
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  const codeVerifier = Buffer.from(array)
-    .toString("base64url")
-    .slice(0, 64);
+  const codeVerifier = Buffer.from(array).toString("base64url").slice(0, 64);
 
   // Generate code challenge (S256)
   const encoder = new TextEncoder();
@@ -123,10 +120,7 @@ export function generatePkce(): {
   // Use sync hash for simplicity — crypto.subtle requires async
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const nodeCrypto = require("crypto");
-  const hashBuffer = nodeCrypto
-    .createHash("sha256")
-    .update(data)
-    .digest();
+  const hashBuffer = nodeCrypto.createHash("sha256").update(data).digest();
   const codeChallenge = Buffer.from(hashBuffer).toString("base64url");
 
   return { codeVerifier, codeChallenge };
