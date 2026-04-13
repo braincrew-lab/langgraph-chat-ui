@@ -7,6 +7,8 @@
  * - email: NextAuth + email magic link
  * - oauth-direct: LangGraph server handles OAuth directly
  * - standalone: No authentication required (local/dev use)
+ * - custom-jwt: External IdP handles auth, PKCE flow, tokens stored in cookies
+ * - api-key: API key authentication against LangGraph server
  *
  * Legacy aliases (for backward compatibility):
  * - authenticated: maps to "credentials"
@@ -17,7 +19,9 @@ export type AuthMode =
   | "credentials"
   | "email"
   | "oauth-direct"
-  | "standalone";
+  | "standalone"
+  | "custom-jwt"
+  | "api-key";
 
 export type RegistrationPolicy = "open" | "approval";
 
@@ -74,6 +78,8 @@ export const VALID_AUTH_MODES: AuthMode[] = [
   "email",
   "oauth-direct",
   "standalone",
+  "custom-jwt",
+  "api-key",
 ];
 
 /**
@@ -110,17 +116,48 @@ export function getAuthMode(): AuthMode {
 }
 
 /**
- * Check if the current mode requires NextAuth
+ * Check if the current mode initializes NextAuth (Prisma, session, providers).
+ * True for: oauth, credentials, email
  */
-export function requiresNextAuth(): boolean {
+export function usesNextAuth(): boolean {
   const mode = getAuthMode();
   return mode === "oauth" || mode === "credentials" || mode === "email";
 }
 
 /**
- * Check if the current mode allows anonymous access
+ * Check if the current mode shows a login UI (login page, key form, IdP redirect).
+ * True for: oauth, credentials, email, custom-jwt, api-key
+ */
+export function requiresLoginUI(): boolean {
+  const mode = getAuthMode();
+  return (
+    mode === "oauth" ||
+    mode === "credentials" ||
+    mode === "email" ||
+    mode === "custom-jwt" ||
+    mode === "api-key"
+  );
+}
+
+/**
+ * Check if the current mode tracks user identity (per-user thread isolation).
+ * True for all modes except standalone and api-key.
+ */
+export function requiresUserIdentity(): boolean {
+  const mode = getAuthMode();
+  return mode !== "standalone" && mode !== "api-key";
+}
+
+/**
+ * @deprecated Use usesNextAuth() instead
+ */
+export function requiresNextAuth(): boolean {
+  return usesNextAuth();
+}
+
+/**
+ * @deprecated Use !requiresLoginUI() instead
  */
 export function allowsAnonymousAccess(): boolean {
-  const mode = getAuthMode();
-  return mode === "standalone" || mode === "oauth-direct";
+  return !requiresLoginUI();
 }

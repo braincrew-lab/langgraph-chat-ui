@@ -1,4 +1,4 @@
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 import type { Session } from "next-auth";
 import type { NextRequest } from "next/server";
 
@@ -9,7 +9,7 @@ type HandlersType = {
 };
 
 // standalone/oauth-direct 모드에서는 NextAuth 초기화 안함
-const needsAuth = requiresNextAuth();
+const needsAuth = usesNextAuth();
 
 let handlers: HandlersType;
 let auth: AuthFunction;

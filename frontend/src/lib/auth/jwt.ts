@@ -6,7 +6,7 @@
  */
 
 import { SignJWT } from "jose";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 
 export interface JWTPayload {
   sub: string;
@@ -23,8 +23,10 @@ export interface JWTPayload {
  * @returns The signed JWT token string, or null if user is not authenticated
  */
 export async function generateUserJWT(): Promise<string | null> {
-  // Skip JWT generation in standalone/oauth-direct mode
-  if (!requiresNextAuth()) {
+  // custom-jwt: token is managed by custom-jwt.ts (forwarded from IdP cookie)
+  // api-key: no JWT needed (uses x-api-key header)
+  // standalone/oauth-direct: no JWT needed
+  if (!usesNextAuth()) {
     return null;
   }
 

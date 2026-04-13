@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isPublicMode } from "@/lib/auth/mode";
+import { usesNextAuth } from "@/types/auth-mode";
 import { getSetting } from "@/lib/services/settings.service";
 import { writeFile, mkdir, access, constants } from "fs/promises";
 import path from "path";
@@ -38,8 +38,10 @@ async function ensureDir(dir: string): Promise<void> {
 
 export async function POST(request: NextRequest) {
   try {
-    // Allow authenticated users or public mode
-    if (!isPublicMode()) {
+    // Only check NextAuth session for NextAuth modes
+    // custom-jwt and api-key: auth handled at proxy/middleware level
+    // standalone and oauth-direct: no auth required
+    if (usesNextAuth()) {
       const session = await auth();
       if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

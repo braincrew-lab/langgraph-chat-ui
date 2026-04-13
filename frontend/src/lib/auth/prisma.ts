@@ -1,4 +1,4 @@
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 
 type PrismaClientType = import("@prisma/client").PrismaClient;
 
@@ -15,10 +15,10 @@ function createPrismaClient(): PrismaClientType {
 
 // Only initialize PrismaClient when auth requires it.
 // This allows AUTH_MODE=none to work without prisma generate.
-export const prisma: PrismaClientType = requiresNextAuth()
+export const prisma: PrismaClientType = usesNextAuth()
   ? (globalForPrisma.prisma ?? createPrismaClient())
   : (null as unknown as PrismaClientType);
 
-if (requiresNextAuth() && process.env.NODE_ENV !== "production") {
+if (usesNextAuth() && process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }

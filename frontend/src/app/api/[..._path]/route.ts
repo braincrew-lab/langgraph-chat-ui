@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { CONNECTION_COOKIE_NAMES } from "@/lib/connections/cookies";
 import { getAllSettings } from "@/lib/services/settings.service";
 import { resolveApiUrl } from "@/lib/connections/resolve";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { getAuthMode, usesNextAuth } from "@/types/auth-mode";
 import { generateUserJWT } from "@/lib/auth/jwt";
 import { isPrivateUrl } from "@/lib/utils/url-validation";
 
@@ -36,9 +36,10 @@ function getCorsHeaders(req: NextRequest) {
 }
 
 async function handleRequest(req: NextRequest, method: string) {
-  const needsAuth = requiresNextAuth();
+  const mode = getAuthMode();
+  const needsNextAuth = usesNextAuth();
 
-  // Get user session (only for auth modes that require it)
+  // Get user session (only for NextAuth modes)
   type SessionType = {
     user?: {
       id: string;
@@ -49,7 +50,7 @@ async function handleRequest(req: NextRequest, method: string) {
     };
   } | null;
   let session: SessionType = null;
-  if (needsAuth) {
+  if (needsNextAuth) {
     const { auth } = await import("@/lib/auth");
     session = (await auth()) as SessionType;
     if (!session?.user) {
@@ -101,11 +102,32 @@ async function handleRequest(req: NextRequest, method: string) {
       "Content-Type": contentType,
     };
 
-    // Generate signed JWT token for LangGraph server using shared utility
-    const token = await generateUserJWT();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    // Inject auth credentials based on mode
+    if (needsNextAuth) {
+      // NextAuth modes: generate signed JWT for LangGraph server
+      const token = await generateUserJWT();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    } else if (mode === "custom-jwt") {
+      // Custom JWT: forward stored IdP token from cookie
+      const cookieStore = await cookies();
+      const idpToken = cookieStore.get("lg_idp_token")?.value;
+      if (idpToken) {
+        headers["Authorization"] = `Bearer ${idpToken}`;
+      }
+    } else if (mode === "api-key") {
+      // API key: forward from cookie or env
+      const cookieStore = await cookies();
+      const apiKey =
+        cookieStore.get(CONNECTION_COOKIE_NAMES.apiKey)?.value ||
+        process.env.LANGCHAIN_API_KEY ||
+        process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY;
+      if (apiKey) {
+        headers["x-api-key"] = apiKey;
+      }
     }
+    // standalone/oauth-direct: no additional auth headers
 
     // Build request options
     const options: RequestInit = {

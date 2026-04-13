@@ -4,7 +4,8 @@ import { getAllSettings } from "@/lib/services/settings.service";
 import { siteConfig } from "@/configs/site";
 import { AuthLayoutClient } from "./AuthLayoutClient";
 import { getAuthMode } from "@/types/auth-mode";
-import { getLangGraphOAuthUrl } from "@/lib/auth/mode";
+import { getLangGraphOAuthUrl, isApiKeyMode } from "@/lib/auth/mode";
+import { hasApiKeyFromEnv } from "@/lib/auth/api-key";
 import { getAvailableOAuthProviders } from "@/lib/auth/providers";
 
 export default async function AuthLayout({
@@ -27,6 +28,13 @@ export default async function AuthLayout({
     // Fallback to home if no OAuth URL configured
     redirect("/");
   }
+
+  // api-key mode: if env key exists, skip login UI
+  if (isApiKeyMode() && hasApiKeyFromEnv()) {
+    redirect("/");
+  }
+
+  // custom-jwt and api-key: show login UI (handled by LoginForm switch)
 
   const globalSettings = await getAllSettings();
 
