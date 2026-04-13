@@ -12,7 +12,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/prisma-generate.mjs && next build",
-    "build:production": "prisma migrate deploy && node scripts/prisma-generate.mjs && next build",
+    "build:production": "node scripts/prisma-generate.mjs && next build",
+    "db:setup": "node scripts/prisma-generate.mjs && node scripts/db-setup.mjs",
     "start": "next start",
     "postinstall": "node scripts/prisma-generate.mjs",
     "lint": "next lint",
