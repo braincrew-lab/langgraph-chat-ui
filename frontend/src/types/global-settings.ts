@@ -23,8 +23,6 @@ export interface GlobalSettings {
   "features.enableFileUpload": boolean; // 파일 업로드 허용
   "features.showHistory": boolean; // 채팅 히스토리 표시
   "features.enableDeletion": boolean; // 스레드 삭제 허용
-  "features.autoGenerateTitles": boolean; // 자동 제목 생성
-
   // Feature control settings
   "features.enableGraphSelection": boolean; // 그래프 선택 활성화 (비활성화 시 기본 그래프 사용)
   "features.enableConnectionSelection": boolean; // 커넥션 선택 활성화 (비활성화 시 기본 커넥션 사용)
@@ -83,8 +81,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   "features.enableFileUpload": true,
   "features.showHistory": true,
   "features.enableDeletion": true,
-  "features.autoGenerateTitles": true,
-
   // Feature control
   "features.enableGraphSelection": true,
   "features.enableConnectionSelection": true,
@@ -174,15 +170,6 @@ export const SETTING_DEFINITIONS: SettingMeta[] = [
     type: "boolean",
     defaultValue: DEFAULT_SETTINGS["features.enableDeletion"],
   },
-  {
-    key: "features.autoGenerateTitles",
-    label: "자동 제목 생성",
-    description: "채팅 내용을 기반으로 자동으로 제목 생성",
-    category: "features",
-    type: "boolean",
-    defaultValue: DEFAULT_SETTINGS["features.autoGenerateTitles"],
-  },
-
   // Feature control
   {
     key: "features.enableGraphSelection",

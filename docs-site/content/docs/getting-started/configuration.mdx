@@ -1,0 +1,53 @@
+---
+title: Configuration
+description: Configure LangGraph Chat UI settings
+---
+
+## Config Files
+
+Configuration is managed in the `src/configs/` directory.
+
+| File | Description |
+|---|---|
+| `site.ts` | App-wide settings (branding, theme, UI behavior) |
+
+## Key Settings
+
+```typescript
+// src/configs/site.ts
+export const siteConfig = {
+  meta: {
+    title: "My Chat",
+    description: "AI Assistant",
+  },
+  branding: {
+    appName: "My Chat",
+    logoPath: "/logo.png",
+    description: "Ask me anything.",
+  },
+  buttons: {
+    enableFileUpload: true,
+    chatInputPlaceholder: "Type a message...",
+  },
+  threads: {
+    showHistory: true,
+    enableDeletion: true,
+  },
+  theme: {
+    colorScheme: "auto", // light, dark, auto
+  },
+};
+```
+
+For the complete list of all configuration options, see the [Configuration Reference](../reference/configuration).
+
+## Connection Management
+
+After launching the app, you can manage multiple LangGraph servers from the settings panel.
+
+| Field | Required | Description |
+|---|---|---|
+| API URL | Yes | LangGraph server URL |
+| Connection Name | No | Display name for identification |
+| Assistant ID | No | Graph ID (shows list if empty) |
+| API Key | No | LangSmith API key |

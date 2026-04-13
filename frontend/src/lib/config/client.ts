@@ -22,7 +22,6 @@ export interface ChatConfig {
     showHistory: boolean;
     enableDeletion: boolean;
     enableTitleEdit: boolean;
-    autoGenerateTitles: boolean;
     sidebarOpenByDefault: boolean;
   };
   theme: {
