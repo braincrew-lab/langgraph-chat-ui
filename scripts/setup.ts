@@ -17,6 +17,80 @@ import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
 import crossSpawn from "cross-spawn";
 
+/**
+ * Strip ANSI escape codes from a string.
+ */
+function stripAnsi(str: string): string {
+  return str.replace(
+    /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g,
+    ""
+  );
+}
+
+/**
+ * Check if a Unicode code point is a full-width (double-width) character.
+ */
+function isFullWidth(code: number): boolean {
+  return (
+    (code >= 0x1100 && code <= 0x115f) || // Hangul Jamo
+    (code >= 0x2e80 && code <= 0x303e) || // CJK Radicals, Kangxi, CJK Symbols
+    (code >= 0x3040 && code <= 0x33bf) || // Hiragana, Katakana, Bopomofo, Hangul Compat Jamo
+    (code >= 0x3400 && code <= 0x4dbf) || // CJK Extension A
+    (code >= 0x4e00 && code <= 0x9fff) || // CJK Unified Ideographs
+    (code >= 0xa960 && code <= 0xa97f) || // Hangul Jamo Extended-A
+    (code >= 0xac00 && code <= 0xd7af) || // Hangul Syllables
+    (code >= 0xf900 && code <= 0xfaff) || // CJK Compatibility Ideographs
+    (code >= 0xfe10 && code <= 0xfe19) || // Vertical Forms
+    (code >= 0xfe30 && code <= 0xfe6f) || // CJK Compatibility Forms
+    (code >= 0xff01 && code <= 0xff60) || // Fullwidth Forms
+    (code >= 0xffe0 && code <= 0xffe6) || // Fullwidth Signs
+    (code >= 0x20000 && code <= 0x2fffd) || // CJK Extension B+
+    (code >= 0x30000 && code <= 0x3fffd) // CJK Extension G+
+  );
+}
+
+/**
+ * Get the visual width of a string in the terminal,
+ * accounting for CJK double-width characters and ANSI escape codes.
+ */
+function getStringWidth(str: string): number {
+  const stripped = stripAnsi(str);
+  let width = 0;
+  for (const char of stripped) {
+    const code = char.codePointAt(0)!;
+    width += isFullWidth(code) ? 2 : 1;
+  }
+  return width;
+}
+
+/**
+ * CJK-aware replacement for note() that correctly handles
+ * double-width characters in box-drawing width calculations.
+ */
+function note(message: string = "", title: string = "") {
+  const lines = `\n${message}\n`.split("\n");
+  const titleWidth = getStringWidth(title);
+  const maxLineWidth = lines.reduce(
+    (max, line) => Math.max(max, getStringWidth(line)),
+    0
+  );
+  const boxWidth = Math.max(maxLineWidth, titleWidth) + 2;
+
+  const content = lines
+    .map((line) => {
+      const padding = boxWidth - getStringWidth(line);
+      return `${pc.gray("\u2502")}  ${pc.dim(line)}${" ".repeat(padding)}${pc.gray("\u2502")}`;
+    })
+    .join("\n");
+
+  process.stdout.write(
+    `${pc.gray("\u2502")}\n` +
+      `${pc.green("\u25C7")}  ${pc.reset(title)} ${pc.gray("\u2500".repeat(Math.max(boxWidth - titleWidth - 1, 1)) + "\u256E")}\n` +
+      `${content}\n` +
+      `${pc.gray("\u2570" + "\u2500".repeat(boxWidth + 2) + "\u256F")}\n`
+  );
+}
+
 function resolveCommand(command: string): string {
   if (process.platform !== "win32") return command;
 
@@ -929,7 +1003,7 @@ async function gatherConfig(): Promise<SetupConfig | null> {
     summaryLines.push(`App Name: ${appName}`);
   }
 
-  p.note(summaryLines.join("\n"), t("configSummary"));
+  note(summaryLines.join("\n"), t("configSummary"));
 
   const confirmed = await p.confirm({
     message: t("proceedWithConfig"),
@@ -1143,7 +1217,7 @@ async function deployToVercel(config: SetupConfig) {
     s.stop(LANG === "ko" ? "Vercel CLI 설치 완료!" : "Vercel CLI installed!");
   }
 
-  p.note(
+  note(
     `${t("vercelInstructions")}
 
 ${getEnvVarsForProduction(config)}
@@ -1175,7 +1249,7 @@ async function buildDocker(config: SetupConfig, s: ReturnType<typeof p.spinner>)
     throw error;
   }
 
-  p.note(
+  note(
     `${t("runContainer")}
 
 ${pc.cyan(`docker run -d -p 3000:3000 \\
@@ -1221,7 +1295,7 @@ async function runSelfHosted(config: SetupConfig, s: ReturnType<typeof p.spinner
         p.log.info(pc.yellow(`💡 ${t("firstRunAdminNotice")}`));
       }
 
-      p.note(
+      note(
         `${t("toStopServer")}
 ${pc.cyan("pm2 stop langgraph-chat-ui")}
 ${pc.cyan("pm2 delete langgraph-chat-ui")}
@@ -1261,7 +1335,7 @@ ${pc.cyan("pm2 logs langgraph-chat-ui")}`,
         p.log.info(pc.yellow(`💡 ${t("firstRunAdminNotice")}`));
       }
 
-      p.note(
+      note(
         `${t("toStopServer")}
 ${pc.cyan(`kill $(cat ${pidFile})`)}
 
@@ -1509,7 +1583,7 @@ function getExampleName(config: SetupConfig): string {
 function showLangGraphServerGuide(config: SetupConfig) {
   const exampleName = getExampleName(config);
 
-  p.note(
+  note(
     `${t("langGraphGuide")}
 
 ${pc.cyan(`cd examples/${exampleName}/server`)}
