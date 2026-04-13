@@ -6,10 +6,6 @@
 
 **Chat interface for LangGraph agents with auth, admin dashboard, and multi-server management**
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 English | [한국어](./README.ko.md)
@@ -18,117 +14,64 @@ English | [한국어](./README.ko.md)
 
 </div>
 
----
+## What is this?
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Authentication](#authentication)
-- [Admin Dashboard](#admin-dashboard)
-- [Security](#security)
-- [Deployment](#deployment)
-- [Tech Stack](#tech-stack)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Introduction
-
-LangGraph Chat UI is a Next.js-based web application for interacting with [LangGraph](https://github.com/langchain-ai/langgraph) agents. It provides user authentication (NextAuth), an admin dashboard with user/signup management, and the ability to manage multiple LangGraph server connections from a single interface.
-
-- Connect to multiple LangGraph servers and switch between graphs
-- NextAuth-based auth (credentials, OAuth, email) with role-based access control
-- Admin dashboard for user management, signup approval, and feature toggles
-- Server Action auth checks, SSRF prevention, CORS restrictions, cookie security
-
----
+A Next.js web app for interacting with [LangGraph](https://github.com/langchain-ai/langgraph) agents. Connect to multiple LangGraph servers, manage users with NextAuth-based auth, and configure everything from an admin dashboard.
 
 ## Features
 
-<details>
-<summary><b>Chat Interface</b></summary>
+### Chat Interface
 
 - SSE-based real-time response streaming
-- Manage multiple LangGraph server connections and switch between graphs on a single server
-- Visualize tool calls and track intermediate subgraph node execution in real-time
-- Thread management: save, rename, delete conversation history
+- Multiple LangGraph server connections with graph switching
+- Tool call visualization and subgraph node execution tracking
+- Thread management (save, rename, delete)
 - File upload (images and attachments)
-- KaTeX-based LaTeX rendering, LangSmith trace linking
-- Automatic form UI generation from `input_schema`
+- KaTeX LaTeX rendering, LangSmith trace linking
+- Automatic form UI from `input_schema`
 
-</details>
+### Authentication & User Management
 
-<details>
-<summary><b>Authentication & User Management</b></summary>
-
-- NextAuth integration: credentials, OAuth (Google, GitHub, etc.), email
-- Signup policy: open signup or admin approval required
+- NextAuth: credentials, OAuth (Google, GitHub, etc.), email magic link
+- Signup policy: open or admin approval
 - User status: active / pending / suspended
-- Role-based access: admin and regular user roles
+- Role-based access: admin and regular user
 - Auth checks on all server actions via `requireAuth`
 
-</details>
-
-<details>
-<summary><b>Admin Dashboard</b></summary>
+### Admin Dashboard
 
 - User management: list, role/status changes, deletion
-- Approve or reject pending signup requests
+- Signup approval/rejection for pending requests
 - Global settings: feature toggles, default connection values
-- Audit logging for user management operations
+- Audit logging for management operations
 
-</details>
+### Customization
 
-<details>
-<summary><b>Customization</b></summary>
-
-- Branding: custom logo, app name, description
-- Dark / light / auto theme (follows system preference)
+- Branding: logo, app name, description
+- Dark / light / auto theme
 - Configurable conversation starter questions
 - Markdown-based user guide page
-
-</details>
-
----
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 18.x or later
-- **pnpm** 8.x or later
-- **LangGraph server** running (`langgraph dev`)
+- **Node.js** 18+
+- **pnpm** 8+
+- A running **LangGraph server** (`langgraph dev`)
 
 ### Installation
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/teddynote-lab/langgraph-chat-ui.git
 cd langgraph-chat-ui
-
-# 2. Install dependencies
 pnpm install
-
-# 3. Interactive setup and launch
 pnpm launch
 ```
 
-Running `pnpm launch` starts an interactive setup wizard:
+`pnpm launch` runs an interactive setup wizard: run mode, auth mode, LangGraph server URL, LangSmith API key, database migration, and auto-start.
 
-1. **Run mode** — Development / Production
-2. **Auth mode** — standalone, credentials, oauth, oauth-direct
-3. **LangGraph server URL** input
-4. **LangSmith API key** input (optional)
-5. **Database migration** (auto, depending on auth mode)
-6. **Auto-start server**
-
-> Language is auto-detected based on your system locale.
-
-> See the `examples/` directory for detailed per-mode configuration examples.
+> See `examples/` for per-mode configuration examples.
 
 ### Auth Modes
 
@@ -136,114 +79,74 @@ Running `pnpm launch` starts an interactive setup wizard:
 |---|---|---|---|
 | `standalone` | No auth, immediate use (local dev) | - | - |
 | `credentials` | Email/password login | Yes | Yes |
-| `oauth` | Google, GitHub, etc. OAuth login | Yes | Yes |
+| `oauth` | Google, GitHub, etc. OAuth | Yes | Yes |
+| `email` | Magic link (passwordless) | Yes | Yes |
 | `oauth-direct` | LangGraph server handles OAuth | - | - |
 
-### Environment Variables (Manual Setup)
+### Manual Setup
 
-To configure manually instead of using `pnpm launch`:
-
-```bash
-cp .env.example .env
-```
-
-```env
-# Auth mode (standalone, credentials, oauth, oauth-direct)
-AUTH_MODE=standalone
-
-# LangGraph server URL
-NEXT_PUBLIC_API_URL=http://localhost:2024
-
-# Default Graph ID (optional)
-NEXT_PUBLIC_ASSISTANT_ID=agent
-
-# NextAuth secret (required for credentials, oauth, email modes)
-NEXTAUTH_SECRET=your-secret-key
-
-# Database (required for credentials, oauth, email modes)
-DATABASE_URL="file:./prisma/dev.db"
-
-# LangSmith tracing (optional)
-LANGSMITH_API_KEY=lsv2_pt_xxxxx
-```
+Instead of `pnpm launch`, configure manually:
 
 ```bash
-# Database migration (required for credentials, oauth, email modes)
-pnpm prisma migrate dev
-
-# Start dev server
+cp frontend/.env.example frontend/.env
+# Edit frontend/.env with your settings, then:
+cd frontend
+pnpm db:setup   # Required for credentials, oauth, email modes
 pnpm dev
 ```
 
-Open `http://localhost:3000` in your browser.
-
-### First Admin Account
-
-When using `credentials`, `oauth`, or `email` auth modes, the first user to sign up is automatically granted admin privileges.
-
----
+Open `http://localhost:3000`. When using `credentials`, `oauth`, or `email` auth mode, the first user to sign up gets admin privileges.
 
 ## Configuration
 
-### Config Files
-
-Configuration is managed in the `src/configs/` directory.
-
-| File | Description |
-|---|---|
-| `site.ts` | App-wide settings (branding, theme, UI behavior) |
-
-### Key Settings
+Settings are in `frontend/src/configs/site.ts`:
 
 ```typescript
-// src/configs/site.ts
 export const siteConfig = {
   meta: {
-    title: "My Chat",
-    description: "AI Assistant",
+    title: "LangGraph Chat UI",
+    description: "A production-ready chat interface for LangGraph agents",
   },
   branding: {
-    appName: "My Chat",
-    logoPath: "/logo.png",
-    description: "Ask me anything.",
+    appName: "LangGraph Chat UI",
+    logoPath: "/logo.svg",
+    description: "Ask your LangGraph agent anything.",
   },
   buttons: {
     enableFileUpload: true,
-    chatInputPlaceholder: "Type a message...",
+    chatInputPlaceholder: "Ask anything...",
   },
   threads: {
     showHistory: true,
     enableDeletion: true,
+    enableTitleEdit: true,
+    sidebarOpenByDefault: true,
   },
   theme: {
-    colorScheme: "auto", // light, dark, auto
+    colorScheme: "light", // light, dark, auto
   },
 };
 ```
 
 ### Connection Management
 
-After launching the app, you can manage multiple LangGraph servers from the settings panel.
+Manage multiple LangGraph servers from the in-app settings panel:
 
-| Field | Required | Description |
-|---|---|---|
-| API URL | Yes | LangGraph server URL |
-| Connection Name | No | Display name for identification |
-| Assistant ID | No | Graph ID (shows list if empty) |
-| API Key | No | LangSmith API key |
-
----
+- **API URL** (required) — LangGraph server URL
+- **Connection Name** — Display name for identification
+- **Assistant ID** — Graph ID (shows selection list if empty)
+- **API Key** — LangSmith API key
 
 ## Authentication
 
 ### Architecture
 
-Next.js handles DB-based user authentication, while the LangGraph server only performs JWT verification.
+Next.js handles DB-based user auth; the LangGraph server only verifies JWTs.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Browser as Browser
+    participant Browser
     participant NextJS as Next.js Server
     participant DB as Database
     participant LG as LangGraph Server
@@ -266,70 +169,34 @@ sequenceDiagram
     end
 ```
 
-### Core Principles
-
-| Component | Role | DB Access |
-|---|---|---|
-| **Next.js** | User auth, DB management, JWT issuance | Yes |
-| **LangGraph** | JWT verification, agent execution | No |
-
 > **Important**: `AUTH_SECRET` (Next.js) and `JWT_SECRET_KEY` (LangGraph) must be the same value.
 
 ### Supported Databases
 
-Supports **SQLite** (development), **PostgreSQL**, and **MySQL**. Set `DATABASE_PROVIDER` env var (`sqlite`, `postgresql`, `mysql`) and the matching `DATABASE_URL`. Schema setup is handled automatically by `pnpm db:setup`.
+SQLite (development), PostgreSQL, and MySQL. Set `DATABASE_PROVIDER` and `DATABASE_URL` in your env. Schema setup is handled by `pnpm db:setup`.
 
 ### Signup Policy
 
 Configurable from the admin dashboard:
 
-| Policy | Behavior |
-|---|---|
-| `open` | Open signup (default) |
-| `approval` | Admin approval required |
+- `open` — Open signup (default)
+- `approval` — Admin approval required
 
 ### User Status
 
-| Status | Description |
-|---|---|
-| `active` | Normal access |
-| `pending` | Awaiting approval (login disabled) |
-| `suspended` | Suspended (login disabled) |
+- `active` — Normal access
+- `pending` — Awaiting approval (login disabled)
+- `suspended` — Suspended (login disabled)
 
-### LangGraph Server Auth Integration
-
-For JWT-based authentication with LangGraph Platform, see the [Auth Guide Overview](docs/00-OVERVIEW.md).
-
----
+For JWT-based auth with LangGraph Platform, see the [Auth Guide](docs/00-OVERVIEW.md).
 
 ## Admin Dashboard
 
-Access admin features at the `/admin` route.
+Access at `/admin`:
 
-### User Management
-
-- View all users
-- Change roles (admin / regular user)
-- Change status (activate / suspend)
-- Delete users
-
-### Signup Approval
-
-When signup policy is set to `approval`:
-
-- View pending signup requests
-- Approve or reject
-
-### Global Settings
-
-| Setting | Description |
-|---|---|
-| Signup Policy | open / approval |
-| Feature Toggles | Per-feature on/off |
-| Default Connection | Server-wide default values |
-| Connection Selection | Allow users to change connections |
-
----
+- **User management** — list, role/status changes, deletion
+- **Signup approval** — approve or reject pending requests
+- **Global settings** — signup policy, feature toggles, default connection, connection selection permissions
 
 ## Security
 
@@ -343,57 +210,43 @@ When signup policy is set to `approval`:
 | **Data Integrity** | Prisma transactions for atomic user state changes |
 | **Input Validation** | UUID format validation on LangSmith API parameters |
 
----
-
 ## Deployment
 
-### Deployment Options
+| Option | LangSmith Required | Infrastructure |
+|---|---|---|
+| LangGraph Platform | Yes (free tier available) | Redis + PostgreSQL |
+| FastAPI Standalone | No | Optional |
 
-| Option | LangSmith Required | Infrastructure | Recommended For |
-|---|---|---|---|
-| LangGraph Platform | Yes (free tier available) | Redis + PostgreSQL | Official support, fast setup |
-| FastAPI Standalone | No | Optional | Full independence, custom |
+See the [Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md) for details.
 
-For details, see the [LangGraph Deployment Guide](docs/LANGGRAPH_DEPLOYMENT_GUIDE.md).
-
-### Docker Deployment
+### Docker
 
 ```bash
-# Basic (UI + PostgreSQL)
+# UI + PostgreSQL
 docker compose up -d
 
 # Full stack (UI + LangGraph server + PostgreSQL + Redis)
 docker compose -f docker-compose.full.yml up -d
 ```
 
-See `docker-compose.yml` for configuration options. Set `NEXT_PUBLIC_API_URL` to your LangGraph server endpoint.
-
-### Vercel Deployment
+### Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/teddynote-lab/langgraph-chat-ui)
 
-> **Note**: SQLite is not supported on Vercel (serverless has no persistent filesystem). You must use PostgreSQL.
-
-1. Connect your repository on Vercel
-2. Set `DATABASE_PROVIDER=postgresql` and `DATABASE_URL` (Vercel Postgres or external)
-3. Configure remaining environment variables (`AUTH_MODE`, `NEXT_PUBLIC_API_URL`, etc.)
-
----
+> SQLite is not supported on Vercel. Use PostgreSQL with `DATABASE_PROVIDER=postgresql`.
 
 ## Tech Stack
 
 | Area | Technology |
 |---|---|
 | Framework | Next.js 15 (App Router) |
-| UI Library | React 19, Radix UI, Framer Motion |
+| UI | React 19, Radix UI, Framer Motion |
 | Styling | Tailwind CSS 4 |
-| Language | TypeScript 5.7 |
-| Authentication | NextAuth.js 5 (Auth.js) |
-| Database | Prisma ORM (SQLite / PostgreSQL) |
+| Language | TypeScript |
+| Auth | NextAuth.js v5 beta (Auth.js) |
+| Database | Prisma ORM (SQLite / PostgreSQL / MySQL) |
 | LangGraph | @langchain/langgraph-sdk |
 | Markdown | react-markdown, KaTeX, remark-gfm |
-
----
 
 ## Documentation
 
@@ -401,13 +254,11 @@ See `docker-compose.yml` for configuration options. Set `NEXT_PUBLIC_API_URL` to
 |---|---|
 | [Quick Start](docs/QUICK_START.md) | Get running in 5 minutes (standalone, no auth) |
 | [Integration Guide](docs/INTEGRATION.md) | Connect to your LangGraph server with auth + JWT |
+| [Auth Guide](docs/00-OVERVIEW.md) | Auth method comparison and selection guide |
 | [Production Deployment](docs/PRODUCTION.md) | Docker, Vercel, self-hosted deployment |
-| [Environment Variable Matrix](docs/ENV_MATRIX.md) | All env vars by auth mode (required/optional) |
+| [Environment Variables](docs/ENV_MATRIX.md) | All env vars by auth mode |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common errors and fixes |
-| [Auth Guide Overview](docs/00-OVERVIEW.md) | Auth method comparison and selection guide |
-| [Examples](examples/) | Per-auth-mode server/frontend configuration examples |
-
----
+| [Examples](examples/) | Per-auth-mode configuration examples |
 
 ## Contributing
 
@@ -419,23 +270,11 @@ pnpm format:check # Prettier
 pnpm build        # production build
 ```
 
-Fork the repo, create a branch, and open a PR. Run `pnpm lint` and `pnpm format:check` before submitting — CI will reject PRs that fail either check.
-
----
+Fork the repo, create a branch, and open a PR. CI requires `pnpm lint` and `pnpm format:check` to pass.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## References
-
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [LangSmith Platform](https://smith.langchain.com) — Agent tracing and monitoring
-- [Next.js Documentation](https://nextjs.org/docs)
-- [NextAuth.js Documentation](https://authjs.dev/)
-- [TeddyNote YouTube](https://youtube.com/c/teddynote)
+[MIT](LICENSE)
 
 ---
 
