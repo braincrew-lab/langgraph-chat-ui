@@ -166,6 +166,7 @@ export const ROUTE_CONFIG = {
     "/register",
     "/verify-request", // For email magic link
     "/api/auth",
+    "/api/health",
     "/pending-approval",
     "/account-suspended",
   ],
