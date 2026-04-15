@@ -100,6 +100,7 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
 
         return {
             "identity": payload["sub"],
+            "role": payload.get("role"),
             "email": payload.get("email"),
             "display_name": payload.get("name"),
             "is_authenticated": True,
@@ -109,8 +110,12 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
         raise AUTH_EXCEPTION
 
 
-@auth.on
-async def add_owner(ctx: Auth.types.AuthContext, value: dict) -> dict:
+@auth.on.threads.create
+@auth.on.threads.read
+@auth.on.threads.update
+@auth.on.threads.delete
+@auth.on.threads.search
+async def filter_by_owner(ctx: Auth.types.AuthContext, value: dict) -> dict:
     """Isolate threads per user."""
     filters = {"owner": ctx.user.identity}
     metadata = value.setdefault("metadata", {})
