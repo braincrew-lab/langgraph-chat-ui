@@ -30,9 +30,7 @@ test.describe("Custom JWT auth mode", () => {
     await expect(signInButton).toBeVisible({ timeout: 10_000 });
   });
 
-  test("protected route redirects to login without token", async ({
-    page,
-  }) => {
+  test("protected route redirects to login without token", async ({ page }) => {
     await page.goto("/");
     // Without IdP token, should redirect to login
     await page.waitForURL("**/login**", { timeout: 10_000 });

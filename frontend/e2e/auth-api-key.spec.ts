@@ -86,8 +86,7 @@ test.describe("API Key auth mode", () => {
 
 test.describe("API Key auth mode — env var auto-login", () => {
   const hasEnvKey = !!(
-    process.env.LANGCHAIN_API_KEY ||
-    process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY
+    process.env.LANGCHAIN_API_KEY || process.env.NEXT_PUBLIC_LANGCHAIN_API_KEY
   );
 
   test.skip(
@@ -98,10 +97,9 @@ test.describe("API Key auth mode — env var auto-login", () => {
   test("auto-redirects to home when env key is set", async ({ page }) => {
     await page.goto("/login");
     // Should redirect to / because env key is pre-configured
-    await page.waitForURL(
-      (url) => !url.pathname.includes("/login"),
-      { timeout: 10_000 },
-    );
+    await page.waitForURL((url) => !url.pathname.includes("/login"), {
+      timeout: 10_000,
+    });
     expect(page.url()).not.toContain("/login");
   });
 
