@@ -7,7 +7,11 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SchemaField } from "./SchemaField";
-import type { SchemaFieldConfig, FieldValue, JSONSchema } from "@/types/schema-ui";
+import type {
+  SchemaFieldConfig,
+  FieldValue,
+  JSONSchema,
+} from "@/types/schema-ui";
 
 interface InlineFieldsSectionProps {
   requiredFields: SchemaFieldConfig[];
