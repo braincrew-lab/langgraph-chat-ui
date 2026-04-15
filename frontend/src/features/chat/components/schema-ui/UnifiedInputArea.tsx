@@ -28,14 +28,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SchemaFieldsSection } from "./SchemaFieldsSection";
-import { SchemaField, isFileField } from "./SchemaField";
+import { InlineFieldsSection } from "./InlineFieldsSection";
+import { SchemaField } from "./SchemaField";
 import { ActionBar } from "./ActionBar";
 import { ContentBlocksPreview } from "../content/ContentBlocksPreview";
 import type { UseSchemaUIReturn } from "@/features/chat/hooks/useSchemaUI";
 import type { Assistant } from "@/app/actions/assistant";
 import type { Base64ContentBlock } from "@langchain/core/messages";
-import type { SchemaFieldType } from "@/types/schema-ui";
-import { getFieldType, getArrayItemSchema } from "@/lib/utils/schema";
 import { UI } from "@/lib/constants";
 
 interface UnifiedInputAreaProps {
@@ -125,7 +124,8 @@ export function UnifiedInputArea({
     setFieldDisplayValue,
     isLoading: schemaLoading,
   } = schemaUI;
-  const { requiredFields, rawSchema } = parsedSchema;
+  const { requiredFields, normalFields, notRequiredFields, rawSchema } =
+    parsedSchema;
 
   // Form collapse state - collapsed by default on chat page
   const [isFormCollapsed, setIsFormCollapsed] = useState(isChatPage);
@@ -174,10 +174,12 @@ export function UnifiedInputArea({
         onSubmit={isFormMode ? handleFormSubmit : onChatSubmit}
         className="grid grid-rows-[1fr_auto]"
       >
-        {/* 공통: SchemaFieldsSection - 상단, 고급 입력 (optional fields) */}
+        {/* 공통: SchemaFieldsSection - 상단, 고급 입력 */}
+        {/* Form mode: all optional fields / Chat mode: notRequired fields only */}
         {enableAdvancedInput ? (
           <SchemaFieldsSection
             schemaUI={schemaUI}
+            fields={isFormMode ? undefined : notRequiredFields}
             disabled={isLoading}
             fileUploadMode={fileUploadMode}
           />
@@ -309,52 +311,32 @@ export function UnifiedInputArea({
             </>
           )
         ) : (
-          /* Chat mode: textarea + file upload + submit */
+          /* Chat mode: inline fields + textarea + file upload + submit */
           (() => {
-            // Find required file fields in chat mode schema
-            const requiredFileFields = rawSchema
-              ? requiredFields.filter((f) => {
-                  const ft = getFieldType(
-                    f.schema,
-                    rawSchema,
-                  ) as SchemaFieldType;
-                  const itemSchema =
-                    ft === "array" ? getArrayItemSchema(f, rawSchema) : null;
-                  const it = itemSchema
-                    ? (getFieldType(itemSchema, rawSchema) as SchemaFieldType)
-                    : undefined;
-                  return isFileField(f.name, ft, it);
-                })
-              : [];
-
-            // Check if all required file fields have values
-            const fileFieldsValid = requiredFileFields.every((f) => {
+            // Check if all required fields have values (all types, not just file)
+            const requiredFieldsValid = requiredFields.every((f) => {
               const v = formState[f.name];
+              if (v === null || v === undefined) return false;
+              if (typeof v === "string") return v.trim() !== "";
               if (Array.isArray(v)) return v.length > 0;
-              return !!v;
+              return true;
             });
 
             return (
               <>
-                {/* Required file fields for chat mode schemas */}
-                {requiredFileFields.length > 0 && rawSchema && (
-                  <div className="min-w-0 space-y-3 overflow-hidden px-4 pt-3">
-                    {requiredFileFields.map((field) => (
-                      <SchemaField
-                        key={field.name}
-                        field={field}
-                        rootSchema={rawSchema}
-                        value={formState[field.name]}
-                        displayValue={displayState[field.name]}
-                        onChange={(value) => setFieldValue(field.name, value)}
-                        onDisplayValueChange={(value) =>
-                          setFieldDisplayValue(field.name, value)
-                        }
-                        disabled={isLoading}
-                        fileUploadMode={fileUploadMode}
-                      />
-                    ))}
-                  </div>
+                {/* Required + Normal fields above textarea */}
+                {rawSchema && (
+                  <InlineFieldsSection
+                    requiredFields={requiredFields}
+                    normalFields={normalFields}
+                    rootSchema={rawSchema}
+                    formState={formState}
+                    displayState={displayState}
+                    onFieldChange={setFieldValue}
+                    onDisplayValueChange={setFieldDisplayValue}
+                    disabled={isLoading}
+                    fileUploadMode={fileUploadMode}
+                  />
                 )}
 
                 <ContentBlocksPreview
@@ -392,7 +374,7 @@ export function UnifiedInputArea({
                     isLoading ||
                     (!input.trim() && contentBlocks.length === 0) ||
                     !isAssistantSelected ||
-                    !fileFieldsValid
+                    !requiredFieldsValid
                   }
                   onStop={onStop}
                   enableFileUpload={enableFileUpload}

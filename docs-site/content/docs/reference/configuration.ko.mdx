@@ -94,6 +94,73 @@ description: 모든 설정 옵션에 대한 완전한 레퍼런스
 |---|---|---|---|
 | `SERVER_ACTION_BODY_SIZE_LIMIT` | - | `10mb` | 서버 액션의 최대 본문 크기 |
 
+## 입력 스키마 필드 표시 (Chat 모드)
+
+**Chat 모드** (state에 `messages` 필드가 있는 경우)에서 추가 필드는 UI 표시 방식에 따라 3단계로 분류됩니다:
+
+| 분류 | UI 위치 | Submit 시 필수 | 빨간 표시 |
+|---|---|---|---|
+| **Required** | Input 박스 위 | O | O |
+| **Normal (일반)** | Input 박스 위 | X | X |
+| **NotRequired** | 고급 입력 (접기/펼치기) | X | X |
+
+### 분류 규칙
+
+| 조건 | 분류 |
+|---|---|
+| `x-field-display: "required"` 설정됨 | **Required** |
+| `x-field-display: "inline"` 설정됨 | **Normal** |
+| `x-field-display: "advanced"` 설정됨 | **NotRequired** |
+| `required` 배열에 포함 (기본값) | **Normal** |
+| `required` 배열에 미포함 (Python `NotRequired`) | **NotRequired** |
+
+### 백엔드 예시
+
+**TypedDict:**
+
+```python
+from typing import Annotated, NotRequired, TypedDict
+from pydantic import Field
+
+class InputState(TypedDict):
+    messages: Annotated[list, operator.add]
+
+    # Required — 빨간 표시, 값 필수
+    query: Annotated[str, Field(json_schema_extra={"x-field-display": "required"})]
+
+    # Normal (일반) — Input 위에 표시, 선택 사항
+    context: str
+
+    # NotRequired — 고급 입력에만 표시
+    temperature: NotRequired[float]
+```
+
+**Pydantic BaseModel:**
+
+```python
+from pydantic import BaseModel, Field
+
+class InputState(BaseModel):
+    messages: list
+
+    # Required — 빨간 표시, 값 필수
+    query: str = Field(json_schema_extra={"x-field-display": "required"})
+
+    # Normal (일반) — Input 위에 표시, 선택 사항
+    context: str = Field(default="")
+
+    # NotRequired — 고급 입력에만 표시
+    temperature: float = 0.7
+```
+
+> **참고:** TypedDict에서는 모든 필드가 기본적으로 `required` 배열에 포함됩니다. 필드를 고급 입력으로 이동하려면 `NotRequired[T]`를 사용하고, 명시적으로 제어하려면 `x-field-display`를 사용하세요.
+
+### Form 모드
+
+**Form 모드** (`messages` 필드가 없는 경우)에서는 `x-field-display`가 사용되지 않습니다. 표준 JSON Schema 분류를 따릅니다:
+- `required` 배열에 포함된 필드 → 필수 필드로 표시
+- 그 외 필드 → 고급 입력에 표시
+
 ## 사이트 설정 (site.ts)
 
 `src/configs/site.ts` 파일은 앱의 외형과 동작을 제어합니다.

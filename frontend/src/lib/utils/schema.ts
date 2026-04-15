@@ -208,7 +208,43 @@ export function getDefaultValue(
 }
 
 /**
- * Parse input schema and categorize fields into required and optional
+ * Check if a schema property has a non-empty default value.
+ * Used to classify optional fields into "normal" (inline) vs "notRequired" (advanced).
+ *
+ * Note: `false` is treated as non-empty (a meaningful boolean default),
+ * so boolean fields with `default: false` will be classified as notRequired.
+ */
+export function hasNonEmptyDefault(
+  schema: JSONSchemaProperty,
+  rootSchema: JSONSchema,
+): boolean {
+  const resolved = resolveCompositeSchema(schema, rootSchema);
+  if (resolved.default === undefined) return false;
+  if (resolved.default === null) return false;
+  if (resolved.default === "") return false;
+  if (
+    Array.isArray(resolved.default) &&
+    (resolved.default as unknown[]).length === 0
+  )
+    return false;
+  if (
+    typeof resolved.default === "object" &&
+    !Array.isArray(resolved.default) &&
+    resolved.default !== null &&
+    Object.keys(resolved.default as Record<string, unknown>).length === 0
+  )
+    return false;
+  return true;
+}
+
+/**
+ * Parse input schema and categorize fields.
+ *
+ * Form mode: 2-tier (requiredFields + optionalFields).
+ * Chat mode: 3-tier using `required` array + x-field-display override:
+ *   - Required: x-field-display: "required" (red mark, must-fill)
+ *   - Normal: in `required` array (inline, optional, no red mark)
+ *   - NotRequired: NOT in `required` array, i.e. Python NotRequired (advanced only)
  */
 export function parseInputSchema(
   inputSchema: JSONSchema | null,
@@ -221,6 +257,8 @@ export function parseInputSchema(
       uiMode,
       requiredFields: [],
       optionalFields: [],
+      normalFields: [],
+      notRequiredFields: [],
       hasMessages,
       rawSchema: inputSchema,
     };
@@ -229,28 +267,61 @@ export function parseInputSchema(
   const requiredSet = new Set(inputSchema.required || []);
   const requiredFields: SchemaFieldConfig[] = [];
   const optionalFields: SchemaFieldConfig[] = [];
+  const normalFields: SchemaFieldConfig[] = [];
+  const notRequiredFields: SchemaFieldConfig[] = [];
 
   // Fields to exclude from the form (handled separately)
   const excludedFields = new Set(["messages", "ui"]);
 
   for (const [name, schema] of Object.entries(inputSchema.properties)) {
-    // Skip excluded fields
     if (excludedFields.has(name)) {
       continue;
     }
 
     const resolvedSchema = resolveCompositeSchema(schema, inputSchema);
-    const fieldConfig: SchemaFieldConfig = {
-      name,
-      schema,
-      resolvedSchema,
-      isRequired: requiredSet.has(name),
-    };
 
-    if (fieldConfig.isRequired) {
-      requiredFields.push(fieldConfig);
+    if (uiMode === "chat") {
+      // Chat mode 3-tier:
+      //   x-field-display override > required array > default heuristic
+      const displayHint = resolvedSchema["x-field-display"];
+      const fieldConfig: SchemaFieldConfig = {
+        name,
+        schema,
+        resolvedSchema,
+        isRequired: displayHint === "required",
+      };
+
+      if (displayHint === "required") {
+        requiredFields.push(fieldConfig);
+      } else if (displayHint === "inline") {
+        optionalFields.push(fieldConfig);
+        normalFields.push(fieldConfig);
+      } else if (displayHint === "advanced") {
+        optionalFields.push(fieldConfig);
+        notRequiredFields.push(fieldConfig);
+      } else if (requiredSet.has(name)) {
+        // In required array (default TypedDict field) → Normal
+        optionalFields.push(fieldConfig);
+        normalFields.push(fieldConfig);
+      } else {
+        // Not in required array (Python NotRequired) → NotRequired
+        optionalFields.push(fieldConfig);
+        notRequiredFields.push(fieldConfig);
+      }
     } else {
-      optionalFields.push(fieldConfig);
+      // Form mode: 2-tier based on JSON Schema required array
+      const fieldConfig: SchemaFieldConfig = {
+        name,
+        schema,
+        resolvedSchema,
+        isRequired: requiredSet.has(name),
+      };
+
+      if (fieldConfig.isRequired) {
+        requiredFields.push(fieldConfig);
+      } else {
+        optionalFields.push(fieldConfig);
+      }
     }
   }
 
@@ -258,6 +329,8 @@ export function parseInputSchema(
     uiMode,
     requiredFields,
     optionalFields,
+    normalFields,
+    notRequiredFields,
     hasMessages,
     rawSchema: inputSchema,
   };
