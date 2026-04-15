@@ -110,7 +110,8 @@
       "approvals": "승인 요청",
       "settings": "설정",
       "adminSection": "관리자 섹션",
-      "admin": "관리자"
+      "admin": "관리자",
+      "feedback": "피드백"
     },
     "layout": {
       "title": "관리자 페이지",
@@ -282,6 +283,71 @@
     "stringArray": {
       "addPlaceholder": "항목 추가...",
       "itemCount": "{count} / {max} 항목"
+    },
+    "feedback": {
+      "eyebrow": "피드백 관리",
+      "title": "스레드 피드백",
+      "description": "AI 응답에 대한 사용자 피드백을 검토하고 관리합니다.",
+      "totalBadge": "총 {total}건",
+      "statusBadge": "상태: {status}",
+      "listTitle": "피드백 목록",
+      "listDescription": "총 {total}건의 피드백",
+      "noFeedback": "피드백이 없습니다",
+      "tabs": {
+        "feedbacks": "피드백",
+        "rubric": "루브릭 항목"
+      },
+      "stats": {
+        "total": "전체",
+        "totalDesc": "전체 피드백",
+        "new": "신규",
+        "newDesc": "미검토",
+        "reviewed": "검토됨",
+        "reviewedDesc": "검토 중",
+        "resolved": "해결됨",
+        "resolvedDesc": "처리 완료",
+        "avgScore": "평균 점수"
+      },
+      "table": {
+        "user": "사용자",
+        "average": "평균",
+        "comment": "코멘트",
+        "status": "상태",
+        "date": "날짜",
+        "actions": "",
+        "new": "신규",
+        "reviewed": "검토됨",
+        "resolved": "해결됨",
+        "noComment": "—",
+        "markReviewed": "검토 처리",
+        "markResolved": "해결 처리",
+        "viewThread": "스레드 보기",
+        "deleteFeedback": "삭제",
+        "deleteConfirm": "이 피드백을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+      },
+      "filters": {
+        "searchPlaceholder": "사용자, 코멘트, 스레드로 검색...",
+        "allStatus": "전체",
+        "new": "신규",
+        "reviewed": "검토됨",
+        "resolved": "해결됨"
+      },
+      "rubric": {
+        "title": "루브릭 항목",
+        "description": "AI 응답 피드백의 평가 기준을 정의합니다. 사용자는 각 활성 항목을 1-5점으로 평가합니다.",
+        "addItem": "항목 추가",
+        "addTitle": "루브릭 항목 추가",
+        "name": "이름",
+        "namePlaceholder": "예: 정확성",
+        "descriptionLabel": "설명",
+        "descriptionPlaceholder": "예: 응답이 얼마나 정확했나요?",
+        "active": "활성",
+        "inactive": "비활성",
+        "noItems": "루브릭 항목이 없습니다. 피드백 수집을 시작하려면 항목을 추가하세요.",
+        "deleteConfirm": "이 루브릭 항목을 비활성화하시겠습니까? 기존 피드백 점수는 보존됩니다.",
+        "moveUp": "위로 이동",
+        "moveDown": "아래로 이동"
+      }
     }
   },
   "chat": {
@@ -357,6 +423,18 @@
       "itemCount": "{count}개 항목",
       "uploadFailed": "파일 업로드 실패",
       "uploading": "업로드 중..."
+    },
+    "feedback": {
+      "title": "응답 평가",
+      "description": "피드백은 AI 응답 개선에 도움이 됩니다.",
+      "score": "{score}/5",
+      "submit": "제출",
+      "submitting": "제출 중...",
+      "submitted": "피드백이 제출되었습니다",
+      "updated": "피드백이 수정되었습니다",
+      "error": "피드백 제출에 실패했습니다",
+      "comment": "코멘트 (선택)",
+      "commentPlaceholder": "추가 의견이 있으신가요?"
     },
     "serverError": "LangGraph 서버에 연결할 수 없습니다",
     "serverErrorDescription": "그래프가 {apiUrl}에서 실행 중인지, API 키가 올바르게 설정되어 있는지 확인하세요."

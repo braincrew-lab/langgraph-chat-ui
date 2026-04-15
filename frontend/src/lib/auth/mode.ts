@@ -14,6 +14,13 @@ import {
 export { getAuthMode, requiresNextAuth, allowsAnonymousAccess };
 
 /**
+ * Alias for requiresNextAuth — check if current auth mode uses NextAuth
+ */
+export function usesNextAuth(): boolean {
+  return requiresNextAuth();
+}
+
+/**
  * Get registration policy from environment
  */
 export function getRegistrationPolicy(): RegistrationPolicy {

@@ -5,6 +5,9 @@ import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../content/MarkdownText";
+import { FeedbackButton } from "./FeedbackButton";
+import { usesNextAuth } from "@/lib/auth/mode";
+import { useQueryState } from "nuqs";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { ToolCalls, ToolResult } from "./ToolCalls";
 import { ToolCardList } from "../ToolCard";
@@ -126,6 +129,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   compactView?: boolean;
 }) {
   const mountTime = useRef(new Date());
+  const [currentThreadId] = useQueryState("threadId");
   const content = useMemo(() => message?.content ?? [], [message?.content]);
   const contentString = getContentString(content);
   const thread = useStreamContext();
@@ -336,6 +340,14 @@ export const AssistantMessage = memo(function AssistantMessage({
                 isAiMessage={true}
                 handleRegenerate={() => handleRegenerate(parentCheckpoint)}
               />
+              {usesNextAuth() && (
+                <FeedbackButton
+                  threadId={currentThreadId}
+                  checkpointId={parentCheckpoint?.id}
+                  messageId={message?.id}
+                  isLoading={isLoading}
+                />
+              )}
             </div>
           </>
         )}

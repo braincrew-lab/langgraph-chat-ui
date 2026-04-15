@@ -110,7 +110,8 @@
       "approvals": "Approvals",
       "settings": "Settings",
       "adminSection": "Admin Section",
-      "admin": "Admin"
+      "admin": "Admin",
+      "feedback": "Feedback"
     },
     "layout": {
       "title": "Admin Console",
@@ -282,6 +283,71 @@
     "stringArray": {
       "addPlaceholder": "Add item...",
       "itemCount": "{count} / {max} items"
+    },
+    "feedback": {
+      "eyebrow": "Feedback Management",
+      "title": "Thread Feedback",
+      "description": "Review and manage user feedback on AI responses.",
+      "totalBadge": "Total {total}",
+      "statusBadge": "Status: {status}",
+      "listTitle": "Feedback List",
+      "listDescription": "{total} feedback entries total",
+      "noFeedback": "No feedback found",
+      "tabs": {
+        "feedbacks": "Feedbacks",
+        "rubric": "Rubric Items"
+      },
+      "stats": {
+        "total": "Total",
+        "totalDesc": "All feedback",
+        "new": "New",
+        "newDesc": "Unreviewed",
+        "reviewed": "Reviewed",
+        "reviewedDesc": "Under review",
+        "resolved": "Resolved",
+        "resolvedDesc": "Addressed",
+        "avgScore": "Average score"
+      },
+      "table": {
+        "user": "User",
+        "average": "Avg",
+        "comment": "Comment",
+        "status": "Status",
+        "date": "Date",
+        "actions": "",
+        "new": "New",
+        "reviewed": "Reviewed",
+        "resolved": "Resolved",
+        "noComment": "—",
+        "markReviewed": "Mark Reviewed",
+        "markResolved": "Mark Resolved",
+        "viewThread": "View Thread",
+        "deleteFeedback": "Delete",
+        "deleteConfirm": "Are you sure you want to delete this feedback? This action cannot be undone."
+      },
+      "filters": {
+        "searchPlaceholder": "Search by user, comment, or thread...",
+        "allStatus": "All",
+        "new": "New",
+        "reviewed": "Reviewed",
+        "resolved": "Resolved"
+      },
+      "rubric": {
+        "title": "Rubric Items",
+        "description": "Define evaluation criteria for AI response feedback. Users will rate each active item on a 1-5 scale.",
+        "addItem": "Add Item",
+        "addTitle": "Add Rubric Item",
+        "name": "Name",
+        "namePlaceholder": "e.g., Accuracy",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "e.g., How accurate was the response?",
+        "active": "Active",
+        "inactive": "Inactive",
+        "noItems": "No rubric items defined. Add one to start collecting feedback.",
+        "deleteConfirm": "Deactivate this rubric item? Existing feedback scores will be preserved.",
+        "moveUp": "Move Up",
+        "moveDown": "Move Down"
+      }
     }
   },
   "chat": {
@@ -357,6 +423,18 @@
       "itemCount": "{count} item(s)",
       "uploadFailed": "File upload failed",
       "uploading": "Uploading..."
+    },
+    "feedback": {
+      "title": "Rate this response",
+      "description": "Your feedback helps improve AI responses.",
+      "score": "{score}/5",
+      "submit": "Submit",
+      "submitting": "Submitting...",
+      "submitted": "Feedback submitted",
+      "updated": "Feedback updated",
+      "error": "Failed to submit feedback",
+      "comment": "Comment (optional)",
+      "commentPlaceholder": "Any additional thoughts?"
     },
     "serverError": "Failed to connect to LangGraph server",
     "serverErrorDescription": "Please ensure your graph is running at {apiUrl} and your API key is correctly set (if connecting to a deployed graph)."

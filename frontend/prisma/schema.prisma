@@ -30,8 +30,11 @@ model User {
   sessions      Session[]
   auditLogs     AuditLog[]
   settingUpdates GlobalSetting[] @relation("SettingUpdater")
-  apiTokens     ApiToken[]
+  apiTokens          ApiToken[]
+  feedbacks          ThreadFeedback[]     @relation("UserFeedbacks")
+  reviewedFeedbacks  ThreadFeedback[]     @relation("FeedbackReviewer")
 }
+
 
 model GlobalSetting {
   id        String   @id @default(cuid())
@@ -102,4 +105,51 @@ model ApiToken {
 
   @@index([token])
   @@index([userId])
+}
+
+model FeedbackRubricItem {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  order       Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  scores      FeedbackScore[]
+}
+
+model ThreadFeedback {
+  id           String           @id @default(cuid())
+  threadId     String
+  checkpointId String?
+  messageId    String?
+  userId       String
+  user         User             @relation("UserFeedbacks", fields: [userId], references: [id], onDelete: Cascade)
+  comment      String?
+  status       String           @default("new") // "new" | "reviewed" | "resolved"
+  reviewedById String?
+  reviewedBy   User?            @relation("FeedbackReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  adminNote    String?
+  scores       FeedbackScore[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([userId, messageId])
+  @@index([threadId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FeedbackScore {
+  id           String             @id @default(cuid())
+  feedbackId   String
+  feedback     ThreadFeedback     @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  rubricItemId String
+  rubricItem   FeedbackRubricItem @relation(fields: [rubricItemId], references: [id])
+  score        Int
+
+  @@unique([feedbackId, rubricItemId])
+  @@index([rubricItemId])
 }

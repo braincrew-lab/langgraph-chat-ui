@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings2, UserCheck, Users } from "lucide-react";
+import { LayoutDashboard, MessageSquareHeart, Settings2, UserCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
@@ -30,6 +30,12 @@ const NAV_ITEMS = [
     labelKey: "nav.settings" as const,
     icon: Settings2,
     matches: (pathname: string) => pathname.startsWith("/admin/settings"),
+  },
+  {
+    href: "/admin/feedback",
+    labelKey: "nav.feedback" as const,
+    icon: MessageSquareHeart,
+    matches: (pathname: string) => pathname.startsWith("/admin/feedback"),
   },
 ];
 
