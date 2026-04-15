@@ -312,12 +312,9 @@ export function MessageList({
           owningHumanIdx >= 0 && owningHumanIdx < humanIndices.length - 1;
 
         if (compactView && isInCompletedTurn) {
-          // Completed turn: hide tool, subagent, intermediate; show only final AI
+          // Completed turn: show only the identified final AI message
           if (message.type === "tool") return;
           if (message.type === "ai") {
-            if (subagentContext.subagentMessageIds.has(message.id || ""))
-              return;
-            if (isIntermediateNodeMessage(message)) return;
             if (!completedTurnFinalAiIds.has(message.id || "")) return;
           }
         } else {

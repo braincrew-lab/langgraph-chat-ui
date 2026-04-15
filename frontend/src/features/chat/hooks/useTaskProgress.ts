@@ -1274,7 +1274,11 @@ export function useTaskProgress(
   );
   // When streaming ends, mark remaining in_progress items as completed
   const todos = useMemo(() => {
-    const raw = todosFromState.length > 0 ? todosFromState : todosFromMessages;
+    // Only use stateTodos (global LangGraph state) when current turn has TodoWrite calls.
+    // This prevents showing previous turn's todos in a new turn.
+    const raw = todosFromState.length > 0 && todosFromMessages.length > 0
+      ? todosFromState
+      : todosFromMessages;
     if (isStreaming || raw.length === 0) return raw;
     return raw.map((t) =>
       t.status === "in_progress" ? { ...t, status: "completed" as const } : t,
