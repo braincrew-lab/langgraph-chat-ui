@@ -40,6 +40,8 @@ if (schema !== originalSchema) {
 }
 
 try {
+  // Migration files were generated for SQLite and contain SQLite-specific syntax.
+  // PostgreSQL and MySQL use `db push` to sync schema without running migration files.
   if (provider === "sqlite") {
     console.log("[db-setup] Running prisma migrate deploy (SQLite)...");
     execSync("npx prisma migrate deploy", { stdio: "inherit", cwd });
