@@ -32,7 +32,9 @@ test.describe("CompletedTurnTaskView", () => {
 
     if (activityItems.length === 0) {
       // No activity items on main page — this is expected when no thread is loaded
-      console.log("No activity items found — skipping assertions (no thread loaded)");
+      console.log(
+        "No activity items found — skipping assertions (no thread loaded)",
+      );
       return;
     }
 
@@ -55,7 +57,9 @@ test.describe("CompletedTurnTaskView", () => {
     expect(hasGenericNames).toBe(false);
   });
 
-  test("Turn Activity section is collapsible when present", async ({ page }) => {
+  test("Turn Activity section is collapsible when present", async ({
+    page,
+  }) => {
     test.setTimeout(30_000);
 
     await page.goto("/");
@@ -85,7 +89,9 @@ test.describe("CompletedTurnTaskView", () => {
         fullPage: true,
       });
     } else {
-      console.log("No Turn Activity section found — skipping (no completed turns)");
+      console.log(
+        "No Turn Activity section found — skipping (no completed turns)",
+      );
     }
   });
 });
