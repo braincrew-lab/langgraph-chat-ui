@@ -6,8 +6,6 @@
 
 **LangGraph 에이전트를 위한 채팅 인터페이스 — 인증, 관리자 대시보드, 다중 서버 관리 지원**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-
 [English](./README.md) | 한국어
 
 [문서](docs/) · [예제](examples/) · [이슈 제보](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
@@ -272,12 +270,8 @@ pnpm build        # 프로덕션 빌드
 
 Fork 후 브랜치를 만들어 PR을 제출해주세요. CI에서 `pnpm lint`와 `pnpm format:check`를 통과해야 머지할 수 있습니다.
 
-## 라이선스
-
-[MIT](LICENSE)
-
 ---
 
 <div align="center">
-<sub>Built by <a href="https://github.com/teddynote-lab">TeddyNote Lab</a>, based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
+<sub>Built by <a href="https://www.braincrew.co.kr">Braincrew</a></sub>
 </div>

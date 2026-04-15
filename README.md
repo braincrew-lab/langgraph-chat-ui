@@ -6,8 +6,6 @@
 
 **Chat interface for LangGraph agents with auth, admin dashboard, and multi-server management**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-
 English | [한국어](./README.ko.md)
 
 [Docs](docs/) · [Examples](examples/) · [Report Issue](https://github.com/teddynote-lab/langgraph-chat-ui/issues)
@@ -272,12 +270,8 @@ pnpm build        # production build
 
 Fork the repo, create a branch, and open a PR. CI requires `pnpm lint` and `pnpm format:check` to pass.
 
-## License
-
-[MIT](LICENSE)
-
 ---
 
 <div align="center">
-<sub>Built by <a href="https://github.com/teddynote-lab">TeddyNote Lab</a>, based on <a href="https://github.com/langchain-ai/agent-chat-ui">langchain-ai/agent-chat-ui</a></sub>
+<sub>Built by <a href="https://www.braincrew.co.kr">Braincrew</a></sub>
 </div>
