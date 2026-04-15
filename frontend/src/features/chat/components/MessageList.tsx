@@ -12,6 +12,7 @@ import { DO_NOT_RENDER_ID_PREFIX } from "@/lib/utils/ensure-tool-responses";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import { StreamingTaskView } from "./StreamingTaskView";
+import { CompletedTurnTaskView } from "./CompletedTurnTaskView";
 import { shouldRenderMessage, buildSubagentContext } from "./utils";
 import type { HierarchicalTask } from "@/types/task-hierarchy";
 import type { TaskProgressItem, ActivityItem } from "@/types/task-progress";
@@ -319,6 +320,18 @@ export function MessageList({
               return;
             if (isIntermediateNodeMessage(message)) return;
             if (!completedTurnFinalAiIds.has(message.id || "")) return;
+
+            // Show collapsible activity view before the final AI message of completed turns
+            const turnStart = humanIndices[owningHumanIdx];
+            const turnEnd = humanIndices[owningHumanIdx + 1];
+            const turnMessages = filteredMessages.slice(turnStart, turnEnd);
+            elements.push(
+              <CompletedTurnTaskView
+                key={`completed-turn-${owningHumanIdx}`}
+                turnMessages={turnMessages}
+                finalNodeNames={finalNodeNames}
+              />,
+            );
           }
         } else {
           // Current turn (or pre-turn messages): existing logic
