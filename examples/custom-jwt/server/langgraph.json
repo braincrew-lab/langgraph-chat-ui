@@ -1,0 +1,9 @@
+{
+  "$schema": "https://langchain-ai.github.io/langgraph/schema.json",
+  "graphs": {
+    "agent": "./graph.py:graph"
+  },
+  "auth": {
+    "path": "./auth.py:auth"
+  }
+}

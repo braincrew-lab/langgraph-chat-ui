@@ -5,7 +5,7 @@
  * In public modes (standalone, oauth-direct), auth is skipped.
  */
 
-import { allowsAnonymousAccess } from "@/types/auth-mode";
+import { getAuthMode, usesNextAuth } from "@/types/auth-mode";
 
 interface AuthSession {
   user: {
@@ -19,21 +19,35 @@ interface AuthSession {
 
 /**
  * Require authentication for a server action.
- * In standalone/oauth-direct modes, returns null (no auth required).
- * In auth modes, returns the session or throws an error.
+ * In standalone/oauth-direct modes, returns null (no auth required by frontend).
+ * In NextAuth modes, returns the session or throws an error.
+ * In custom-jwt/api-key modes, returns null (auth handled at proxy/server level).
  */
 export async function requireAuth(): Promise<AuthSession | null> {
-  // Public modes don't require authentication
-  if (allowsAnonymousAccess()) {
+  const mode = getAuthMode();
+
+  // Modes where frontend doesn't manage sessions
+  if (mode === "standalone" || mode === "oauth-direct") {
     return null;
   }
 
-  const { auth } = await import("@/lib/auth");
-  const session = await auth();
-
-  if (!session?.user) {
-    throw new Error("Unauthorized");
+  // custom-jwt and api-key: auth is handled at the proxy layer, not via NextAuth sessions
+  if (mode === "custom-jwt" || mode === "api-key") {
+    return null;
   }
 
-  return session as AuthSession;
+  // NextAuth modes: validate session
+  if (usesNextAuth()) {
+    const { auth } = await import("@/lib/auth");
+    const session = await auth();
+
+    if (!session?.user) {
+      throw new Error("Unauthorized");
+    }
+
+    return session as AuthSession;
+  }
+
+  // All 7 modes are covered above; this should never be reached
+  throw new Error(`Unknown auth mode: ${mode}`);
 }

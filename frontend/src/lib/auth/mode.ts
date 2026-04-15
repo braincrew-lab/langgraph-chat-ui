@@ -8,10 +8,20 @@ import {
   getAuthMode,
   requiresNextAuth,
   allowsAnonymousAccess,
+  usesNextAuth,
+  requiresLoginUI,
+  requiresUserIdentity,
 } from "@/types/auth-mode";
 
 // Re-export for convenience
-export { getAuthMode, requiresNextAuth, allowsAnonymousAccess };
+export {
+  getAuthMode,
+  requiresNextAuth,
+  allowsAnonymousAccess,
+  usesNextAuth,
+  requiresLoginUI,
+  requiresUserIdentity,
+};
 
 /**
  * Get registration policy from environment
@@ -41,17 +51,17 @@ export function getAuthModeConfig(): AuthModeConfig {
 }
 
 /**
- * Check if public/standalone mode is enabled (no auth required)
+ * Check if public/standalone mode is enabled (no login UI needed)
  */
 export function isPublicMode(): boolean {
-  return allowsAnonymousAccess();
+  return !requiresLoginUI();
 }
 
 /**
- * Check if authentication is required
+ * Check if authentication is required (NextAuth-based)
  */
 export function isAuthRequired(): boolean {
-  return requiresNextAuth();
+  return usesNextAuth();
 }
 
 /**
@@ -59,6 +69,20 @@ export function isAuthRequired(): boolean {
  */
 export function isOAuthDirectMode(): boolean {
   return getAuthMode() === "oauth-direct";
+}
+
+/**
+ * Check if current mode is custom-jwt (external IdP handles auth)
+ */
+export function isCustomJwtMode(): boolean {
+  return getAuthMode() === "custom-jwt";
+}
+
+/**
+ * Check if current mode is api-key (API key authentication)
+ */
+export function isApiKeyMode(): boolean {
+  return getAuthMode() === "api-key";
 }
 
 /**
@@ -126,8 +150,8 @@ export function canAccessAdmin(user: {
   role: UserRole;
   status: UserStatus;
 }): PermissionCheck {
-  // Standalone/oauth-direct modes: no admin access
-  if (allowsAnonymousAccess()) {
+  // Non-NextAuth modes: no admin access (no user DB)
+  if (!usesNextAuth()) {
     return {
       allowed: false,
       reason: "Admin access is not available in this mode",
@@ -166,6 +190,7 @@ export const ROUTE_CONFIG = {
     "/register",
     "/verify-request", // For email magic link
     "/api/auth",
+    "/auth/callback", // For custom-jwt IdP callback
     "/pending-approval",
     "/account-suspended",
   ],

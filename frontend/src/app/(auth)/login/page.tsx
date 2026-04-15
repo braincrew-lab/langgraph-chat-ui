@@ -18,6 +18,8 @@ import {
 import { useAuthContext } from "../AuthLayoutClient";
 import { OAuthLoginForm } from "./OAuthLoginForm";
 import { EmailLoginForm } from "./EmailLoginForm";
+import { CustomJwtLoginForm } from "./CustomJwtLoginForm";
+import { ApiKeyLoginForm } from "./ApiKeyLoginForm";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -301,6 +303,10 @@ function LoginForm() {
       return <OAuthLoginForm />;
     case "email":
       return <EmailLoginForm />;
+    case "custom-jwt":
+      return <CustomJwtLoginForm />;
+    case "api-key":
+      return <ApiKeyLoginForm />;
     case "credentials":
     default:
       return <CredentialsLoginForm />;

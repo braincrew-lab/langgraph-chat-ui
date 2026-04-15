@@ -6,14 +6,14 @@ import {
   SettingCategory,
   GlobalSettingRecord,
 } from "@/types/global-settings";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 import { getTranslations } from "next-intl/server";
 
 /**
- * Check if database is available (only in modes that require NextAuth)
+ * Check if database is available (only in modes that use NextAuth + Prisma)
  */
 function isDatabaseAvailable(): boolean {
-  return requiresNextAuth();
+  return usesNextAuth();
 }
 
 /**

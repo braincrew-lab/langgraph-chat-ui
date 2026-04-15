@@ -11,6 +11,9 @@ This guide explains how to set up authentication when integrating LangGraph back
 | [03-NEXTAUTH-EMAIL.md](./03-NEXTAUTH-EMAIL.md)                 | NextAuth + Email (Magic Link)            |
 | [04-OAUTH-DIRECT.md](./04-OAUTH-DIRECT.md)                     | Direct OAuth Token Verification (without NextAuth) |
 | [05-STANDALONE.md](./05-STANDALONE.md)                         | Integration with Backend's Own Auth System |
+| [06-CUSTOM-JWT.md](./06-CUSTOM-JWT.md)                         | External IdP + JWKS Validation (Keycloak, Auth0, etc.) |
+| [07-API-KEY.md](./07-API-KEY.md)                               | API Key Authentication (LangGraph Cloud) |
+| [08-CUSTOM-SERVER-AUTH.md](./08-CUSTOM-SERVER-AUTH.md)           | Tutorial: Your First Custom LangGraph Server Auth |
 
 ---
 
@@ -120,6 +123,8 @@ flowchart TD
     Q2 -->|OAuth| A1[01-NEXTAUTH-OAUTH]
     Q2 -->|ID/PW| A2[02-NEXTAUTH-CREDENTIALS]
     Q2 -->|Email| A3[03-NEXTAUTH-EMAIL]
+    Q2 -->|External IdP| A6[06-CUSTOM-JWT]
+    Q2 -->|API Key only| A7[07-API-KEY]
 
     Q3 -->|Yes| A5[05-STANDALONE]
     Q3 -->|No| A4[04-OAUTH-DIRECT]
@@ -129,6 +134,8 @@ flowchart TD
     style A3 fill:#90EE90
     style A4 fill:#87CEEB
     style A5 fill:#FFB6C1
+    style A6 fill:#DDA0DD
+    style A7 fill:#F0E68C
 ```
 
 ---

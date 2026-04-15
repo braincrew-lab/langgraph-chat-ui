@@ -5,7 +5,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { siteConfig } from "@/configs/site";
 import { AuthProvider, StandaloneAuthProvider } from "@/providers/AuthProvider";
 import { getAllSettings } from "@/lib/services/settings.service";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 
@@ -51,7 +51,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const needsAuth = requiresNextAuth();
+  const needsAuth = usesNextAuth();
   const locale = await getLocale();
   const messages = await getMessages();
 

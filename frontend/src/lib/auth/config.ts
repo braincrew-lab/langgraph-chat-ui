@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { getAuthProviders } from "./providers";
 import {
   getAuthMode,
-  requiresNextAuth,
+  usesNextAuth,
   type UserRole,
   type UserStatus,
 } from "@/types/auth-mode";
@@ -25,10 +25,10 @@ function getSessionStrategy(): "jwt" | "database" {
 
 export const authConfig: NextAuthConfig = {
   // standalone/oauth-direct 모드에서는 더미 시크릿 사용 (실제로 사용되지 않음)
-  secret: requiresNextAuth()
+  secret: usesNextAuth()
     ? process.env.NEXTAUTH_SECRET
     : "standalone-dummy-secret-not-used",
-  adapter: requiresNextAuth()
+  adapter: usesNextAuth()
     ? (() => {
         // Dynamic import to avoid bundling @auth/prisma-adapter when not needed
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -44,7 +44,7 @@ export const authConfig: NextAuthConfig = {
     verifyRequest: "/verify-request", // For email magic link
   },
   trustHost: true,
-  providers: requiresNextAuth() ? getAuthProviders() : [],
+  providers: usesNextAuth() ? getAuthProviders() : [],
   callbacks: {
     async signIn({ user, account }) {
       // For OAuth providers, sync user to database
@@ -123,7 +123,7 @@ export const authConfig: NextAuthConfig = {
     },
     authorized({ auth, request }) {
       // For standalone and oauth-direct modes, always allow
-      if (!requiresNextAuth()) {
+      if (!usesNextAuth()) {
         return true;
       }
       // For other modes, check if user is authenticated

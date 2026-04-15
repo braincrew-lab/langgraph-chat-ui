@@ -11,6 +11,8 @@ const VALID_AUTH_MODES: AuthMode[] = [
   "email",
   "oauth-direct",
   "standalone",
+  "custom-jwt",
+  "api-key",
 ];
 
 /**
@@ -43,17 +45,37 @@ export function useAuthMode(): AuthMode {
 }
 
 /**
- * Check if the current mode requires NextAuth
+ * Check if the current mode initializes NextAuth
  */
-export function useRequiresNextAuth(): boolean {
+export function useUsesNextAuth(): boolean {
   const mode = useAuthMode();
   return mode === "oauth" || mode === "credentials" || mode === "email";
 }
 
 /**
- * Check if the current mode allows anonymous access
+ * Check if the current mode shows a login UI
+ */
+export function useRequiresLoginUI(): boolean {
+  const mode = useAuthMode();
+  return (
+    mode === "oauth" ||
+    mode === "credentials" ||
+    mode === "email" ||
+    mode === "custom-jwt" ||
+    mode === "api-key"
+  );
+}
+
+/**
+ * @deprecated Use useUsesNextAuth() instead
+ */
+export function useRequiresNextAuth(): boolean {
+  return useUsesNextAuth();
+}
+
+/**
+ * @deprecated Use !useRequiresLoginUI() instead
  */
 export function useAllowsAnonymousAccess(): boolean {
-  const mode = useAuthMode();
-  return mode === "standalone" || mode === "oauth-direct";
+  return !useRequiresLoginUI();
 }

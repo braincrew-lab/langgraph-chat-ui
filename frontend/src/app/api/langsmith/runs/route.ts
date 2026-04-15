@@ -1,7 +1,7 @@
 import { Client, type Run } from "langsmith";
 import { NextRequest, NextResponse } from "next/server";
 import { LangSmithRun, buildRunHierarchy } from "@/types/langsmith";
-import { requiresNextAuth } from "@/types/auth-mode";
+import { usesNextAuth } from "@/types/auth-mode";
 
 // LangSmith Run 객체를 LangSmithRun 형식으로 변환
 function convertRun(run: Run): LangSmithRun {
@@ -47,7 +47,7 @@ const UUID_REGEX =
 
 export async function GET(req: NextRequest) {
   // Authenticate: in auth modes, require a valid session
-  if (requiresNextAuth()) {
+  if (usesNextAuth()) {
     const { auth } = await import("@/lib/auth");
     const session = await auth();
     if (!session?.user) {
