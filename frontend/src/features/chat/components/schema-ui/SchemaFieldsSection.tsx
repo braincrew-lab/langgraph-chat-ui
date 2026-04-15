@@ -11,9 +11,12 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SchemaField } from "./SchemaField";
 import type { UseSchemaUIReturn } from "@/features/chat/hooks/useSchemaUI";
+import type { SchemaFieldConfig } from "@/types/schema-ui";
 
 interface SchemaFieldsSectionProps {
   schemaUI: UseSchemaUIReturn;
+  /** Override which fields to display. When provided, used instead of optionalFields from schemaUI. */
+  fields?: SchemaFieldConfig[];
   disabled?: boolean;
   className?: string;
   fileUploadMode?: "base64" | "url";
@@ -21,6 +24,7 @@ interface SchemaFieldsSectionProps {
 
 export function SchemaFieldsSection({
   schemaUI,
+  fields: fieldsProp,
   disabled = false,
   className,
   fileUploadMode,
@@ -38,8 +42,11 @@ export function SchemaFieldsSection({
 
   const { optionalFields, rawSchema } = parsedSchema;
 
-  // Don't render if no optional fields
-  if (!optionalFields.length || !rawSchema) {
+  // Use explicit fields prop if provided, otherwise fall back to optionalFields
+  const displayFields = fieldsProp ?? optionalFields;
+
+  // Don't render if no fields to display
+  if (!displayFields.length || !rawSchema) {
     return null;
   }
 
@@ -67,7 +74,7 @@ export function SchemaFieldsSection({
               <ChevronDown className="h-3.5 w-3.5" />
             </motion.span>
             <span className="text-muted-foreground/60 text-xs">
-              ({optionalFields.length})
+              ({displayFields.length})
             </span>
           </button>
 
@@ -81,7 +88,7 @@ export function SchemaFieldsSection({
                 className="overflow-hidden"
               >
                 <div className="border-muted max-h-[200px] space-y-2 overflow-y-auto border-l-2 pt-1 pl-3">
-                  {optionalFields.map((field) => (
+                  {displayFields.map((field) => (
                     <SchemaField
                       key={field.name}
                       field={field}

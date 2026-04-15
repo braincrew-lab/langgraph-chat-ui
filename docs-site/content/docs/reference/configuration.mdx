@@ -94,6 +94,73 @@ All environment variables are configured in the `.env` file at the project root.
 |---|---|---|---|
 | `SERVER_ACTION_BODY_SIZE_LIMIT` | No | `10mb` | Maximum body size for server actions |
 
+## Input Schema Field Display (Chat Mode)
+
+When using **chat mode** (graph state with `messages` field), additional fields are classified into three tiers based on how they appear in the UI:
+
+| Tier | UI Position | Required to Submit | Red Indicator |
+|---|---|---|---|
+| **Required** | Above input box | Yes | Yes |
+| **Normal** | Above input box | No | No |
+| **NotRequired** | Advanced Input (collapsible) | No | No |
+
+### Classification Rules
+
+| Condition | Tier |
+|---|---|
+| `x-field-display: "required"` set | **Required** |
+| `x-field-display: "inline"` set | **Normal** |
+| `x-field-display: "advanced"` set | **NotRequired** |
+| In `required` array (default) | **Normal** |
+| Not in `required` array (`NotRequired` in Python) | **NotRequired** |
+
+### Backend Examples
+
+**TypedDict:**
+
+```python
+from typing import Annotated, NotRequired, TypedDict
+from pydantic import Field
+
+class InputState(TypedDict):
+    messages: Annotated[list, operator.add]
+
+    # Required — red indicator, must fill to submit
+    query: Annotated[str, Field(json_schema_extra={"x-field-display": "required"})]
+
+    # Normal — shown above input, optional
+    context: str
+
+    # NotRequired — shown in Advanced Input only
+    temperature: NotRequired[float]
+```
+
+**Pydantic BaseModel:**
+
+```python
+from pydantic import BaseModel, Field
+
+class InputState(BaseModel):
+    messages: list
+
+    # Required — red indicator, must fill to submit
+    query: str = Field(json_schema_extra={"x-field-display": "required"})
+
+    # Normal — shown above input, optional
+    context: str = Field(default="")
+
+    # NotRequired — shown in Advanced Input only
+    temperature: float = 0.7
+```
+
+> **Note:** In TypedDict, all fields are in the `required` array by default. Use `NotRequired[T]` to move a field to the Advanced Input section, or `x-field-display` for explicit control.
+
+### Form Mode
+
+In **form mode** (no `messages` field), `x-field-display` is not used. Fields follow standard JSON Schema classification:
+- Fields in `required` array → shown as required fields
+- Other fields → shown in Advanced Input
+
 ## Site Configuration (site.ts)
 
 The `src/configs/site.ts` file controls the app's appearance and behavior.

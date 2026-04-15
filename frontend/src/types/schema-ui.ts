@@ -21,6 +21,8 @@ export interface JSONSchemaProperty {
   maximum?: number;
   pattern?: string;
   format?: string;
+  /** Custom display hint for chat mode field classification */
+  "x-field-display"?: "required" | "inline" | "advanced";
 }
 
 export interface JSONSchema {
@@ -56,7 +58,24 @@ export interface SchemaFieldConfig {
 export interface ParsedInputSchema {
   uiMode: UIMode;
   requiredFields: SchemaFieldConfig[];
+  /**
+   * All non-required fields regardless of display tier.
+   * This is the union of normalFields + notRequiredFields.
+   * Kept for backward compatibility with buildSubmitPayload, resetForm, etc.
+   */
   optionalFields: SchemaFieldConfig[];
+  /**
+   * Chat mode only: optional fields that should display inline above the input box.
+   * These are fields without a default or with an empty default (null, "", [], {}).
+   * Empty array in form mode.
+   */
+  normalFields: SchemaFieldConfig[];
+  /**
+   * Chat mode only: optional fields that should display in "Advanced Input" only.
+   * These are fields with a non-empty default value.
+   * Empty array in form mode.
+   */
+  notRequiredFields: SchemaFieldConfig[];
   hasMessages: boolean;
   rawSchema: JSONSchema | null;
 }

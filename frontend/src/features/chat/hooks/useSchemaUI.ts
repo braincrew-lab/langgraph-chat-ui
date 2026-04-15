@@ -112,6 +112,8 @@ export function useSchemaUI(): UseSchemaUIReturn {
         uiMode: "chat",
         requiredFields: [],
         optionalFields: [],
+        normalFields: [],
+        notRequiredFields: [],
         hasMessages: true,
         rawSchema: null,
       };
