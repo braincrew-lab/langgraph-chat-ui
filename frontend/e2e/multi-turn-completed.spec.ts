@@ -49,16 +49,22 @@ test.describe("Multi-turn completed turns", () => {
     // Check for AI message elements
     const aiMessages = await page.evaluate(() => {
       // Look for assistant message containers
-      const messages = document.querySelectorAll("[data-message-type='ai'], [data-testid='ai-message']");
+      const messages = document.querySelectorAll(
+        "[data-message-type='ai'], [data-testid='ai-message']",
+      );
       return messages.length;
     });
 
     // If there are threads loaded with completed turns, AI messages should be visible
     // This is a non-destructive check — if no threads are loaded, that's okay
     if (aiMessages > 0) {
-      console.log(`Found ${aiMessages} AI messages — completed turn responses are visible`);
+      console.log(
+        `Found ${aiMessages} AI messages — completed turn responses are visible`,
+      );
     } else {
-      console.log("No AI messages found — no threads loaded (expected on fresh instance)");
+      console.log(
+        "No AI messages found — no threads loaded (expected on fresh instance)",
+      );
     }
 
     await page.screenshot({
