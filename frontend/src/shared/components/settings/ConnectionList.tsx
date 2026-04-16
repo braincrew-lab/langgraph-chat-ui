@@ -108,14 +108,10 @@ export function ConnectionList({ onConnectionChange }: ConnectionListProps) {
 
     await switchConnection(connection.id);
 
-    // Save API key to localStorage if provided
-    if (connection.apiKey) {
-      localStorage.setItem("lg:chat:apiKey", connection.apiKey);
-    }
-
     toast.success(`Switching to ${connection.name}...`);
 
-    // Reload page to apply connection (cookies are already set by switchConnection)
+    // Reload page to apply connection (cookies are already set by switchConnection
+    // via updateConnectionAction, which uses httpOnly cookies in production).
     setTimeout(() => {
       window.location.href = window.location.pathname;
     }, 500);

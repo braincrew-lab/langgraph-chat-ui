@@ -1,3 +1,5 @@
+"use client";
+
 import { validate } from "uuid";
 import { Thread, Client } from "@langchain/langgraph-sdk";
 import {
@@ -10,7 +12,6 @@ import {
   SetStateAction,
 } from "react";
 import { createClient } from "./client";
-import { getApiKey } from "@/lib/api-key";
 import type { ConnectionConfig } from "./Stream";
 
 export interface ThreadContextType {
@@ -45,7 +46,7 @@ export function ThreadProvider({ children, connection }: ThreadProviderProps) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
   const finalAssistantId = connection.assistantId?.trim() || undefined;
-  const apiKey = connection.apiKey || getApiKey() || undefined;
+  const apiKey = connection.apiKey || undefined;
 
   // Create client once and memoize
   const client = useMemo(() => {
