@@ -2,6 +2,7 @@ import { Client, type Run } from "langsmith";
 import { NextRequest, NextResponse } from "next/server";
 import { LangSmithRun, buildRunHierarchy } from "@/types/langsmith";
 import { usesNextAuth } from "@/types/auth-mode";
+import { internalErrorResponse } from "@/lib/api/error-response";
 
 // LangSmith Run 객체를 LangSmithRun 형식으로 변환
 function convertRun(run: Run): LangSmithRun {
@@ -137,10 +138,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ runs, hierarchy });
   } catch (error) {
-    console.error("Failed to fetch LangSmith runs:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
+    return internalErrorResponse(error, "LangSmith runs fetch failed");
   }
 }

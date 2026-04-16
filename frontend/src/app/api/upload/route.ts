@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { usesNextAuth } from "@/types/auth-mode";
 import { getSetting } from "@/lib/services/settings.service";
+import { internalErrorResponse } from "@/lib/api/error-response";
 import { writeFile, mkdir, access, constants } from "fs/promises";
 import path from "path";
 
@@ -106,13 +107,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url, filename });
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json(
-      {
-        error: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`,
-      },
-      { status: 500 },
-    );
+    return internalErrorResponse(error, "user file upload failed");
   }
 }
 
