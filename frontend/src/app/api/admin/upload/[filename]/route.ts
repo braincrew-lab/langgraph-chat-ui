@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, access, constants } from "fs/promises";
 import path from "path";
+import { auth } from "@/lib/auth";
+import { isAdmin } from "@/types/auth-mode";
+import type { UserRole } from "@/types/auth-mode";
 
 // Get upload directory (same as upload route)
 function getUploadDir(): string {
@@ -26,6 +29,14 @@ export async function GET(
   { params }: { params: Promise<{ filename: string }> },
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!isAdmin(session.user.role as UserRole)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { filename } = await params;
 
     // Security: prevent directory traversal
