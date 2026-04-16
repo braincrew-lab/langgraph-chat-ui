@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { isAdmin } from "@/types/auth-mode";
 import type { UserRole } from "@/types/auth-mode";
 import { writeFile, mkdir, access, constants } from "fs/promises";
+import { internalErrorResponse } from "@/lib/api/error-response";
 import path from "path";
 
 const ALLOWED_TYPES = [
@@ -96,13 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url, filename });
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json(
-      {
-        error: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`,
-      },
-      { status: 500 },
-    );
+    return internalErrorResponse(error, "admin file upload failed");
   }
 }
 

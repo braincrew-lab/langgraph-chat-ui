@@ -6,6 +6,7 @@ import { resolveApiUrl } from "@/lib/connections/resolve";
 import { getAuthMode, usesNextAuth } from "@/types/auth-mode";
 import { generateUserJWT } from "@/lib/auth/jwt";
 import { isPrivateUrl } from "@/lib/utils/url-validation";
+import { internalErrorResponse } from "@/lib/api/error-response";
 
 function getCorsHeaders(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -156,8 +157,7 @@ async function handleRequest(req: NextRequest, method: string) {
       },
     });
   } catch (e) {
-    const error = e as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return internalErrorResponse(e, "proxy request failed");
   }
 }
 
