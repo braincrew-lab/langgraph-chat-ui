@@ -8,6 +8,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { LoaderCircle, ArrowRight, Key } from "lucide-react";
 import { useAuthContext } from "../AuthLayoutClient";
+import { setApiKeyCookieAction } from "@/app/actions";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -67,8 +68,9 @@ export function ApiKeyLoginForm() {
       const data = await response.json();
 
       if (data.valid) {
-        // Store API key in cookie via the existing connection mechanism
-        document.cookie = `lg_apiKey=${encodeURIComponent(apiKey.trim())}; path=/; max-age=${365 * 24 * 3600}; samesite=lax`;
+        // Store the API key as an httpOnly cookie via a server action so it is
+        // not readable from JS (mitigates XSS exfiltration).
+        await setApiKeyCookieAction(apiKey.trim());
         router.push("/");
         router.refresh();
       } else {

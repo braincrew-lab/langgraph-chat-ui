@@ -55,6 +55,35 @@ export async function updateConnectionAction(connection: {
 }
 
 /**
+ * Server action to set only the API key as an httpOnly cookie.
+ *
+ * Used by the API-key login form, which collects only an apiKey (no apiUrl).
+ * Replaces direct `document.cookie =` writes that left the key JS-readable.
+ */
+export async function setApiKeyCookieAction(apiKey: string) {
+  await requireAuth();
+  const trimmed = apiKey.trim();
+
+  const cookieStore = await cookies();
+
+  if (!trimmed) {
+    cookieStore.delete(CONNECTION_COOKIE_NAMES.apiKey);
+    return { success: true };
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+  cookieStore.set(CONNECTION_COOKIE_NAMES.apiKey, trimmed, {
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: "lax" as const,
+    httpOnly: isProduction,
+    secure: isProduction,
+  });
+
+  return { success: true };
+}
+
+/**
  * Server action to update only the assistantId
  */
 export async function updateAssistantIdAction(assistantId: string | null) {
