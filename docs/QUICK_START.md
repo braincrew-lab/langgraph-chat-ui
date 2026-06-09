@@ -4,7 +4,7 @@ The fastest way to get LangGraph Chat UI running locally with no authentication.
 
 ## Prerequisites
 
-- Node.js 18+, pnpm 8+
+- Node.js 22.13+, pnpm 10+ (the project pins pnpm 11.5.2)
 - A LangGraph server running (e.g. `langgraph dev`)
 
 ## Steps
@@ -15,6 +15,8 @@ cd langgraph-chat-ui
 pnpm install
 pnpm launch   # interactive setup — select "standalone" mode
 ```
+
+If pnpm is unavailable or does not use the pinned version, run `corepack enable` and retry.
 
 Or manually:
 

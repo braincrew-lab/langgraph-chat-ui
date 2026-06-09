@@ -1068,8 +1068,8 @@ async function runSetup(config: SetupConfig) {
   if (needsDatabase) {
     s.start(t("settingUpDb"));
     try {
-      await runAsync("npx", ["prisma", "generate"], { cwd: FRONTEND_DIR });
-      await runAsync("npx", ["prisma", "db", "push", "--skip-generate"], { cwd: FRONTEND_DIR });
+      await runAsync("pnpm", ["exec", "prisma", "generate"], { cwd: FRONTEND_DIR });
+      await runAsync("pnpm", ["exec", "prisma", "db", "push", "--skip-generate"], { cwd: FRONTEND_DIR });
       s.stop(t("dbReady"));
     } catch (error) {
       s.stop(LANG === "ko" ? "데이터베이스 설정 실패" : "Failed to setup database");
@@ -1162,16 +1162,24 @@ async function runDevelopment(config: SetupConfig) {
 
   p.log.info(pc.dim(t("pressCtrlC")));
 
-  // Run dev server with minimal output
+  // Run dev server and surface its logs so startup failures are actionable.
   const devProcess = crossSpawn("pnpm", ["dev"], {
     cwd: FRONTEND_DIR,
-    stdio: ["ignore", "ignore", "ignore"],
+    stdio: ["ignore", "inherit", "inherit"],
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
   });
 
   devProcess.on("error", (err) => {
     p.log.error(`Failed to start dev server: ${err.message}`);
     process.exit(1);
+  });
+
+  devProcess.on("close", (code, signal) => {
+    if (signal) {
+      p.log.error(`Development server exited with signal ${signal}`);
+      process.exit(1);
+    }
+    process.exit(code ?? 1);
   });
 
   // Handle exit
@@ -1359,13 +1367,21 @@ ${pc.cyan(`tail -f ${logFile}`)}`,
 
     const startProcess = crossSpawn("pnpm", ["start"], {
       cwd: FRONTEND_DIR,
-      stdio: ["ignore", "ignore", "ignore"],
+      stdio: ["ignore", "inherit", "inherit"],
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
     });
 
     startProcess.on("error", (err) => {
       p.log.error(`Failed to start server: ${err.message}`);
       process.exit(1);
+    });
+
+    startProcess.on("close", (code, signal) => {
+      if (signal) {
+        p.log.error(`Production server exited with signal ${signal}`);
+        process.exit(1);
+      }
+      process.exit(code ?? 1);
     });
 
     process.on("SIGINT", () => {
@@ -1520,14 +1536,14 @@ function getEnvVarsForProduction(config: SetupConfig): string {
 }
 
 function createDockerfile() {
-  const dockerfile = `FROM node:20-alpine AS base
+  const dockerfile = `FROM node:22.13-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 RUN corepack enable pnpm && pnpm i --frozen-lockfile
 
 # Rebuild the source code only when needed

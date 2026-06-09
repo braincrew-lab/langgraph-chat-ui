@@ -54,8 +54,8 @@ A Next.js web app for interacting with [LangGraph](https://github.com/langchain-
 
 ### Prerequisites
 
-- **Node.js** 18+
-- **pnpm** 8+
+- **Node.js** 22.13+
+- **pnpm** 10+ (the project pins pnpm 11.5.2)
 - A running **LangGraph server** (`langgraph dev`)
 
 ### Installation
@@ -68,6 +68,8 @@ pnpm launch
 ```
 
 `pnpm launch` runs an interactive setup wizard: run mode, auth mode, LangGraph server URL, LangSmith API key, database migration, and auto-start.
+
+If pnpm is unavailable or does not use the pinned version, run `corepack enable` and retry.
 
 > See `examples/` for per-mode configuration examples.
 

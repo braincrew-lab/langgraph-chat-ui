@@ -38,7 +38,7 @@ if (schema !== originalSchema) {
 
 // Run prisma generate
 try {
-  execSync("npx prisma generate", {
+  execSync("pnpm exec prisma generate", {
     stdio: "inherit",
     cwd: resolve(__dirname, ".."),
   });
@@ -46,7 +46,7 @@ try {
   console.warn(
     "[prisma-generate] Failed to generate Prisma client. " +
       "This is OK if you are using AUTH_MODE=none (no database required). " +
-      "If you need authentication, check your network/SSL settings and run: npx prisma generate",
+      "If you need authentication, check your network/SSL settings and run: pnpm exec prisma generate",
   );
 
   // Create stub .prisma/client so the bundler can resolve the module.

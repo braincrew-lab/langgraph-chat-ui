@@ -1,0 +1,14 @@
+confirmModulesPurge: false
+
+hoistPattern:
+  - "**"
+
+allowBuilds:
+  "@parcel/watcher": true
+  "@prisma/client": true
+  "@prisma/engines": true
+  "@swc/core": true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
