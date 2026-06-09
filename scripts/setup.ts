@@ -369,6 +369,10 @@ const i18n = {
     ko: "URL은 http:// 또는 https://로 시작해야 합니다",
     en: "URL must start with http:// or https://",
   },
+  urlInvalid: {
+    ko: "올바른 URL을 입력하세요",
+    en: "Enter a valid URL",
+  },
   secretRequired: {
     ko: "시크릿을 입력하세요",
     en: "Secret is required",
@@ -602,6 +606,44 @@ const AUTH_MODE_TO_EXAMPLE: Record<AuthMode, string> = {
   "oauth-direct": "oauth-direct",
 };
 
+function validateHttpUrl(value: string): string | undefined {
+  if (!value) return t("urlRequired");
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return t("urlMustStartWithHttp");
+    }
+  } catch {
+    return t("urlInvalid");
+  }
+}
+
+function getConfiguredPort(frontendUrl: string): string | undefined {
+  const match = frontendUrl.match(
+    /^https?:\/\/(?:\[[^\]]+\]|[^/:?#]+):(\d+)(?:[/?#]|$)/i
+  );
+  return match?.[1];
+}
+
+function getServerScriptArgs(
+  script: "dev" | "start",
+  frontendUrl: string
+): string[] {
+  const port = getConfiguredPort(frontendUrl);
+  return port ? [script, "-p", port] : [script];
+}
+
+function getServerEnv(frontendUrl: string): NodeJS.ProcessEnv {
+  const port = getConfiguredPort(frontendUrl);
+
+  return {
+    ...process.env,
+    NODE_NO_WARNINGS: "1",
+    ...(port ? { PORT: port } : {}),
+  };
+}
+
 const DEFAULT_BRANDING = {
   appName: "LangGraph Chat",
   logoUrl: "/logo.png",
@@ -771,10 +813,7 @@ async function gatherConfig(): Promise<SetupConfig | null> {
   const langGraphUrl = await p.text({
     message: t("enterLangGraphUrl"),
     initialValue: "http://localhost:2024",
-    validate: (value) => {
-      if (!value) return t("urlRequired");
-      if (!value.startsWith("http")) return t("urlMustStartWithHttp");
-    },
+    validate: validateHttpUrl,
   });
 
   if (p.isCancel(langGraphUrl)) return null;
@@ -811,10 +850,7 @@ async function gatherConfig(): Promise<SetupConfig | null> {
   const frontendUrl = await p.text({
     message: t("enterProductionUrl"),
     initialValue: "http://localhost:3000",
-    validate: (value) => {
-      if (!value) return t("urlRequired");
-      if (!value.startsWith("http")) return t("urlMustStartWithHttp");
-    },
+    validate: validateHttpUrl,
   });
 
   if (p.isCancel(frontendUrl)) return null;
@@ -1163,11 +1199,15 @@ async function runDevelopment(config: SetupConfig) {
   p.log.info(pc.dim(t("pressCtrlC")));
 
   // Run dev server and surface its logs so startup failures are actionable.
-  const devProcess = crossSpawn("pnpm", ["dev"], {
-    cwd: FRONTEND_DIR,
-    stdio: ["ignore", "inherit", "inherit"],
-    env: { ...process.env, NODE_NO_WARNINGS: "1" },
-  });
+  const devProcess = crossSpawn(
+    "pnpm",
+    getServerScriptArgs("dev", config.frontendUrl),
+    {
+      cwd: FRONTEND_DIR,
+      stdio: ["ignore", "inherit", "inherit"],
+      env: getServerEnv(config.frontendUrl),
+    }
+  );
 
   devProcess.on("error", (err) => {
     p.log.error(`Failed to start dev server: ${err.message}`);
@@ -1291,6 +1331,7 @@ async function runSelfHosted(config: SetupConfig, s: ReturnType<typeof p.spinner
       execSync("pm2 start pnpm --name langgraph-chat-ui -- start", {
         cwd: FRONTEND_DIR,
         stdio: "inherit",
+        env: getServerEnv(config.frontendUrl),
       });
 
       p.log.success(pc.green(t("serverStartedBackground")));
@@ -1321,6 +1362,7 @@ ${pc.cyan("pm2 logs langgraph-chat-ui")}`,
         cwd: FRONTEND_DIR,
         detached: true,
         stdio: ["ignore", fs.openSync(logFile, "a"), fs.openSync(logFile, "a")],
+        env: getServerEnv(config.frontendUrl),
       }).unref();
 
       // Get the PID
@@ -1365,11 +1407,15 @@ ${pc.cyan(`tail -f ${logFile}`)}`,
 
     p.log.info(pc.dim(t("pressCtrlC")));
 
-    const startProcess = crossSpawn("pnpm", ["start"], {
-      cwd: FRONTEND_DIR,
-      stdio: ["ignore", "inherit", "inherit"],
-      env: { ...process.env, NODE_NO_WARNINGS: "1" },
-    });
+    const startProcess = crossSpawn(
+      "pnpm",
+      getServerScriptArgs("start", config.frontendUrl),
+      {
+        cwd: FRONTEND_DIR,
+        stdio: ["ignore", "inherit", "inherit"],
+        env: getServerEnv(config.frontendUrl),
+      }
+    );
 
     startProcess.on("error", (err) => {
       p.log.error(`Failed to start server: ${err.message}`);
