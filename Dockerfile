@@ -6,16 +6,16 @@
 # ============================================================================
 
 # ---------- Stage 1: base ----------
-FROM node:20-alpine AS base
+FROM node:22.13-alpine AS base
 RUN apk add --no-cache libc6-compat openssl
 RUN corepack enable pnpm
 
 # ---------- Stage 2: deps ----------
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./frontend/
 RUN cd frontend && pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- Stage 3: builder ----------

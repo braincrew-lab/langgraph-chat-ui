@@ -54,8 +54,8 @@
 
 ### 요구사항
 
-- **Node.js** 18+
-- **pnpm** 8+
+- **Node.js** 22.13+
+- **pnpm** 10+ (프로젝트는 pnpm 11.5.2를 고정 사용)
 - 실행 중인 **LangGraph 서버** (`langgraph dev`)
 
 ### 설치 및 실행
@@ -68,6 +68,8 @@ pnpm launch
 ```
 
 `pnpm launch`를 실행하면 대화형 설정 마법사가 시작됩니다: 실행 모드, 인증 모드, LangGraph 서버 URL, LangSmith API 키, 데이터베이스 마이그레이션, 서버 자동 시작.
+
+pnpm을 사용할 수 없거나 고정 버전이 적용되지 않으면 `corepack enable` 실행 후 다시 시도하세요.
 
 > 인증 모드별 상세 설정은 `examples/` 폴더의 예제를 참고하세요.
 
